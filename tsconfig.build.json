@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.jsonc",
+  "include": [],
+  "compilerOptions": {
+    "stripInternal": true
+  },
+  "references": [
+    { "path": "packages/amp/tsconfig.build.json" }
+  ]
+}

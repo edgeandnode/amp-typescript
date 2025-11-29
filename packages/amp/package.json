@@ -1,0 +1,31 @@
+{
+  "name": "@edgeandnode/amp",
+  "version": "0.0.51",
+  "type": "module",
+  "license": "BUSL-1.1",
+  "description": "Build and manage blockchain datasets.",
+  "homepage": "https://www.edgeandnode.com/amp-dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edgeandnode/amp-typescript",
+    "directory": "packages/amp"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
+  "peerDependencies": {
+    "effect": "^3.19.8"
+  },
+  "devDependencies": {
+    "effect": "^3.19.8"
+  }
+}
