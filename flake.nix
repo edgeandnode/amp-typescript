@@ -21,6 +21,8 @@
             corepack
             nodejs_24
             python3
+
+            go
           ];
         };
       });

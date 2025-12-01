@@ -21,7 +21,6 @@ export default defineConfig(
     plugins: {
       "simple-import-sort": simpleImportSort,
       "sort-destructure-keys": sortDestructureKeys,
-      "unused-imports": unusedImports
     },
 
     languageOptions: {
@@ -130,5 +129,27 @@ export default defineConfig(
     rules: {
       "no-console": "error"
     }
-  }
+  },
+  {
+    files: ["scratchpad/eslint/**/*"],
+    plugins: {
+      "unused-imports": unusedImports
+    },
+    rules: {
+      "unused-imports/no-unused-imports": "error",
+      "@effect/dprint": [
+        "error",
+        {
+          config: {
+            indentWidth: 2,
+            lineWidth: 80,
+            semiColons: "asi",
+            quoteStyle: "alwaysDouble",
+            trailingCommas: "never",
+            operatorPosition: "maintain",
+            "arrowFunction.useParentheses": "force"
+          }
+        }
+      ]
+    }
 )

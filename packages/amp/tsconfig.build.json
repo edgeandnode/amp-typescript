@@ -5,6 +5,7 @@
     "tsBuildInfoFile": ".tsbuildinfo/build.tsbuildinfo",
     "outDir": "dist",
     "types": ["node"],
+    "erasableSyntaxOnly": false,
     "stripInternal": true
   }
 }

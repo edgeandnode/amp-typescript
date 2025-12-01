@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.src.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".tsbuildinfo/build.tsbuildinfo",
+    "outDir": "dist",
+    "types": ["node"],
+    // For some completely absurd reason, the `@bufbuild/protoc-gen-es` plugin 
+    // does not support generating enum values as anything other than TypeScript
+    // enums at this time, so we cannot yet enable this flag.
+    //
+    // See https://github.com/bufbuild/protobuf-es/issues/1139.
+    "erasableSyntaxOnly": false,
+    "stripInternal": true
+  }
+}
