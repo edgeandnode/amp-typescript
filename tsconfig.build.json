@@ -6,6 +6,7 @@
     "stripInternal": true
   },
   "references": [
-    { "path": "packages/amp/tsconfig.build.json" }
+    { "path": "packages/amp/tsconfig.build.json" },
+    { "path": "packages/arrow-flight-json/tsconfig.build.json" }
   ]
 }

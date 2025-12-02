@@ -1,0 +1,25 @@
+{
+  "name": "@edgeandnode/arrow-flight-json",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "BUSL-1.1",
+  "description": "Decode Arrow Flight responses into JSON",
+  "homepage": "https://www.edgeandnode.com/amp-dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edgeandnode/amp-typescript",
+    "directory": "packages/arrow-flight-json"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ]
+}

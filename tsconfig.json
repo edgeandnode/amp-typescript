@@ -3,6 +3,7 @@
   "extends": "./tsconfig.base.jsonc",
   "include": [],
   "references": [
-    { "path": "packages/amp" }
+    { "path": "packages/amp" },
+    { "path": "packages/arrow-flight-json" }
   ]
 }
