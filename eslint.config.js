@@ -20,7 +20,7 @@ export default defineConfig(
   {
     plugins: {
       "simple-import-sort": simpleImportSort,
-      "sort-destructure-keys": sortDestructureKeys,
+      "sort-destructure-keys": sortDestructureKeys
     },
 
     languageOptions: {
@@ -70,7 +70,6 @@ export default defineConfig(
       "import-x/order": "off",
       "simple-import-sort/imports": "off",
       "sort-destructure-keys/sort-destructure-keys": "error",
-      "unused-imports/no-unused-imports": "error",
       "deprecation/deprecation": "off",
 
       "@typescript-eslint/array-type": [
@@ -152,4 +151,5 @@ export default defineConfig(
         }
       ]
     }
+  }
 )

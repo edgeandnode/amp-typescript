@@ -1,14 +1,14 @@
 {
-  "name": "@edgeandnode/arrow-flight-json",
+  "name": "@edgeandnode/arrow-flight-ipc",
   "version": "0.0.0",
   "type": "module",
   "license": "BUSL-1.1",
-  "description": "Decode Arrow Flight responses into JSON",
+  "description": "Utilities for working with Arrow Flight IPC messages",
   "homepage": "https://www.edgeandnode.com/amp-dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/edgeandnode/amp-typescript",
-    "directory": "packages/arrow-flight-json"
+    "directory": "packages/arrow-flight-ipc"
   },
   "exports": {
     "./package.json": "./package.json",

@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@uwdata/flechette": "^2.2.6",
-    "apache-arrow": "^21.1.0"
+    "apache-arrow": "^21.1.0",
+    "@edgeandnode/arrow-flight-ipc": "workspace:*"
   }
 }

@@ -56,6 +56,9 @@ importers:
 
   packages/amp:
     dependencies:
+      '@edgeandnode/arrow-flight-ipc':
+        specifier: workspace:*
+        version: link:../arrow-flight-ipc
       '@uwdata/flechette':
         specifier: ^2.2.6
         version: 2.2.6
@@ -81,6 +84,8 @@ importers:
       effect:
         specifier: ^3.19.8
         version: 3.19.8
+
+  packages/arrow-flight-ipc: {}
 
   scratchpad:
     dependencies:

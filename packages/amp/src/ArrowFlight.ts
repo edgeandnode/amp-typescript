@@ -1,18 +1,19 @@
-import { RecordBatchReader, tableFromIPC } from 'apache-arrow'
 import { create, toBinary } from "@bufbuild/protobuf"
 import { anyPack, AnySchema } from "@bufbuild/protobuf/wkt"
 import { type Client, createClient, type Transport as ConnectTransport } from "@connectrpc/connect"
+import { getMessageType, MessageHeaderType } from "@edgeandnode/arrow-flight-ipc/core/types"
+import { decodeRecordBatch } from "@edgeandnode/arrow-flight-ipc/record-batch/decoder"
+import { recordBatchToJson } from "@edgeandnode/arrow-flight-ipc/record-batch/json"
+import { parseRecordBatch } from "@edgeandnode/arrow-flight-ipc/record-batch/parser"
+import { parseSchema } from "@edgeandnode/arrow-flight-ipc/schema/parser"
+import type { ArrowSchema } from "@edgeandnode/arrow-flight-ipc/schema/types"
+import * as Console from "effect/Console"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
-import {
-  type FlightData,
-  FlightDescriptor_DescriptorType,
-  FlightDescriptorSchema,
-  FlightService
-} from "./proto/Flight_pb.ts"
+import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./proto/Flight_pb.ts"
 import { CommandStatementQuerySchema } from "./proto/FlightSql_pb.ts"
 
 /**
@@ -100,12 +101,17 @@ export class ArrowFlight extends Context.Tag("@edgeandnode/amp/ArrowFlight")<Arr
    * The Connect `Client` that will be used to execute Arrow Flight queries.
    */
   readonly client: Client<typeof FlightService>
+
+  readonly query: (query: string) => Effect.Effect<any>
 }>() {}
 
 const make = Effect.gen(function*() {
   const transport = yield* Transport
   const client = createClient(FlightService, transport)
 
+  /**
+   * Execute a SQL query and return a stream of rows.
+   */
   const request = Effect.fn("ArrowFlight.request")(function*(query: string) {
     const cmd = create(CommandStatementQuerySchema, { query })
     const any = anyPack(CommandStatementQuerySchema, cmd)
@@ -140,22 +146,40 @@ const make = Effect.gen(function*() {
         client.doGet(ticket, { signal: controller.signal }),
         (cause) => new RpcError({ cause, method: "doGet" })
       )
-    })).pipe(Stream.map(flightDataToIPC))
+    }))
 
-    yield* flightDataStream.pipe(
-      Stream.runForEach((table) =>
-        Effect.sync(() => {
-          console.dir(table, { depth: null, colors: true })
-        })
-      )
+    let schema: ArrowSchema | undefined
+
+    // Convert FlightData stream to a stream of rows
+    return yield* flightDataStream.pipe(
+      Stream.runForEach(Effect.fnUntraced(function*(flightData) {
+        const messageType = yield* getMessageType(flightData)
+
+        switch (messageType) {
+          case MessageHeaderType.SCHEMA: {
+            schema = yield* parseSchema(flightData)
+            break
+          }
+          case MessageHeaderType.RECORD_BATCH: {
+            const recordBatch = yield* parseRecordBatch(flightData)
+            const decodedRecordBatch = decodeRecordBatch(recordBatch, flightData.dataBody, schema!)
+            const json = recordBatchToJson(decodedRecordBatch)
+            yield* Console.dir(json, { depth: null, colors: true })
+            break
+          }
+        }
+
+        return yield* Effect.void
+      }))
     )
   })
 
-  // Test code
-  yield* Effect.orDie(request("SELECT * FROM intTable"))
-
   return {
-    client
+    client,
+    /**
+     * Execute a SQL query and return a stream of rows.
+     */
+    query: request
   } as const
 })
 
@@ -163,57 +187,4 @@ const make = Effect.gen(function*() {
  * A layer which constructs a concrete implementation of an `ArrowFlight`
  * service and depends upon some implementation of a `Transport`.
  */
-export const layer: Layer.Layer<ArrowFlight, never, Transport> = Layer.effect(ArrowFlight, make)
-
-/**
- * Converts a `FlightData` payload into Apache Arrow IPC format.
- */
-const flightDataToIPC = (flightData: FlightData): Uint8Array => {
-  // Arrow IPC Stream format requires:
-  // 1. Continuation indicator (4 bytes): 0xFFFFFFFF
-  // 2. Metadata length (4 bytes, little-endian)
-  // 3. Metadata (padded to 8-byte boundary)
-  // 4. Body data (already 8-byte aligned)
-
-  const continuationToken = new Uint8Array([0xFF, 0xFF, 0xFF, 0xFF])
-
-  // Get metadata length
-  const metadataLength = flightData.dataHeader.length
-  const metadataLengthBytes = new Uint8Array(4)
-  new DataView(metadataLengthBytes.buffer).setUint32(0, metadataLength, true) // little-endian
-
-  // Calculate padding needed to align to 8 bytes
-  const paddingSize = (8 - ((8 + metadataLength) % 8)) % 8
-  const padding = new Uint8Array(paddingSize)
-
-  // Combine all parts
-  const totalLength = continuationToken.length + // 4 bytes
-    metadataLengthBytes.length + // 4 bytes
-    metadataLength + // variable
-    paddingSize + // 0-7 bytes
-    flightData.dataBody.length // variable
-
-  const ipcMessage = new Uint8Array(totalLength)
-  let offset = 0
-
-  // Write continuation token
-  ipcMessage.set(continuationToken, offset)
-  offset += continuationToken.length
-
-  // Write metadata length
-  ipcMessage.set(metadataLengthBytes, offset)
-  offset += metadataLengthBytes.length
-
-  // Write metadata
-  ipcMessage.set(flightData.dataHeader, offset)
-  offset += metadataLength
-
-  // Write padding
-  ipcMessage.set(padding, offset)
-  offset += paddingSize
-
-  // Write body
-  ipcMessage.set(flightData.dataBody, offset)
-
-  return ipcMessage
-}
+export const layer: Layer.Layer<ArrowFlight, ArrowFlightQueryError, Transport> = Layer.effect(ArrowFlight, make)
