@@ -36,7 +36,7 @@
     "@bufbuild/protobuf": "^2.10.1",
     "@connectrpc/connect": "^2.1.1",
     "@connectrpc/connect-node": "^2.1.1",
-    "effect": "^3.19.8"
+    "effect": "^3.19.11"
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.61.0",
@@ -44,6 +44,10 @@
     "@bufbuild/protoc-gen-es": "^2.10.1",
     "@connectrpc/connect": "^2.1.1",
     "@connectrpc/connect-node": "^2.1.1",
-    "effect": "^3.19.8"
+    "effect": "^3.19.11"
+  },
+  "dependencies": {
+    "@uwdata/flechette": "^2.2.6",
+    "apache-arrow": "^21.1.0"
   }
 }
