@@ -22,7 +22,7 @@ import {
   CompressionCodec,
   FieldNode,
   RecordBatch
-} from "./types.js"
+} from "./types.ts"
 
 // =============================================================================
 // Parsers
