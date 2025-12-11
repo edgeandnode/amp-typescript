@@ -64,7 +64,14 @@ importers:
         version: 8.49.0(eslint@9.39.1)(typescript@5.9.3)
       vitest:
         specifier: ^4.0.15
+<<<<<<< HEAD
         version: 4.0.15(@types/node@25.0.0)(@vitest/ui@4.0.15)
+=======
+        version: 4.0.15(@types/node@25.0.0)(@vitest/ui@4.0.15)(tsx@4.21.0)
+      vitest-mock-express:
+        specifier: ^2.2.0
+        version: 2.2.0
+>>>>>>> a6ad436 (test(harness): small fixes)
 
   packages/amp:
     dependencies:
@@ -579,6 +586,9 @@ packages:
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
 
+  '@types/body-parser@1.19.6':
+    resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
+
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
@@ -588,20 +598,50 @@ packages:
   '@types/command-line-usage@5.0.4':
     resolution: {integrity: sha512-BwR5KP3Es/CSht0xqBcUXS3qCAUVXwpRKsV2+arxeb65atasuXG9LykC9Ab10Cw3s2raH92ZqOeILaQbsB2ACg==}
 
+  '@types/connect@3.4.38':
+    resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
+
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/express-serve-static-core@4.19.7':
+    resolution: {integrity: sha512-FvPtiIf1LfhzsaIXhv/PHan/2FeQBbtBDtfX2QfvPxdUelMDEckK08SM6nqo1MIZY3RUlfA+HV8+hFUSio78qg==}
+
+  '@types/express@4.17.25':
+    resolution: {integrity: sha512-dVd04UKsfpINUnK0yBoYHDF3xu7xVH4BuDotC/xGuycx4CgbP48X/KF/586bcObxT0HENHXEU8Nqtu6NR+eKhw==}
+
+  '@types/http-errors@2.0.5':
+    resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/mime@1.3.5':
+    resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
 
   '@types/node@24.10.1':
     resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
 
   '@types/node@25.0.0':
     resolution: {integrity: sha512-rl78HwuZlaDIUSeUKkmogkhebA+8K1Hy7tddZuJ3D0xV8pZSfsYGTsliGUol1JPzu9EKnTxPC4L1fiWouStRew==}
+
+  '@types/qs@6.14.0':
+    resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
+
+  '@types/range-parser@1.2.7':
+    resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
+
+  '@types/send@0.17.6':
+    resolution: {integrity: sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og==}
+
+  '@types/send@1.2.1':
+    resolution: {integrity: sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==}
+
+  '@types/serve-static@1.15.10':
+    resolution: {integrity: sha512-tRs1dB+g8Itk72rlSI2ZrW6vZg0YrLI81iQSTkMmOqnqCaNr/8Ek4VwWcN5vZgCYWbg/JJSGBlUaYGAOP73qBw==}
 
   '@typescript-eslint/eslint-plugin@8.49.0':
     resolution: {integrity: sha512-JXij0vzIaTtCwu6SxTh8qBc66kmf1xs7pI4UOiMDFVct6q86G0Zs7KRcEoJgY3Cav3x5Tq0MF5jwgpgLqgKG3A==}
@@ -1513,6 +1553,9 @@ packages:
       yaml:
         optional: true
 
+  vitest-mock-express@2.2.0:
+    resolution: {integrity: sha512-JoKVdo9KM4K5wo9GcQ0GabiRFU5XP2yJVMFv9R/C6arcv5wTPoDAiama2jJelO/ieIq+XcGETLr/V4vjCuqofA==}
+
   vitest@4.0.15:
     resolution: {integrity: sha512-n1RxDp8UJm6N0IbJLQo+yzLZ2sQCDyl1o0LeugbPWf8+8Fttp29GghsQBjYJVmWq3gBFfe9Hs1spR44vovn2wA==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
@@ -1918,6 +1961,11 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@types/body-parser@1.19.6':
+    dependencies:
+      '@types/connect': 3.4.38
+      '@types/node': 25.0.0
+
   '@types/chai@5.2.3':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -1927,11 +1975,33 @@ snapshots:
 
   '@types/command-line-usage@5.0.4': {}
 
+  '@types/connect@3.4.38':
+    dependencies:
+      '@types/node': 25.0.0
+
   '@types/deep-eql@4.0.2': {}
 
   '@types/estree@1.0.8': {}
 
+  '@types/express-serve-static-core@4.19.7':
+    dependencies:
+      '@types/node': 25.0.0
+      '@types/qs': 6.14.0
+      '@types/range-parser': 1.2.7
+      '@types/send': 1.2.1
+
+  '@types/express@4.17.25':
+    dependencies:
+      '@types/body-parser': 1.19.6
+      '@types/express-serve-static-core': 4.19.7
+      '@types/qs': 6.14.0
+      '@types/serve-static': 1.15.10
+
+  '@types/http-errors@2.0.5': {}
+
   '@types/json-schema@7.0.15': {}
+
+  '@types/mime@1.3.5': {}
 
   '@types/node@24.10.1':
     dependencies:
@@ -1940,6 +2010,25 @@ snapshots:
   '@types/node@25.0.0':
     dependencies:
       undici-types: 7.16.0
+
+  '@types/qs@6.14.0': {}
+
+  '@types/range-parser@1.2.7': {}
+
+  '@types/send@0.17.6':
+    dependencies:
+      '@types/mime': 1.3.5
+      '@types/node': 25.0.0
+
+  '@types/send@1.2.1':
+    dependencies:
+      '@types/node': 25.0.0
+
+  '@types/serve-static@1.15.10':
+    dependencies:
+      '@types/http-errors': 2.0.5
+      '@types/node': 25.0.0
+      '@types/send': 0.17.6
 
   '@typescript-eslint/eslint-plugin@8.49.0(@typescript-eslint/parser@8.49.0(eslint@9.39.1)(typescript@5.9.3))(eslint@9.39.1)(typescript@5.9.3)':
     dependencies:
@@ -2853,7 +2942,15 @@ snapshots:
       '@types/node': 25.0.0
       fsevents: 2.3.3
 
+<<<<<<< HEAD
   vitest@4.0.15(@types/node@25.0.0)(@vitest/ui@4.0.15):
+=======
+  vitest-mock-express@2.2.0:
+    dependencies:
+      '@types/express': 4.17.25
+
+  vitest@4.0.15(@types/node@25.0.0)(@vitest/ui@4.0.15)(tsx@4.21.0):
+>>>>>>> a6ad436 (test(harness): small fixes)
     dependencies:
       '@vitest/expect': 4.0.15
       '@vitest/mocker': 4.0.15(vite@7.2.7(@types/node@25.0.0))
