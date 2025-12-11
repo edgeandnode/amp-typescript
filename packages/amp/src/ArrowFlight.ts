@@ -1,31 +1,22 @@
 import { create, toBinary } from "@bufbuild/protobuf"
 import { anyPack, AnySchema } from "@bufbuild/protobuf/wkt"
 import { type Client, createClient, type Transport as ConnectTransport } from "@connectrpc/connect"
-import { getMessageType, MessageHeaderType } from "@edgeandnode/arrow-flight-ipc/core/types"
-import { decodeRecordBatch } from "@edgeandnode/arrow-flight-ipc/record-batch/decoder"
-import { recordBatchToJson } from "@edgeandnode/arrow-flight-ipc/record-batch/json"
-import { parseRecordBatch } from "@edgeandnode/arrow-flight-ipc/record-batch/parser"
-import { parseSchema } from "@edgeandnode/arrow-flight-ipc/schema/parser"
-import type { ArrowSchema } from "@edgeandnode/arrow-flight-ipc/schema/types"
 import * as Console from "effect/Console"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
-import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./proto/Flight_pb.ts"
-import { CommandStatementQuerySchema } from "./proto/FlightSql_pb.ts"
+import { decodeRecordBatch } from "./internal/arrow-flight-ipc/Decoder.ts"
+import { recordBatchToJson } from "./internal/arrow-flight-ipc/Json.ts"
+import { parseRecordBatch } from "./internal/arrow-flight-ipc/RecordBatch.ts"
+import { type ArrowSchema, getMessageType, MessageHeaderType, parseSchema } from "./internal/arrow-flight-ipc/Schema.ts"
+import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./Protobuf/Flight_pb.ts"
+import { CommandStatementQuerySchema } from "./Protobuf/FlightSql_pb.ts"
 
-/**
- * A service which abstracts the underlying transport for a given client.
- *
- * A transport implements a protocol, such as Connect or gRPC-web, and allows
- * for the concrete clients to be independent of the protocol.
- */
-export class Transport extends Context.Tag("@edgeandnode/amp/Transport")<
-  Transport,
-  ConnectTransport
->() {}
+// =============================================================================
+// Errors
+// =============================================================================
 
 /**
  * Represents the possible errors that can occur when executing an Arrow Flight
@@ -36,6 +27,8 @@ export type ArrowFlightQueryError =
   | NoEndpointsError
   | MultipleEndpointsError
   | TicketNotFoundError
+  | ParseRecordBatchError
+  | ParseSchemaError
 
 /**
  * Represents an Arrow Flight RPC request that failed.
@@ -94,6 +87,37 @@ export class TicketNotFoundError extends Schema.TaggedError<TicketNotFoundError>
 }) {}
 
 /**
+ * Represents an error that occurred as a result of failing to parse an Apache
+ * Arrow RecordBatch.
+ */
+export class ParseRecordBatchError extends Schema.TaggedError<ParseRecordBatchError>(
+  "Amp/ParseRecordBatchError"
+)("ParseRecordBatchError", {
+  /**
+   * The underlying reason for the failure to parse a record batch.
+   */
+  cause: Schema.Defect
+}) {}
+
+/**
+ * Represents an error that occurred as a result of failing to parse an Apache
+ * Arrow Schema.
+ */
+export class ParseSchemaError extends Schema.TaggedError<ParseSchemaError>(
+  "Amp/ParseSchemaError"
+)("ParseSchemaError", {
+  /**
+   * The underlying reason for the failure to parse a schema.
+   */
+  cause: Schema.Defect
+}) {}
+
+// =============================================================================
+// Arrow Flight Service
+// =============================================================================
+
+// TODO: cleanup service interface (just implemented as is for testing right now)
+/**
  * A service which can be used to execute queries against an Arrow Flight API.
  */
 export class ArrowFlight extends Context.Tag("@edgeandnode/amp/ArrowFlight")<ArrowFlight, {
@@ -102,7 +126,7 @@ export class ArrowFlight extends Context.Tag("@edgeandnode/amp/ArrowFlight")<Arr
    */
   readonly client: Client<typeof FlightService>
 
-  readonly query: (query: string) => Effect.Effect<any>
+  readonly query: (query: string) => Effect.Effect<unknown, ArrowFlightQueryError>
 }>() {}
 
 const make = Effect.gen(function*() {
@@ -112,7 +136,7 @@ const make = Effect.gen(function*() {
   /**
    * Execute a SQL query and return a stream of rows.
    */
-  const request = Effect.fn("ArrowFlight.request")(function*(query: string) {
+  const query = Effect.fn("ArrowFlight.request")(function*(query: string) {
     const cmd = create(CommandStatementQuerySchema, { query })
     const any = anyPack(CommandStatementQuerySchema, cmd)
     const desc = create(FlightDescriptorSchema, {
@@ -153,15 +177,19 @@ const make = Effect.gen(function*() {
     // Convert FlightData stream to a stream of rows
     return yield* flightDataStream.pipe(
       Stream.runForEach(Effect.fnUntraced(function*(flightData) {
-        const messageType = yield* getMessageType(flightData)
+        const messageType = yield* Effect.orDie(getMessageType(flightData))
 
         switch (messageType) {
           case MessageHeaderType.SCHEMA: {
-            schema = yield* parseSchema(flightData)
+            schema = yield* parseSchema(flightData).pipe(
+              Effect.mapError((cause) => new ParseSchemaError({ cause }))
+            )
             break
           }
           case MessageHeaderType.RECORD_BATCH: {
-            const recordBatch = yield* parseRecordBatch(flightData)
+            const recordBatch = yield* parseRecordBatch(flightData).pipe(
+              Effect.mapError((cause) => new ParseRecordBatchError({ cause }))
+            )
             const decodedRecordBatch = decodeRecordBatch(recordBatch, flightData.dataBody, schema!)
             const json = recordBatchToJson(decodedRecordBatch)
             yield* Console.dir(json, { depth: null, colors: true })
@@ -176,10 +204,7 @@ const make = Effect.gen(function*() {
 
   return {
     client,
-    /**
-     * Execute a SQL query and return a stream of rows.
-     */
-    query: request
+    query
   } as const
 })
 
@@ -188,3 +213,18 @@ const make = Effect.gen(function*() {
  * service and depends upon some implementation of a `Transport`.
  */
 export const layer: Layer.Layer<ArrowFlight, ArrowFlightQueryError, Transport> = Layer.effect(ArrowFlight, make)
+
+// =============================================================================
+// Transport Service
+// =============================================================================
+
+/**
+ * A service which abstracts the underlying transport for a given client.
+ *
+ * A transport implements a protocol, such as Connect or gRPC-web, and allows
+ * for the concrete clients to be independent of the protocol.
+ */
+export class Transport extends Context.Tag("@edgeandnode/amp/Transport")<
+  Transport,
+  ConnectTransport
+>() {}

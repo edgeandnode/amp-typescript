@@ -2,6 +2,8 @@ import * as Schema from "effect/Schema"
 
 /**
  * An error which occurs when attempting to parse an invalid Arrow data type.
+ *
+ * @internal
  */
 export class InvalidArrowDataTypeError extends Schema.TaggedError<InvalidArrowDataTypeError>(
   "Amp/InvalidArrowDataTypeError"
@@ -13,6 +15,8 @@ export class InvalidArrowDataTypeError extends Schema.TaggedError<InvalidArrowDa
 /**
  * An error which occurs when the expected FlatBuffer message header type is not
  * valid.
+ *
+ * @internal
  */
 export class InvalidMessageTypeError extends Schema.TaggedError<InvalidMessageTypeError>(
   "Amp/InvalidMessageTypeError"
@@ -27,6 +31,8 @@ export class InvalidMessageTypeError extends Schema.TaggedError<InvalidMessageTy
 /**
  * An error which occurs when attempting to access a FlatBuffers field which
  * does not exist.
+ *
+ * @internal
  */
 export class MissingFieldError extends Schema.TaggedError<MissingFieldError>(
   "Amp/MissingFieldError"
@@ -43,6 +49,8 @@ export class MissingFieldError extends Schema.TaggedError<MissingFieldError>(
 /**
  * An error which occurs when the expected FlatBuffer message header type is not
  * the same as the received message header type.
+ *
+ * @internal
  */
 export class UnexpectedMessageTypeError extends Schema.TaggedError<UnexpectedMessageTypeError>(
   "Amp/UnexpectedMessageTypeError"

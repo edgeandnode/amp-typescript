@@ -1,5 +1,13 @@
-import { readColumnValues } from "./readers.ts"
-import type { DecodedRecordBatch } from "./types.ts"
+/**
+ * Arrow RecordBatch to JSON Conversion
+ *
+ * This module provides utilities for converting decoded Arrow RecordBatch
+ * data to JSON-compatible row objects.
+ *
+ * @internal
+ */
+import { readColumnValues } from "./Readers.ts"
+import type { DecodedRecordBatch } from "./RecordBatch.ts"
 
 export interface RecordBatchToJsonOptions {
   bigIntHandling?: "string" | "number" | "bigint"

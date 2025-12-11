@@ -1,5 +1,13 @@
-import type { ArrowField, ArrowSchema } from "../schema/types.ts"
-import { DecodedColumn, DecodedRecordBatch, getBufferTypesForType, type RecordBatch } from "./types.ts"
+/**
+ * Arrow RecordBatch Decoder
+ *
+ * This module provides utilities for decoding Arrow RecordBatch messages
+ * by combining metadata with body data.
+ *
+ * @internal
+ */
+import { DecodedColumn, DecodedRecordBatch, getBufferTypesForType, type RecordBatch } from "./RecordBatch.ts"
+import type { ArrowField, ArrowSchema } from "./Schema.ts"
 
 /**
  * Decodes a `RecordBatch` by combining metadata with body data.
@@ -10,7 +18,8 @@ export const decodeRecordBatch = (
   schema: ArrowSchema
 ): DecodedRecordBatch => {
   const extractedBuffers = recordBatch.buffers.map((descriptor) => {
-    // TODO: figure out if this can lead to bugs by converting to number
+    // TODO: figure out if this can lead to bugs due to loss of precision when
+    // converting bigint to number
     const start = Number(descriptor.offset)
     const end = start + Number(descriptor.length)
     return body.subarray(start, end)

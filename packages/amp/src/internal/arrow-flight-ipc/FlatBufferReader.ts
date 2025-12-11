@@ -1,3 +1,11 @@
+/**
+ * A utility class for reading FlatBuffer-encoded data.
+ *
+ * FlatBuffers are a serialization format that allows efficient reading of
+ * structured data without parsing or unpacking.
+ *
+ * @internal
+ */
 export class FlatBufferReader {
   private view: DataView
   private bytes: Uint8Array

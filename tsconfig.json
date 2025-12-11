@@ -3,7 +3,6 @@
   "extends": "./tsconfig.base.jsonc",
   "include": [],
   "references": [
-    { "path": "packages/amp" },
-    { "path": "packages/arrow-flight-ipc" }
+    { "path": "packages/amp" }
   ]
 }

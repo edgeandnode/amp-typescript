@@ -1,6 +1,13 @@
+/**
+ * Arrow Value Readers
+ *
+ * This module provides utilities for reading typed values from Arrow buffers.
+ *
+ * @internal
+ */
 import type { Predicate } from "effect/Predicate"
-import type { TimeBitWidth, TimeUnit, UnionMode } from "../schema/types.ts"
-import type { DecodedColumn } from "./types.ts"
+import type { DecodedColumn } from "./RecordBatch.ts"
+import type { TimeBitWidth, TimeUnit, UnionMode } from "./Schema.ts"
 
 // =============================================================================
 // Validity

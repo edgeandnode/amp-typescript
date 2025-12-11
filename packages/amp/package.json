@@ -14,7 +14,8 @@
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    "./*": "./src/*.ts",
+    "./internal/*.ts": null
   },
   "files": [
     "src/**/*.ts",
@@ -44,10 +45,5 @@
     "@connectrpc/connect": "^2.1.1",
     "@connectrpc/connect-node": "^2.1.1",
     "effect": "^3.19.8"
-  },
-  "dependencies": {
-    "@uwdata/flechette": "^2.2.6",
-    "apache-arrow": "^21.1.0",
-    "@edgeandnode/arrow-flight-ipc": "workspace:*"
   }
 }
