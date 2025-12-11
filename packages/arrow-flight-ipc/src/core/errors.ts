@@ -4,7 +4,7 @@ import * as Schema from "effect/Schema"
  * An error which occurs when attempting to parse an invalid Arrow data type.
  */
 export class InvalidArrowDataTypeError extends Schema.TaggedError<InvalidArrowDataTypeError>(
-  "@edgeandnode/amp/arrow/schema/InvalidArrowDataTypeError"
+  "Amp/InvalidArrowDataTypeError"
 )("InvalidArrowDataTypeError", {
   type: Schema.Number,
   offset: Schema.Number
@@ -15,7 +15,7 @@ export class InvalidArrowDataTypeError extends Schema.TaggedError<InvalidArrowDa
  * valid.
  */
 export class InvalidMessageTypeError extends Schema.TaggedError<InvalidMessageTypeError>(
-  "@edgeandnode/amp/arrow/schema/InvalidMessageTypeError"
+  "Amp/InvalidMessageTypeError"
 )("InvalidMessageTypeError", {
   value: Schema.Number
 }) {
@@ -29,7 +29,7 @@ export class InvalidMessageTypeError extends Schema.TaggedError<InvalidMessageTy
  * does not exist.
  */
 export class MissingFieldError extends Schema.TaggedError<MissingFieldError>(
-  "@edgeandnode/amp/arrow/schema/MissingFieldError"
+  "Amp/MissingFieldError"
 )("MissingFieldError", {
   fieldName: Schema.String,
   fieldIndex: Schema.Number,
@@ -45,7 +45,7 @@ export class MissingFieldError extends Schema.TaggedError<MissingFieldError>(
  * the same as the received message header type.
  */
 export class UnexpectedMessageTypeError extends Schema.TaggedError<UnexpectedMessageTypeError>(
-  "@edgeandnode/amp/arrow/schema/UnexpectedMessageTypeError"
+  "Amp/UnexpectedMessageTypeError"
 )("UnexpectedMessageTypeError", {
   expected: Schema.Number,
   received: Schema.Number
