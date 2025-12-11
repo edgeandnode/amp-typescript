@@ -18,6 +18,7 @@ import { CommandStatementQuerySchema } from "./Protobuf/FlightSql_pb.ts"
 // Errors
 // =============================================================================
 
+// TODO: improve the error model
 /**
  * Represents the possible errors that can occur when executing an Arrow Flight
  * query.
@@ -34,7 +35,7 @@ export type ArrowFlightQueryError =
  * Represents an Arrow Flight RPC request that failed.
  */
 export class RpcError extends Schema.TaggedError<RpcError>(
-  "@edgeandnode/amp/RpcError"
+  "Amp/RpcError"
 )("RpcError", {
   method: Schema.String,
   /**
@@ -48,7 +49,7 @@ export class RpcError extends Schema.TaggedError<RpcError>(
  * returning an empty list of endpoints from which data can be acquired.
  */
 export class NoEndpointsError extends Schema.TaggedError<NoEndpointsError>(
-  "@edgeandnode/amp/NoEndpointsError"
+  "Amp/NoEndpointsError"
 )("NoEndpointsError", {
   /**
    * The SQL query that was requested.
@@ -65,7 +66,7 @@ export class NoEndpointsError extends Schema.TaggedError<NoEndpointsError>(
  * of data.
  */
 export class MultipleEndpointsError extends Schema.TaggedError<MultipleEndpointsError>(
-  "@edgeandnode/amp/MultipleEndpointsError"
+  "Amp/MultipleEndpointsError"
 )("MultipleEndpointsError", {
   /**
    * The SQL query that was requested.
@@ -78,7 +79,7 @@ export class MultipleEndpointsError extends Schema.TaggedError<MultipleEndpoints
  * whose endpoint did not have a ticket.
  */
 export class TicketNotFoundError extends Schema.TaggedError<TicketNotFoundError>(
-  "@edgeandnode/amp/TicketNotFoundError"
+  "Amp/TicketNotFoundError"
 )("TicketNotFoundError", {
   /**
    * The SQL query that was requested.
