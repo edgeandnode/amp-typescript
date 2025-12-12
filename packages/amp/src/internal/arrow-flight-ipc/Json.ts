@@ -6,6 +6,7 @@
  *
  * @internal
  */
+import type { DictionaryRegistry } from "./Decoder.ts"
 import { readColumnValues } from "./Readers.ts"
 import type { DecodedRecordBatch } from "./RecordBatch.ts"
 
@@ -14,6 +15,11 @@ export interface RecordBatchToJsonOptions {
   dateHandling?: "iso" | "timestamp" | "date"
   binaryHandling?: "base64" | "hex" | "array"
   includeNulls?: boolean
+  /**
+   * Dictionary registry for resolving dictionary-encoded columns.
+   * Required if the record batch contains dictionary-encoded fields.
+   */
+  dictionaryRegistry?: DictionaryRegistry
 }
 
 const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
@@ -74,13 +80,14 @@ export const recordBatchToJson = (
     bigIntHandling = "string",
     binaryHandling = "base64",
     dateHandling = "iso",
+    dictionaryRegistry,
     includeNulls = true
   } = options
 
   const opts = { bigIntHandling, dateHandling, binaryHandling }
   const numRows = Number(batch.numRows)
   const rows: Array<Record<string, unknown>> = []
-  const columnValues = new Map(batch.columns.map((c) => [c.field.name, readColumnValues(c)]))
+  const columnValues = new Map(batch.columns.map((c) => [c.field.name, readColumnValues(c, dictionaryRegistry)]))
 
   for (let i = 0; i < numRows; i++) {
     const row: Record<string, unknown> = {}

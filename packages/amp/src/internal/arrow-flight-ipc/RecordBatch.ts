@@ -164,6 +164,47 @@ export class BodyCompression {
 }
 
 // =============================================================================
+// Dictionary Batch Types
+// =============================================================================
+
+/**
+ * Represents a parsed `DictionaryBatch` message.
+ *
+ * A `DictionaryBatch` associates a dictionary ID with dictionary data. The
+ * dictionary data is stored as a `RecordBatch` containing a single column
+ * with the dictionary values.
+ *
+ * References:
+ * - https://arrow.apache.org/docs/format/Columnar.html#dictionary-encoding
+ */
+export class DictionaryBatch {
+  /**
+   * The unique identifier for this dictionary. This ID is referenced by
+   * fields that use this dictionary for encoding.
+   */
+  readonly id: bigint
+
+  /**
+   * The dictionary data as a `RecordBatch`. This contains a single field
+   * with the dictionary values.
+   */
+  readonly data: RecordBatch
+
+  /**
+   * If `true`, this batch is a delta that should be appended to an existing
+   * dictionary with the same ID. If `false`, this replaces any existing
+   * dictionary with the same ID.
+   */
+  readonly isDelta: boolean
+
+  constructor(id: bigint, data: RecordBatch, isDelta: boolean) {
+    this.id = id
+    this.data = data
+    this.isDelta = isDelta
+  }
+}
+
+// =============================================================================
 // Buffer Types
 // =============================================================================
 
@@ -510,6 +551,92 @@ const parseBodyCompression = (reader: FlatBufferReader, offset: number): BodyCom
   return new BodyCompression(codec, method)
 }
 
+/**
+ * Parse an Arrow DictionaryBatch from the raw IPC message header bytes (FlatBuffer)
+ * of a `FlightData` message.
+ *
+ * The structure mirrors `parseRecordBatch` but expects a DICTIONARY_BATCH message type.
+ *
+ * DictionaryBatch table structure:
+ *   0: id (Int64) - dictionary identifier
+ *   1: data (RecordBatch) - the dictionary values
+ *   2: isDelta (Bool) - whether this is a delta update
+ */
+export const parseDictionaryBatch = Effect.fn(function*(flightData: FlightData) {
+  const reader = new FlatBufferReader(flightData.dataHeader)
+
+  // The flatbuffer root table offset is at position 0
+  const rootOffset = reader.readOffset(0)
+
+  // Read the position of the message header union type discriminator
+  const headerTypePosition = reader.getFieldPosition(rootOffset, 1)
+  if (Predicate.isNull(headerTypePosition)) {
+    return yield* new MissingFieldError({
+      fieldName: "header_type",
+      fieldIndex: 1,
+      tableOffset: rootOffset
+    })
+  }
+
+  // Read the actual message header union type discriminator
+  const headerType = reader.readUint8(headerTypePosition)
+  if (headerType !== MessageHeaderType.DICTIONARY_BATCH) {
+    return yield* new UnexpectedMessageTypeError({
+      expected: MessageHeaderType.DICTIONARY_BATCH,
+      received: headerType
+    })
+  }
+
+  // Read the union value offset (field index 2)
+  const headerPosition = reader.getFieldPosition(rootOffset, 2)
+  if (Predicate.isNull(headerPosition)) {
+    return yield* new MissingFieldError({
+      fieldName: "header",
+      fieldIndex: 2,
+      tableOffset: rootOffset
+    })
+  }
+
+  // Read the offset position of the dictionary batch relative to the header position
+  const dictionaryBatchOffset = reader.readOffset(headerPosition)
+
+  return yield* parseDictionaryBatchTable(reader, dictionaryBatchOffset)
+})
+
+/**
+ * Parses a DictionaryBatch table.
+ *
+ * The structure of a DictionaryBatch table is as follows:
+ *   0: id (Int64) - the dictionary identifier
+ *   1: data (RecordBatch) - the dictionary values as a record batch
+ *   2: isDelta (Bool) - whether this is a delta update (default: false)
+ */
+const parseDictionaryBatchTable = Effect.fn(function*(reader: FlatBufferReader, offset: number) {
+  // Parse id
+  const idPosition = reader.getFieldPosition(offset, 0)
+  const id = Predicate.isNotNull(idPosition) ? reader.readInt64(idPosition) : 0n
+
+  // Parse data (RecordBatch)
+  const dataPosition = reader.getFieldPosition(offset, 1)
+  if (Predicate.isNull(dataPosition)) {
+    return yield* new MissingFieldError({
+      fieldName: "data",
+      fieldIndex: 1,
+      tableOffset: offset
+    })
+  }
+  const dataOffset = reader.readOffset(dataPosition)
+  const data = yield* parseRecordBatchTable(reader, dataOffset)
+
+  // Parse isDelta (default: false)
+  const isDeltaPosition = reader.getFieldPosition(offset, 2)
+  const isDelta = Predicate.isNotNull(isDeltaPosition)
+    ? reader.readUint8(isDeltaPosition) !== 0
+    : false
+
+  return new DictionaryBatch(id, data, isDelta)
+})
+
 // =============================================================================
 // Utilities
 // =============================================================================
@@ -521,4 +648,13 @@ const parseBodyCompression = (reader: FlatBufferReader, offset: number): BodyCom
 export const isRecordBatchMessage = Effect.fn(function*(flightData: FlightData) {
   const messageType = yield* getMessageType(flightData)
   return messageType === MessageHeaderType.RECORD_BATCH
+})
+
+/**
+ * Returns `true` if the provided `FlightData` header data buffer contains a
+ * dictionary batch message, otherwise returns `false`.
+ */
+export const isDictionaryBatchMessage = Effect.fn(function*(flightData: FlightData) {
+  const messageType = yield* getMessageType(flightData)
+  return messageType === MessageHeaderType.DICTIONARY_BATCH
 })

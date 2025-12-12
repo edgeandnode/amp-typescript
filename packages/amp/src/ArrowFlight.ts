@@ -7,9 +7,10 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
-import { decodeRecordBatch } from "./internal/arrow-flight-ipc/Decoder.ts"
+import { decodeDictionaryBatch, decodeRecordBatch, DictionaryRegistry } from "./internal/arrow-flight-ipc/Decoder.ts"
 import { recordBatchToJson } from "./internal/arrow-flight-ipc/Json.ts"
-import { parseRecordBatch } from "./internal/arrow-flight-ipc/RecordBatch.ts"
+import { readColumnValues } from "./internal/arrow-flight-ipc/Readers.ts"
+import { parseDictionaryBatch, parseRecordBatch } from "./internal/arrow-flight-ipc/RecordBatch.ts"
 import { type ArrowSchema, getMessageType, MessageHeaderType, parseSchema } from "./internal/arrow-flight-ipc/Schema.ts"
 import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./Protobuf/Flight_pb.ts"
 import { CommandStatementQuerySchema } from "./Protobuf/FlightSql_pb.ts"
@@ -29,6 +30,7 @@ export type ArrowFlightQueryError =
   | MultipleEndpointsError
   | TicketNotFoundError
   | ParseRecordBatchError
+  | ParseDictionaryBatchError
   | ParseSchemaError
 
 /**
@@ -96,6 +98,19 @@ export class ParseRecordBatchError extends Schema.TaggedError<ParseRecordBatchEr
 )("ParseRecordBatchError", {
   /**
    * The underlying reason for the failure to parse a record batch.
+   */
+  cause: Schema.Defect
+}) {}
+
+/**
+ * Represents an error that occurred as a result of failing to parse an Apache
+ * Arrow DictionaryBatch.
+ */
+export class ParseDictionaryBatchError extends Schema.TaggedError<ParseDictionaryBatchError>(
+  "Amp/ParseDictionaryBatchError"
+)("ParseDictionaryBatchError", {
+  /**
+   * The underlying reason for the failure to parse a dictionary batch.
    */
   cause: Schema.Defect
 }) {}
@@ -174,6 +189,7 @@ const make = Effect.gen(function*() {
     }))
 
     let schema: ArrowSchema | undefined
+    const dictionaryRegistry = new DictionaryRegistry()
 
     // Convert FlightData stream to a stream of rows
     return yield* flightDataStream.pipe(
@@ -187,12 +203,19 @@ const make = Effect.gen(function*() {
             )
             break
           }
+          case MessageHeaderType.DICTIONARY_BATCH: {
+            const dictionaryBatch = yield* parseDictionaryBatch(flightData).pipe(
+              Effect.mapError((cause) => new ParseDictionaryBatchError({ cause }))
+            )
+            decodeDictionaryBatch(dictionaryBatch, flightData.dataBody, schema!, dictionaryRegistry, readColumnValues)
+            break
+          }
           case MessageHeaderType.RECORD_BATCH: {
             const recordBatch = yield* parseRecordBatch(flightData).pipe(
               Effect.mapError((cause) => new ParseRecordBatchError({ cause }))
             )
             const decodedRecordBatch = decodeRecordBatch(recordBatch, flightData.dataBody, schema!)
-            const json = recordBatchToJson(decodedRecordBatch)
+            const json = recordBatchToJson(decodedRecordBatch, { dictionaryRegistry })
             yield* Console.dir(json, { depth: null, colors: true })
             break
           }
