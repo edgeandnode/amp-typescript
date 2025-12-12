@@ -1,25 +1,36 @@
 {
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a",
+  "packageManager": "pnpm@10.25.0+sha512.5e82639027af37cf832061bcc6d639c219634488e0f2baebe785028a793de7b525ffcd3f7ff574f5e9860654e098fe852ba8ac5dd5cefe1767d23a020a92f501",
   "scripts": {
     "check": "tspc -b tsconfig.json",
+    "clean": "node scripts/clean.mjs",
     "lint": "eslint \"**/{src,test,examples,dtslint}/**/*.{ts,mjs}\"",
-    "lint-fix": "pnpm lint --fix"
+    "lint-fix": "pnpm lint --fix",
+    "test": "vitest"
   },
   "devDependencies": {
     "@effect/eslint-plugin": "^0.3.2",
-    "@effect/language-service": "^0.57.1",
+    "@effect/language-service": "^0.62.0",
+    "@effect/vitest": "^0.27.0",
     "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.0",
+    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/ui": "^4.0.15",
+    "effect": "^3.19.11",
     "eslint": "^9.39.1",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
     "eslint-plugin-unused-imports": "^4.3.0",
+    "glob": "^13.0.0",
+    "globals": "^16.5.0",
     "ts-patch": "^3.3.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.48.0"
+    "typescript-eslint": "^8.49.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.15",
+    "vitest-mock-express": "^2.2.0"
   }
 }

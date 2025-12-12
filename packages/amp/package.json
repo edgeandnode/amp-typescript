@@ -10,10 +10,12 @@
     "url": "https://github.com/edgeandnode/amp-typescript",
     "directory": "packages/amp"
   },
+  "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    "./*": "./src/*.ts",
+    "./internal/*.ts": null
   },
   "files": [
     "src/**/*.ts",
@@ -22,10 +24,27 @@
     "dist/**/*.d.ts",
     "dist/**/*.d.ts.map"
   ],
+  "publishConfig": {
+    "provenance": true,
+    "exports": {
+      "./package.json": "./package.json",
+      ".": "./dist/index.js",
+      "./*": "./dist/*.js",
+      "./internal/*.ts": null
+    }
+  },
   "peerDependencies": {
-    "effect": "^3.19.8"
+    "@bufbuild/protobuf": "^2.10.1",
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-node": "^2.1.1",
+    "effect": "^3.19.11"
   },
   "devDependencies": {
-    "effect": "^3.19.8"
+    "@bufbuild/buf": "^1.61.0",
+    "@bufbuild/protobuf": "^2.10.1",
+    "@bufbuild/protoc-gen-es": "^2.10.1",
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-node": "^2.1.1",
+    "effect": "^3.19.11"
   }
 }

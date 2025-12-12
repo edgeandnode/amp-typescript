@@ -14,4 +14,6 @@ node_modules/
 .DS_Store
 
 # Scratchpad Files
+scratchpad/**/*.md
 scratchpad/**/*.ts 
+!scratchpad/index.ts

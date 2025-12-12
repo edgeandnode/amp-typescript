@@ -20,8 +20,7 @@ export default defineConfig(
   {
     plugins: {
       "simple-import-sort": simpleImportSort,
-      "sort-destructure-keys": sortDestructureKeys,
-      "unused-imports": unusedImports
+      "sort-destructure-keys": sortDestructureKeys
     },
 
     languageOptions: {
@@ -71,7 +70,6 @@ export default defineConfig(
       "import-x/order": "off",
       "simple-import-sort/imports": "off",
       "sort-destructure-keys/sort-destructure-keys": "error",
-      "unused-imports/no-unused-imports": "error",
       "deprecation/deprecation": "off",
 
       "@typescript-eslint/array-type": [
@@ -129,6 +127,29 @@ export default defineConfig(
     files: ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts"],
     rules: {
       "no-console": "error"
+    }
+  },
+  {
+    files: ["scratchpad/eslint/**/*"],
+    plugins: {
+      "unused-imports": unusedImports
+    },
+    rules: {
+      "unused-imports/no-unused-imports": "error",
+      "@effect/dprint": [
+        "error",
+        {
+          config: {
+            indentWidth: 2,
+            lineWidth: 80,
+            semiColons: "asi",
+            quoteStyle: "alwaysDouble",
+            trailingCommas: "never",
+            operatorPosition: "maintain",
+            "arrowFunction.useParentheses": "force"
+          }
+        }
+      ]
     }
   }
 )

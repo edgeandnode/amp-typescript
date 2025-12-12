@@ -1,3 +1,4 @@
-import * as Effect from "effect/Effect"
-
-export const program = Effect.void
+/**
+ * An implementation of the Arrow Flight protocol.
+ */
+export * as ArrowFlight from "./ArrowFlight.ts"

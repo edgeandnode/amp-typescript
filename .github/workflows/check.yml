@@ -1,0 +1,106 @@
+name: Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-version: 24.10.0
+      - run: pnpm lint
+
+  types:
+    name: Types
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-version: 24.10.0
+      - run: pnpm check
+
+  # TODO: discuss with Sebastian whether we should add Deno / Bun configuration / checks
+  # types-deno:
+  #   name: Types on Deno
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #   timeout-minutes: 10
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install dependencies
+  #       uses: ./.github/actions/setup
+  #       with:
+  #         deno-version: v2.5.x
+  #     - run: deno check .
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/1]
+        runtime: [Node] # TODO: Deno
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        if: matrix.runtime == 'Node'
+        uses: ./.github/actions/setup
+        with:
+          node-version: 24.10.0
+      - name: Test
+        if: matrix.runtime == 'Node'
+        run: pnpm test --shard ${{ matrix.shard }}
+
+      - name: Install dependencies
+        if: matrix.runtime == 'Deno'
+        uses: ./.github/actions/setup
+        with:
+          deno-version: v2.5.x
+      - name: Test
+        if: matrix.runtime == 'Deno'
+        run: deno task test --shard ${{ matrix.shard }}
+
+  # TODO: discuss with Sebastian whether we want circularity checks
+  # circular:
+  #   name: Circular Dependencies
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #   timeout-minutes: 10
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install dependencies
+  #       uses: ./.github/actions/setup
+  #       with:
+  #         node-version: 24.10.0
+  #     - name: Check for circular dependencies
+  #       run: pnpm circular
