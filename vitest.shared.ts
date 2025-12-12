@@ -10,7 +10,7 @@ const alias = (dir: string, name = `@edgeandnode/${dir}`) => ({
 const config: ViteUserConfig = {
   test: {
     alias: {
-      ...alias("arrow-flight-ipc")
+      ...alias("amp")
     },
     watch: false,
     globals: true,
