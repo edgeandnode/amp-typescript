@@ -4,6 +4,7 @@
   "packageManager": "pnpm@10.25.0+sha512.5e82639027af37cf832061bcc6d639c219634488e0f2baebe785028a793de7b525ffcd3f7ff574f5e9860654e098fe852ba8ac5dd5cefe1767d23a020a92f501",
   "scripts": {
     "check": "tspc -b tsconfig.json",
+    "clean": "node scripts/clean.mjs",
     "lint": "eslint \"**/{src,test,examples,dtslint}/**/*.{ts,mjs}\"",
     "lint-fix": "pnpm lint --fix",
     "test": "vitest"
@@ -23,6 +24,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
     "eslint-plugin-unused-imports": "^4.3.0",
+    "glob": "^13.0.0",
     "globals": "^16.5.0",
     "ts-patch": "^3.3.0",
     "typescript": "^5.9.3",

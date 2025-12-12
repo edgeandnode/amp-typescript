@@ -6,6 +6,6 @@
     "stripInternal": true
   },
   "references": [
-    { "path": "packages/amp/tsconfig.build.jsonc" }
+    { "path": "packages/amp/tsconfig.build.json" }
   ]
 }
