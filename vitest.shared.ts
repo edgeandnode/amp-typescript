@@ -1,25 +1,39 @@
 import * as path from "node:path"
-
+import viteTsconfigPaths from "vite-tsconfig-paths"
 import type { ViteUserConfig } from "vitest/config"
 
-const alias = (dir: string, name = `@edgeandnode/${dir}`) => ({
-  [`${name}/test`]: path.join(__dirname, "packages", dir, "test"),
-  [`${name}`]: path.join(__dirname, "packages", dir, "src")
-})
-
 const config: ViteUserConfig = {
+  plugins: [viteTsconfigPaths()],
+  esbuild: {
+    target: "es2020"
+  },
   test: {
-    alias: {
-      ...alias("amp")
+    setupFiles: [path.join(__dirname, "vitest.setup.ts")],
+    fakeTimers: {
+      toFake: undefined
     },
-    watch: false,
-    globals: true,
-    environment: "node",
+    sequence: {
+      concurrent: true
+    },
     include: ["test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
-    reporters: ["default"],
     coverage: {
-      reportsDirectory: "./test-output/vitest/coverage",
-      provider: "v8" as const
+      provider: "v8",
+      reporter: ["html"],
+      reportsDirectory: "coverage",
+      exclude: [
+        "node_modules/",
+        "dist/",
+        "benchmark/",
+        "bundle/",
+        "dtslint/",
+        "build/",
+        "coverage/",
+        "test/utils/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/vitest.setup.*",
+        "**/vitest.shared.*"
+      ]
     }
   }
 }

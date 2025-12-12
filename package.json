@@ -27,6 +27,7 @@
     "ts-patch": "^3.3.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.49.0",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.15",
     "vitest-mock-express": "^2.2.0"
   }
