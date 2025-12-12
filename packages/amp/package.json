@@ -29,7 +29,8 @@
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
-      "./*": "./dist/*.js"
+      "./*": "./dist/*.js",
+      "./internal/*.ts": null
     }
   },
   "peerDependencies": {
