@@ -132,7 +132,7 @@ export class FlatBufferWriter {
   }
 
   startTable(): TableBuilder {
-    return new TableBuilder(this)
+    return new TableBuilder()
   }
 
   finishTable(builder: TableBuilder): number {
