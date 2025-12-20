@@ -1,19 +1,92 @@
 import { create, toBinary } from "@bufbuild/protobuf"
 import { anyPack, AnySchema } from "@bufbuild/protobuf/wkt"
-import { type Client, createClient, type Transport as ConnectTransport } from "@connectrpc/connect"
+import {
+  type Client,
+  createClient,
+  createContextKey,
+  createContextValues,
+  type Interceptor,
+  type Transport as ConnectTransport
+} from "@connectrpc/connect"
+import * as Arr from "effect/Array"
 import * as Console from "effect/Console"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
+import { Auth } from "./Auth.ts"
 import { decodeDictionaryBatch, decodeRecordBatch, DictionaryRegistry } from "./internal/arrow-flight-ipc/Decoder.ts"
 import { recordBatchToJson } from "./internal/arrow-flight-ipc/Json.ts"
 import { readColumnValues } from "./internal/arrow-flight-ipc/Readers.ts"
 import { parseDictionaryBatch, parseRecordBatch } from "./internal/arrow-flight-ipc/RecordBatch.ts"
 import { type ArrowSchema, getMessageType, MessageHeaderType, parseSchema } from "./internal/arrow-flight-ipc/Schema.ts"
+import type { AuthInfo } from "./Models.ts"
 import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./Protobuf/Flight_pb.ts"
 import { CommandStatementQuerySchema } from "./Protobuf/FlightSql_pb.ts"
+
+// =============================================================================
+// Connect RPC Transport
+// =============================================================================
+
+/**
+ * A service which abstracts the underlying transport for a given client.
+ *
+ * A transport implements a protocol, such as Connect or gRPC-web, and allows
+ * for the concrete clients to be independent of the protocol.
+ */
+export class Transport extends Context.Tag("@edgeandnode/amp/Transport")<
+  Transport,
+  ConnectTransport
+>() {}
+
+/**
+ * A service which abstracts the set of interceptors that are passed to a given
+ * transport.
+ *
+ * An interceptor can add logic to clients or servers, similar to the decorators
+ * or middleware you may have seen in other libraries. Interceptors may
+ * mutate the request and response, catch errors and retry/recover, emit
+ * logs, or do nearly everything else.
+ */
+export class Interceptors extends Context.Reference<Interceptors>()(
+  "Amp/ArrowFlight/ConnectRPC/Interceptors",
+  { defaultValue: () => Arr.empty<Interceptor>() }
+) {}
+
+const AuthInfoContextKey = createContextKey<AuthInfo | undefined>(
+  undefined,
+  { description: "Authentication information obtained from the Amp auth server" }
+)
+
+/**
+ * A layer which will add an interceptor to the configured set of `Interceptors`
+ * which attempts to read authentication information from the Connect context
+ * values.
+ *
+ * If authentication information is found, the interceptor will add an
+ * `"Authorization"` header to the request containing a bearer token with the
+ * value of the authentication information access token.
+ */
+export const layerInterceptorBearerAuth = Layer.effectContext(
+  Effect.gen(function*() {
+    const interceptors = yield* Interceptors
+
+    const interceptor: Interceptor = (next) => (request) => {
+      const authInfo = request.contextValues.get(AuthInfoContextKey)
+
+      if (authInfo !== undefined) {
+        const accessToken = Redacted.value(authInfo.accessToken)
+        request.header.append("Authorization", `Bearer ${accessToken}`)
+      }
+      return next(request)
+    }
+
+    return Context.make(Interceptors, Arr.append(interceptors, interceptor))
+  })
+)
 
 // =============================================================================
 // Errors
@@ -24,7 +97,7 @@ import { CommandStatementQuerySchema } from "./Protobuf/FlightSql_pb.ts"
  * Represents the possible errors that can occur when executing an Arrow Flight
  * query.
  */
-export type ArrowFlightQueryError =
+export type ArrowFlightError =
   | RpcError
   | NoEndpointsError
   | MultipleEndpointsError
@@ -142,10 +215,14 @@ export class ArrowFlight extends Context.Tag("@edgeandnode/amp/ArrowFlight")<Arr
    */
   readonly client: Client<typeof FlightService>
 
-  readonly query: (query: string) => Effect.Effect<unknown, ArrowFlightQueryError>
+  /**
+   * Executes an Arrow Flight SQL query and returns
+   */
+  readonly query: (sql: string) => Effect.Effect<unknown, ArrowFlightError>
 }>() {}
 
 const make = Effect.gen(function*() {
+  const auth = yield* Effect.serviceOption(Auth)
   const transport = yield* Transport
   const client = createClient(FlightService, transport)
 
@@ -153,6 +230,15 @@ const make = Effect.gen(function*() {
    * Execute a SQL query and return a stream of rows.
    */
   const query = Effect.fn("ArrowFlight.request")(function*(query: string) {
+    // Setup the query context with authentication information, if available
+    const contextValues = createContextValues()
+    const authInfo = Option.isSome(auth)
+      ? yield* auth.value.getCachedAuthInfo
+      : Option.none<AuthInfo>()
+    if (Option.isSome(authInfo)) {
+      contextValues.set(AuthInfoContextKey, authInfo.value)
+    }
+
     const cmd = create(CommandStatementQuerySchema, { query })
     const any = anyPack(CommandStatementQuerySchema, cmd)
     const desc = create(FlightDescriptorSchema, {
@@ -161,7 +247,7 @@ const make = Effect.gen(function*() {
     })
 
     const flightInfo = yield* Effect.tryPromise({
-      try: (signal) => client.getFlightInfo(desc, { signal }),
+      try: (signal) => client.getFlightInfo(desc, { signal, contextValues }),
       catch: (cause) => new RpcError({ cause, method: "getFlightInfo" })
     })
 
@@ -183,7 +269,7 @@ const make = Effect.gen(function*() {
         (controller) => Effect.sync(() => controller.abort())
       )
       return Stream.fromAsyncIterable(
-        client.doGet(ticket, { signal: controller.signal }),
+        client.doGet(ticket, { signal: controller.signal, contextValues }),
         (cause) => new RpcError({ cause, method: "doGet" })
       )
     }))
@@ -236,19 +322,4 @@ const make = Effect.gen(function*() {
  * A layer which constructs a concrete implementation of an `ArrowFlight`
  * service and depends upon some implementation of a `Transport`.
  */
-export const layer: Layer.Layer<ArrowFlight, ArrowFlightQueryError, Transport> = Layer.effect(ArrowFlight, make)
-
-// =============================================================================
-// Transport Service
-// =============================================================================
-
-/**
- * A service which abstracts the underlying transport for a given client.
- *
- * A transport implements a protocol, such as Connect or gRPC-web, and allows
- * for the concrete clients to be independent of the protocol.
- */
-export class Transport extends Context.Tag("@edgeandnode/amp/Transport")<
-  Transport,
-  ConnectTransport
->() {}
+export const layer: Layer.Layer<ArrowFlight, ArrowFlightError, Transport> = Layer.effect(ArrowFlight, make)
