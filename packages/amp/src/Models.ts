@@ -1,4 +1,3 @@
-import * as Encoding from "effect/Encoding"
 import * as ParseResult from "effect/ParseResult"
 import * as Schema from "effect/Schema"
 import { isAddress } from "viem"
