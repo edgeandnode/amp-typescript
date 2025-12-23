@@ -332,7 +332,17 @@ const make = Effect.gen(function*() {
 
       let schema: ArrowSchema | undefined
       const dictionaryRegistry = new DictionaryRegistry()
-      const dataSchema: Schema.Array$<typeof Schema.Any> = Schema.Array(options?.schema ?? Schema.Any as any)
+      const dataSchema: Schema.Array$<
+        Schema.Record$<
+          typeof Schema.String,
+          typeof Schema.Unknown
+        >
+      > = Schema.Array(
+        options?.schema ?? Schema.Record({
+          key: Schema.String,
+          value: Schema.Unknown
+        }) as any
+      )
       const decodeRecordBatchData = Schema.decode(dataSchema)
 
       // Convert FlightData stream to a stream of rows
