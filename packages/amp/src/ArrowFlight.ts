@@ -256,9 +256,17 @@ export class ArrowFlight extends Context.Tag("Amp/ArrowFlight")<ArrowFlight, {
   readonly client: Client<typeof FlightService>
 
   /**
+   * Executes an Arrow Flight SQL query and returns a all results as an array.
+   */
+  readonly query: <Options extends QueryOptions>(
+    sql: string,
+    options?: Options
+  ) => Effect.Effect<ReadonlyArray<ExtractQueryResult<Options>>, ArrowFlightError>
+
+  /**
    * Executes an Arrow Flight SQL query and returns a stream of results.
    */
-  readonly stream: <Options extends QueryOptions>(
+  readonly streamQuery: <Options extends QueryOptions>(
     sql: string,
     options?: Options
   ) => Stream.Stream<ExtractQueryResult<Options>, ArrowFlightError>
@@ -274,7 +282,7 @@ const make = Effect.gen(function*() {
   /**
    * Execute a SQL query and return a stream of rows.
    */
-  const stream = (query: string, options?: QueryOptions) =>
+  const streamQuery = (query: string, options?: QueryOptions) =>
     Effect.gen(function*() {
       const contextValues = createContextValues()
       const authInfo = Option.isSome(auth)
@@ -393,9 +401,17 @@ const make = Effect.gen(function*() {
       Stream.withSpan("ArrowFlight.stream")
     ) as any
 
+  const query = Effect.fn("ArrowFlight.query")(
+    function*(query: string, options?: QueryOptions) {
+      const chunk = yield* Stream.runCollect(streamQuery(query, options))
+      return Array.from(chunk)
+    }
+  ) as any
+
   return {
     client,
-    stream
+    query,
+    streamQuery
   } as const
 })
 
