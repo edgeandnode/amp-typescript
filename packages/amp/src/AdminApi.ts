@@ -112,6 +112,54 @@ export class DeployDatasetResponse extends Schema.Class<DeployDatasetResponse>(
   )
 }, { identifier: "DeployDatasetResponse" }) {}
 
+export class GetDatasetSyncProgressResponse extends Schema.Class<GetDatasetSyncProgressResponse>(
+  "Amp/AdminApi/GetDatasetSyncProgressResponse"
+)({
+  namespace: Models.DatasetNamespace.pipe(
+    Schema.propertySignature,
+    Schema.fromKey("dataset_namespace")
+  ),
+  name: Models.DatasetName.pipe(
+    Schema.propertySignature,
+    Schema.fromKey("dataset_name")
+  ),
+  revision: Models.DatasetRevision,
+  manifestHash: Models.DatasetHash.pipe(
+    Schema.propertySignature,
+    Schema.fromKey("manifest_hash")
+  ),
+  tables: Schema.Array(Schema.Struct({
+    tableName: Schema.String.pipe(
+      Schema.propertySignature,
+      Schema.fromKey("table_name")
+    ),
+    currentBlock: Schema.Int.pipe(
+      Schema.optional,
+      Schema.fromKey("current_block")
+    ),
+    startBlock: Schema.Int.pipe(
+      Schema.optional,
+      Schema.fromKey("start_block")
+    ),
+    jobId: Models.JobId.pipe(
+      Schema.optional,
+      Schema.fromKey("job_id")
+    ),
+    jobStatus: Models.JobStatus.pipe(
+      Schema.optional,
+      Schema.fromKey("job_status")
+    ),
+    filesCount: Schema.Int.pipe(
+      Schema.propertySignature,
+      Schema.fromKey("files_count")
+    ),
+    totalSizeBytes: Schema.Int.pipe(
+      Schema.propertySignature,
+      Schema.fromKey("total_size_bytes")
+    )
+  }))
+}) {}
+
 // =============================================================================
 // Admin API Errors
 // =============================================================================
@@ -464,6 +512,30 @@ export class GetDatasetError extends Schema.Class<GetDatasetError>(
 }
 
 /**
+ * GetSyncProgressError - Failed to retrieve the dataset sync progress
+ *
+ * Causes:
+ * - Unable to resolve the dataset synchronization progress server side
+ */
+export class GetSyncProgressError extends Schema.Class<GetSyncProgressError>(
+  "Amp/AdminApi/Errors/GetSyncProgressError"
+)({
+  code: Schema.Literal("GET_SYNC_PROGRESS_ERROR").pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_code")
+  ),
+  message: Schema.String.pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_message")
+  )
+}, {
+  identifier: "GetSyncProgressError",
+  [HttpApiSchema.AnnotationStatus]: 500
+}) {
+  readonly _tag = "GetSyncProgressError"
+}
+
+/**
  * InvalidJobId - The provided job ID is malformed or invalid.
  *
  * Causes:
@@ -526,6 +598,30 @@ export class InvalidManifest extends Schema.Class<InvalidManifest>(
   [HttpApiSchema.AnnotationStatus]: 400
 }) {
   readonly _tag = "InvalidManifest"
+}
+
+/**
+ * InvalidPathParams - Invalid request path parameters.
+ *
+ * Causes:
+ * - Request path parameters were malformed
+ */
+export class InvalidPathParams extends Schema.Class<InvalidPathParams>(
+  "Amp/AdminApi/Errors/InvalidPathParams"
+)({
+  code: Schema.Literal("INVALID_PATH_PARAMS").pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_code")
+  ),
+  message: Schema.String.pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_message")
+  )
+}, {
+  identifier: "InvalidPathParams",
+  [HttpApiSchema.AnnotationStatus]: 400
+}) {
+  readonly _tag = "InvalidPathParams"
 }
 
 /**
@@ -891,6 +987,54 @@ export class NonIncrementalQuery extends Schema.Class<NonIncrementalQuery>(
   [HttpApiSchema.AnnotationStatus]: 400
 }) {
   readonly _tag = "NonIncrementalQuery"
+}
+
+/**
+ * PhysicalTableError - Failed to access the physical table metadata
+ *
+ * Causes:
+ * - Failed to access the physical table metadata in the database
+ */
+export class PhysicalTableError extends Schema.Class<PhysicalTableError>(
+  "Amp/AdminApi/Errors/PhysicalTableError"
+)({
+  code: Schema.Literal("PHYSICAL_TABLE_ERROR").pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_code")
+  ),
+  message: Schema.String.pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_message")
+  )
+}, {
+  identifier: "PhysicalTableError",
+  [HttpApiSchema.AnnotationStatus]: 500
+}) {
+  readonly _tag = "PhysicalTableError"
+}
+
+/**
+ * ResolveRevisionError - Failed to resolve the dataset revision (database error)
+ *
+ * Causes:
+ * - Failed to get the dataset revision from the database
+ */
+export class ResolveRevisionError extends Schema.Class<ResolveRevisionError>(
+  "Amp/AdminApi/Errors/ResolveRevisionError"
+)({
+  code: Schema.Literal("RESOLVE_REVISION_ERROR").pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_code")
+  ),
+  message: Schema.String.pipe(
+    Schema.propertySignature,
+    Schema.fromKey("error_message")
+  )
+}, {
+  identifier: "ResolveRevisionError",
+  [HttpApiSchema.AnnotationStatus]: 500
+}) {
+  readonly _tag = "ResolveRevisionError"
 }
 
 /**
@@ -1417,6 +1561,39 @@ export type GetOutputSchemaError =
   | TableReferenceResolution
   | UnqualifiedTable
 
+// -----------------------------------------------------------------------------
+// GET /datasets/{namespace}/{name}/versions/{revision}/sync-progress
+// -----------------------------------------------------------------------------
+
+const getDatasetSyncProgress = HttpApiEndpoint.get(
+  "getDatasetSyncProgress"
+)`/datasets/${datasetNamespaceParam}/${datasetNameParam}/versions/${datasetRevisionParam}/sync-progress`
+  .addError(DatasetNotFound)
+  .addError(GetDatasetError)
+  .addError(GetSyncProgressError)
+  .addError(InvalidPathParams)
+  .addError(ResolveRevisionError)
+  .addError(PhysicalTableError)
+  .addSuccess(GetDatasetSyncProgressResponse)
+
+/**
+ * Error type for the `getDatasetSyncProgress` endpoint.
+ *
+ * - DatasetNotFound - Dataset revision does not exist
+ * - GetDatasetError - Failed to retrieve dataset definition
+ * - GetSyncProgressError - Failed to get sync progress from metadata database
+ * - InvalidPathParams - Invalid path parameters (namespace, name, or revision malformed)
+ * - ResolveRevisionError - Failed to resolve dataset revision (database error)
+ * - PhysicalTableError - Failed to access physical table metadata
+ */
+export type GetDatasetSyncProgressError =
+  | DatasetNotFound
+  | GetDatasetError
+  | GetSyncProgressError
+  | InvalidPathParams
+  | ResolveRevisionError
+  | PhysicalTableError
+
 // =============================================================================
 // Admin API Groups
 // =============================================================================
@@ -1431,6 +1608,7 @@ export class DatasetGroup extends HttpApiGroup.make("dataset")
   .add(getDatasetVersion)
   .add(deployDataset)
   .add(getDatasetManifest)
+  .add(getDatasetSyncProgress)
 {}
 
 /**
@@ -1568,7 +1746,22 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     namespace: Models.DatasetNamespace,
     name: Models.DatasetName,
     revision: Models.DatasetRevision
-  ) => Effect.Effect<any, HttpError | GetDatasetManifestError>
+  ) => Effect.Effect<Models.DatasetManifest, HttpError | GetDatasetManifestError>
+
+  /**
+   * Retrieves sync progress information for a specific dataset revision,
+   * including per-table current block numbers, job status, and file statistics.
+   *
+   * @param namespace The namespace of the dataset.
+   * @param name The name of the dataset.
+   * @param revision The version/revision of the dataset.
+   * @return The dataset sync progress.
+   */
+  readonly getDatasetSyncProgress: (
+    namespace: Models.DatasetNamespace,
+    name: Models.DatasetName,
+    revision: Models.DatasetRevision
+  ) => Effect.Effect<GetDatasetSyncProgressResponse, HttpError | GetDatasetSyncProgressError>
 
   /**
    * Get a job by ID.
@@ -1674,6 +1867,15 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
     Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
   )
 
+  const getDatasetSyncProgress: Service["getDatasetSyncProgress"] = Effect.fn("AdminApi.getDatasetSyncProgress")(
+    function*(namespace, name, revision) {
+      const path = { namespace, name, revision }
+      yield* Effect.annotateCurrentSpan(path)
+      return yield* client.dataset.getDatasetSyncProgress({ path })
+    },
+    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+  )
+
   // Job Operations
 
   const getJobById: Service["getJobById"] = Effect.fn("AdminApi.getJobById")(
@@ -1700,6 +1902,7 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
     getDatasets,
     getDatasetVersion,
     getDatasetVersions,
+    getDatasetSyncProgress,
     registerDataset,
     getJobById,
     getOutputSchema
