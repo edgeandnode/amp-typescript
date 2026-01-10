@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "extends": ["./packages/tools/oxc/oxlintrc.json"],
+  "ignorePatterns": [
+    "**/dist",
+    "**/build",
+    "**/docs",
+    "**/.tsbuildinfo",
+    "!scratchpad/**/*",
+    // TODO: This should be in a nested .oxlintrc.json, but it does not work
+    //       See related issue: https://github.com/oxc-project/oxc/issues/13204
+    "packages/amp/src/Protobuf/**/*"
+  ],
+  "jsPlugins": [
+    "@amp/oxc/oxlint"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/{test,dtslint,examples,benchmark,bundle,scripts,scratchpad}/**"
+      ],
+      "rules": {
+        "eslint/no-console": "off",
+        "effect/no-import-from-barrel-package": "off"
+      }
+    }
+  ]
+}

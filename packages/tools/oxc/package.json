@@ -1,0 +1,63 @@
+{
+  "name": "@amp/oxc",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "description": "Opinionated linting and formatting configuration for Amp",
+  "homepage": "https://www.edgeandnode.com/amp-dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/amp/amp-typescript.git",
+    "directory": "packages/tools/oxc"
+  },
+  "sideEffects": [],
+  "bugs": {
+    "url": "https://github.com/amp/amp-typescript/issues"
+  },
+  "tags": [
+    "typescript",
+    "formatting",
+    "linting",
+    "oxc"
+  ],
+  "keywords": [
+    "typescript",
+    "formatting",
+    "linting",
+    "oxc"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    "./oxlint": "./src/oxlint/index.ts",
+    "./oxlint/rules/*": "./src/oxlint/rules/*.ts",
+    "./oxlintrc.json": "./oxlintrc.json"
+  },
+  "files": [
+    "oxlintrc.json",
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
+  "publishConfig": {
+    "provenance": true,
+    "exports": {
+      "./package.json": "./package.json",
+      "./oxlint": "./dist/oxlint/index.js",
+      "./oxlint/rules/*": "./dist/oxlint/rules/*.js",
+      "./oxlintrc.json": "./oxlintrc.json"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json && pnpm babel",
+    "check": "tsc -b tsconfig.json",
+    "test": "vitest",
+    "coverage": "vitest --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.2",
+    "vitest": "^4.0.0"
+  }
+}

@@ -1,11 +1,12 @@
 import * as path from "node:path"
-import viteTsconfigPaths from "vite-tsconfig-paths"
 import type { ViteUserConfig } from "vitest/config"
 
 const config: ViteUserConfig = {
-  plugins: [viteTsconfigPaths()],
   esbuild: {
     target: "es2020"
+  },
+  optimizeDeps: {
+    exclude: ["bun:sqlite"]
   },
   test: {
     setupFiles: [path.join(__dirname, "vitest.setup.ts")],
@@ -15,7 +16,7 @@ const config: ViteUserConfig = {
     sequence: {
       concurrent: true
     },
-    include: ["test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    include: ["test/**/*.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["html"],
