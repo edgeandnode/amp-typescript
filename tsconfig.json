@@ -1,7 +1,10 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "./tsconfig.base.jsonc",
-  "include": [],
+  "extends": "./tsconfig.base.json",
+  "include": ["*.ts"],
+  "compilerOptions": {
+    "noEmit": true
+  },
   "references": [
     { "path": "packages/amp" }
   ]

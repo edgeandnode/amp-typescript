@@ -1,3 +1,5 @@
 packages:
   - scratchpad
+  - scripts
   - packages/*
+  - packages/tools/*
