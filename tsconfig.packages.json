@@ -3,6 +3,7 @@
   "extends": "./tsconfig.base.json",
   "include": [],
   "references": [
-    { "path": "packages/amp/tsconfig.build.json" }
+    { "path": "packages/amp" },
+    { "path": "packages/tools/oxc" }
   ]
 }

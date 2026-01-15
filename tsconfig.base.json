@@ -1,6 +1,9 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
+  "include": [],
   "compilerOptions": {
+    "outDir": "${configDir}/dist",
+    "rootDir": "${configDir}/src",
     // Use incremental builds with project references.
     "incremental": true,
     "composite": true,
@@ -22,18 +25,18 @@
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     // Miscellaneoaus
+    "stripInternal": false, // We temporarily override this to `true` when publishing packages.
     "skipLibCheck": true, // Skip type checking of third party libraries.
     "noErrorTruncation": true, // Do not truncate error messages.
     "types": [], // Disable automatic loading of `@types/*` packages.
-    "plugins": [
-      {
-        "name": "@effect/language-service",
-        "transform": "@effect/language-service/transform",
-        "namespaceImportPackages": ["effect", "@effect/*"],
-        "diagnosticSeverity": {
-          "globalErrorInEffectFailure": "off" // TODO: Check if we should fix the warnings this reports
-        }
+    "jsx": "react-jsx",
+    "plugins": [{
+      "name": "@effect/language-service",
+      "transform": "@effect/language-service/transform",
+      "namespaceImportPackages": ["effect", "@effect/*"],
+      "diagnosticSeverity": {
+        "globalErrorInEffectFailure": "off" // TODO: Check if we should fix the warnings this reports
       }
-    ]
+    }]
   }
 }

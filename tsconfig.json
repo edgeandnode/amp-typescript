@@ -1,11 +1,27 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.base.json",
-  "include": ["*.ts"],
+  "include": [
+    "**/vitest.*.ts",
+    "./packages/**/*.ts",
+    "./packages/*/test/**/*.ts"
+  ],
   "compilerOptions": {
-    "noEmit": true
-  },
-  "references": [
-    { "path": "packages/amp" }
-  ]
+    "rootDir": ".",
+    "noEmit": true,
+    "erasableSyntaxOnly": false,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "paths": {
+      // These path aliases allow us to load internal modules in tests and to use other workspace packages in tests
+      // that would otherwise be considered cyclic dependencies (e.g. loading `@edgeandnode/amp` in the another test
+      // suite where the package _also_ depends on `@edgeandnode/amp`).
+      "@edgeandnode/amp": ["./packages/amp/src/index.ts"],
+      "@edgeandnode/amp/*": ["./packages/amp/src/*.ts"]
+    },
+    "plugins": [{
+      "name": "@effect/language-service",
+      "namespaceImportPackages": []
+    }]
+  }
 }

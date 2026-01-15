@@ -40,7 +40,7 @@ jobs:
         uses: ./.github/actions/setup
         with:
           node-version: 24.10.0
-      - run: pnpm check
+      - run: pnpm check:tsgo
 
   # TODO: discuss with Sebastian whether we should add Deno / Bun configuration / checks
   # types-deno:
@@ -89,18 +89,17 @@ jobs:
         if: matrix.runtime == 'Deno'
         run: deno task test --shard ${{ matrix.shard }}
 
-  # TODO: discuss with Sebastian whether we want circularity checks
-  # circular:
-  #   name: Circular Dependencies
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #   timeout-minutes: 10
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install dependencies
-  #       uses: ./.github/actions/setup
-  #       with:
-  #         node-version: 24.10.0
-  #     - name: Check for circular dependencies
-  #       run: pnpm circular
+  circular:
+    name: Circular Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-version: 24.10.0
+      - name: Check for circular dependencies
+        run: pnpm circular
