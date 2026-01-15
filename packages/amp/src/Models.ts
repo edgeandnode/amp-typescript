@@ -380,7 +380,9 @@ export type DatasetReadme = typeof DatasetReadme.Type
 /**
  * Represents additional description and details about the dataset.
  */
-export const DatasetDescription = Schema.String.annotations({
+export const DatasetDescription = Schema.String.pipe(
+  Schema.maxLength(1024)
+).annotations({
   identifier: "DatasetDescription",
   title: "Description",
   description: "Additional description and details about the dataset."
@@ -430,6 +432,14 @@ export const DatasetLicense = Schema.String.annotations({
 export type DatasetLicense = typeof DatasetLicense.Type
 
 /**
+ * Represents the visibility of a dataset.
+ */
+export const DatasetVisibility = Schema.Literal("public", "private").annotations({
+  identifier: "DatasetVisibility"
+})
+export type DatasetVisibility = typeof DatasetVisibility.Type
+
+/**
  * Represents metadata associated with a dataset.
  */
 export const DatasetMetadata = Schema.Struct({
@@ -441,7 +451,7 @@ export const DatasetMetadata = Schema.Struct({
   keywords: Schema.optional(Schema.Array(DatasetKeyword)),
   sources: Schema.optional(Schema.Array(DatasetSource)),
   license: Schema.optional(DatasetLicense),
-  visibility: Schema.optional(Schema.Literal("public", "private"))
+  visibility: Schema.optional(DatasetVisibility)
 }).annotations({
   identifier: "DatasetMetadata",
   description: "Metadata associated with a dataset."
