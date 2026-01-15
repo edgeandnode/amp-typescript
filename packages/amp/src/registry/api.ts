@@ -89,12 +89,12 @@ const listDatasets = HttpApiEndpoint.get(
   .addError(Errors.RegistryDatabaseError)
 
 // -----------------------------------------------------------------------------
-// GET /api/vX/datasets/{namespace}/{name}/versions/{version}/manifest
+// GET /api/vX/datasets/{namespace}/{name}
 // -----------------------------------------------------------------------------
 
-const getDataset = HttpApiEndpoint.get(
+const getDatasetByFqdn = HttpApiEndpoint.get(
   "getDatasetByFqdn"
-)`/datasets/${datasetNamespaceParam}/${datasetNameParam}/versions/${datasetRevisionParam}/manifest`
+)`/datasets/${datasetNamespaceParam}/${datasetNameParam}`
   .addSuccess(Domain.Dataset)
   .addError(Errors.DatasetConversionError)
   .addError(Errors.DatasetNotFoundError)
@@ -242,7 +242,7 @@ const getLatestDatasetManifest = HttpApiEndpoint.get(
 // -----------------------------------------------------------------------------
 
 const getDatasetManifest = HttpApiEndpoint.get(
-  "getLatestDatasetManifest"
+  "getDatasetManifest"
 )`/datasets/${datasetNamespaceParam}/${datasetNameParam}/versions/${datasetRevisionParam}/manifest`
   .addSuccess(Domain.DatasetGetManifestResponse)
   .addError(Errors.InvalidSelectorError)
@@ -262,7 +262,7 @@ const getDatasetManifest = HttpApiEndpoint.get(
  */
 export class DatasetsApiGroup extends HttpApiGroup.make("datasets")
   .add(listDatasets)
-  .add(getDataset)
+  .add(getDatasetByFqdn)
   .add(getDatasetCountsByChain)
   .add(getDatasetCountsByKeyword)
   .add(getDatasetCountsByLastUpdated)
