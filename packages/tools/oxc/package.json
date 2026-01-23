@@ -59,7 +59,7 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@types/node": "^25.0.2",
-    "vitest": "^4.0.0"
+    "@types/node": "^25.0.10",
+    "vitest": "^4.0.18"
   }
 }
