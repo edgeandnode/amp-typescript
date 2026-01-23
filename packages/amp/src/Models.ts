@@ -525,6 +525,7 @@ export const DatasetConfig = Schema.Struct({
   identifier: "DatasetConfig",
   description: "Configuration associated with a dataset."
 })
+export type DatasetConfig = typeof DatasetConfig.Type
 
 /**
  * Represents information about a table.
