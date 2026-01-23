@@ -584,9 +584,9 @@ export class MyDatasetsApiGroup extends HttpApiGroup.make("myDatasets")
 // =============================================================================
 
 /**
- * The specification for the Amp Registry v1 API.
+ * The specification for the Amp Registry API (v1).
  */
-export class AmpRegistryApiV1 extends HttpApi.make("AmpRegistryApiV1")
+export class ApiV1 extends HttpApi.make("AmpRegistryApiV1")
   .add(HealthApiGroup)
   .add(DatasetsApiGroup)
   .add(OwnedDatasetsApiGroup)

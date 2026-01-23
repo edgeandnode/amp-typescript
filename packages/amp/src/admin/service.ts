@@ -22,8 +22,8 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Auth from "../Auth.ts"
 import type * as Models from "../Models.ts"
-import * as AdminApiDefinition from "./api.ts"
-import type * as AdminApiDomain from "./domain.ts"
+import * as Api from "./api.ts"
+import type * as Domain from "./domain.ts"
 
 // =============================================================================
 // Admin API Service Types
@@ -59,7 +59,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     name: Models.DatasetName,
     manifest: Models.DatasetManifest,
     version?: Models.DatasetRevision | undefined
-  ) => Effect.Effect<void, HttpError | AdminApiDefinition.RegisterDatasetError>
+  ) => Effect.Effect<void, HttpError | Api.RegisterDatasetError>
 
   /**
    * Get all datasets.
@@ -67,8 +67,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    * @return The list of all datasets.
    */
   readonly getDatasets: () => Effect.Effect<
-    AdminApiDomain.GetDatasetsResponse,
-    HttpError | AdminApiDefinition.GetDatasetsError
+    Domain.GetDatasetsResponse,
+    HttpError | Api.GetDatasetsError
   >
 
   /**
@@ -82,8 +82,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     namespace: Models.DatasetNamespace,
     name: Models.DatasetName
   ) => Effect.Effect<
-    AdminApiDomain.GetDatasetVersionsResponse,
-    HttpError | AdminApiDefinition.GetDatasetVersionsError
+    Domain.GetDatasetVersionsResponse,
+    HttpError | Api.GetDatasetVersionsError
   >
 
   /**
@@ -99,8 +99,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     name: Models.DatasetName,
     revision: Models.DatasetRevision
   ) => Effect.Effect<
-    AdminApiDomain.GetDatasetVersionResponse,
-    HttpError | AdminApiDefinition.GetDatasetVersionError
+    Domain.GetDatasetVersionResponse,
+    HttpError | Api.GetDatasetVersionError
   >
 
   /**
@@ -122,8 +122,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
       workerId?: string | undefined
     } | undefined
   ) => Effect.Effect<
-    AdminApiDomain.DeployDatasetResponse,
-    HttpError | AdminApiDefinition.DeployDatasetError
+    Domain.DeployDatasetResponse,
+    HttpError | Api.DeployDatasetError
   >
 
   /**
@@ -138,7 +138,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     namespace: Models.DatasetNamespace,
     name: Models.DatasetName,
     revision: Models.DatasetRevision
-  ) => Effect.Effect<Models.DatasetManifest, HttpError | AdminApiDefinition.GetDatasetManifestError>
+  ) => Effect.Effect<Models.DatasetManifest, HttpError | Api.GetDatasetManifestError>
 
   /**
    * Retrieves sync progress information for a specific dataset revision,
@@ -154,8 +154,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     name: Models.DatasetName,
     revision: Models.DatasetRevision
   ) => Effect.Effect<
-    AdminApiDomain.GetDatasetSyncProgressResponse,
-    HttpError | AdminApiDefinition.GetDatasetSyncProgressError
+    Domain.GetDatasetSyncProgressResponse,
+    HttpError | Api.GetDatasetSyncProgressError
   >
 
   /**
@@ -169,8 +169,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     lastJobId?: number | undefined
     status?: string | undefined
   }) => Effect.Effect<
-    AdminApiDomain.GetJobsResponse,
-    HttpError | AdminApiDefinition.GetJobsError
+    Domain.GetJobsResponse,
+    HttpError | Api.GetJobsError
   >
 
   /**
@@ -181,7 +181,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    */
   readonly getJobById: (
     jobId: number
-  ) => Effect.Effect<Models.JobInfo, HttpError | AdminApiDefinition.GetJobByIdError>
+  ) => Effect.Effect<Models.JobInfo, HttpError | Api.GetJobByIdError>
 
   /**
    * Stop a job by ID.
@@ -191,7 +191,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    */
   readonly stopJob: (
     jobId: number
-  ) => Effect.Effect<void, HttpError | AdminApiDefinition.StopJobError>
+  ) => Effect.Effect<void, HttpError | Api.StopJobError>
 
   /**
    * Delete a job by ID.
@@ -201,7 +201,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    */
   readonly deleteJob: (
     jobId: number
-  ) => Effect.Effect<void, HttpError | AdminApiDefinition.DeleteJobError>
+  ) => Effect.Effect<void, HttpError | Api.DeleteJobError>
 
   /**
    * Get all workers.
@@ -209,8 +209,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    * @return The list of workers.
    */
   readonly getWorkers: () => Effect.Effect<
-    AdminApiDomain.GetWorkersResponse,
-    HttpError | AdminApiDefinition.GetWorkersError
+    Domain.GetWorkersResponse,
+    HttpError | Api.GetWorkersError
   >
 
   /**
@@ -218,7 +218,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    *
    * @return The list of providers.
    */
-  readonly getProviders: () => Effect.Effect<AdminApiDomain.GetProvidersResponse, HttpError>
+  readonly getProviders: () => Effect.Effect<Domain.GetProvidersResponse, HttpError>
 
   /**
    * Register a manifest.
@@ -229,8 +229,8 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
   readonly registerManifest: (
     manifest: unknown
   ) => Effect.Effect<
-    AdminApiDomain.RegisterManifestResponse,
-    HttpError | AdminApiDefinition.RegisterManifestError
+    Domain.RegisterManifestResponse,
+    HttpError | Api.RegisterManifestError
   >
 
   /**
@@ -240,10 +240,10 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    * @returns An effect that resolves to the schema response.
    */
   readonly getOutputSchema: (
-    request: AdminApiDomain.GetOutputSchemaPayload
+    request: Domain.GetOutputSchemaPayload
   ) => Effect.Effect<
-    AdminApiDomain.GetOutputSchemaResponse,
-    HttpError | AdminApiDefinition.GetOutputSchemaError
+    Domain.GetOutputSchemaResponse,
+    HttpError | Api.GetOutputSchemaError
   >
 }>() {}
 
@@ -256,7 +256,7 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
 
   const auth = yield* Effect.serviceOption(Auth.Auth)
 
-  const client = yield* HttpApiClient.make(AdminApiDefinition.Api, {
+  const client = yield* HttpApiClient.make(Api.Api, {
     baseUrl: options.url,
     transformClient: Option.match(auth, {
       onNone: constUndefined,
