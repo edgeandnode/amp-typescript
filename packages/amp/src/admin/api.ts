@@ -473,7 +473,7 @@ export class ProviderGroup extends HttpApiGroup.make("provider")
 /**
  * The api definition for the admin api.
  */
-export class Api extends HttpApi.make("admin")
+export class AmpAdminApi extends HttpApi.make("admin")
   .add(DatasetGroup)
   .add(JobGroup)
   .add(WorkerGroup)
