@@ -267,7 +267,16 @@ const encodeFloat16 = (value: number): number => {
   if (exponent <= 0) return (sign << 15)
 
   mantissa = Math.round(mantissa * 1024)
-  return (sign << 15) | (exponent << 10) | (mantissa & 0x3FF)
+
+  // Handle mantissa overflow - carry to exponent
+  if (mantissa >= 1024) {
+    mantissa = 0
+    exponent += 1
+    // Check if exponent overflowed to infinity
+    if (exponent >= 31) return (sign << 15) | 0x7C00
+  }
+
+  return (sign << 15) | (exponent << 10) | mantissa
 }
 
 export const createFloat16DataBuffer = (values: ReadonlyArray<number | null>): Uint8Array => {

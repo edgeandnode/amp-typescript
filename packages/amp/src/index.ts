@@ -11,6 +11,9 @@ export * as Auth from "./Auth.ts"
 /**
  * Operations for interacting with the Amp administration API.
  */
-export * as AdminApi from "./AdminApi.ts"
+export * as AdminApi from "./admin/api.ts"
 
-export { AmpRegistryApiV1 } from "./registry/api.ts"
+/**
+ * Operations for interacting with the Amp registry API.
+ */
+export * as RegistryApi from "./registry/api.ts"
