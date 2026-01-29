@@ -21,7 +21,7 @@ import { constUndefined } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Auth from "../auth/service.ts"
-import type * as Models from "../Models.ts"
+import type * as Models from "../models.ts"
 import * as Api from "./api.ts"
 import type * as Domain from "./domain.ts"
 

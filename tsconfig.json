@@ -4,7 +4,8 @@
   "include": [
     "**/vitest.*.ts",
     "./packages/**/*.ts",
-    "./packages/*/test/**/*.ts"
+    "./packages/*/test/**/*.ts",
+    "./packages/*/package.json"
   ],
   "compilerOptions": {
     "rootDir": ".",

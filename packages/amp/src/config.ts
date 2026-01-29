@@ -15,7 +15,7 @@ import * as Stream from "effect/Stream"
 import * as fs from "node:fs"
 import * as path from "node:path"
 import * as ManifestBuilder from "./manifest-builder/service.ts"
-import * as Models from "./Models.ts"
+import * as Models from "./models.ts"
 
 export class ModuleContext {
   public definitionPath: string

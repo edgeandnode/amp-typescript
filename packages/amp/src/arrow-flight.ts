@@ -24,10 +24,10 @@ import { decodeRecordBatch, DictionaryRegistry } from "./internal/arrow-flight-i
 import { recordBatchToJson } from "./internal/arrow-flight-ipc/Json.ts"
 import { parseRecordBatch } from "./internal/arrow-flight-ipc/RecordBatch.ts"
 import { type ArrowSchema, getMessageType, MessageHeaderType, parseSchema } from "./internal/arrow-flight-ipc/Schema.ts"
-import type { AuthInfo, BlockRange, RecordBatchMetadata } from "./Models.ts"
-import { RecordBatchMetadataFromUint8Array } from "./Models.ts"
-import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./Protobuf/Flight_pb.ts"
-import { CommandStatementQuerySchema } from "./Protobuf/FlightSql_pb.ts"
+import type { AuthInfo, BlockRange, RecordBatchMetadata } from "./models.ts"
+import { RecordBatchMetadataFromUint8Array } from "./models.ts"
+import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./protobuf/Flight_pb.ts"
+import { CommandStatementQuerySchema } from "./protobuf/FlightSql_pb.ts"
 
 // =============================================================================
 // Connect RPC Transport

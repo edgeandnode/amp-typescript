@@ -1,7 +1,7 @@
 /**
  * An implementation of the Arrow Flight protocol.
  */
-export * as ArrowFlight from "./ArrowFlight.ts"
+export * as ArrowFlight from "./arrow-flight.ts"
 
 /**
  * Utilities for performing authentication / authorization related operations.
