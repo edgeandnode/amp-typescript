@@ -5,6 +5,7 @@
   "references": [],
   "compilerOptions": {
     "erasableSyntaxOnly": false,
+    "resolveJsonModule": true,
     "types": ["node"]
   }
 }
