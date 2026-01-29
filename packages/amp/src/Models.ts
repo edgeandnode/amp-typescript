@@ -29,6 +29,27 @@ export const RefreshToken = Schema.NonEmptyTrimmedString.pipe(
 ).annotations({ identifier: "RefreshToken" })
 export type RefreshToken = typeof RefreshToken.Type
 
+const TOKEN_DURATION_REGEX =
+  /^-?\d+\.?\d*\s*(sec|secs|second|seconds|s|minute|minutes|min|mins|m|hour|hours|hr|hrs|h|day|days|d|week|weeks|w|year|years|yr|yrs|y)(\s+ago|\s+from\s+now)?$/i
+
+/**
+ * A branded type representing the duration an OAuth2 access token should be
+ * valid for.
+ */
+export const TokenDuration = Schema.NonEmptyTrimmedString.pipe(
+  Schema.pattern(TOKEN_DURATION_REGEX),
+  Schema.brand("TokenDuration")
+).annotations({
+  identifier: "TokenDuration",
+  examples: [
+    "7 days" as TokenDuration,
+    "30 days" as TokenDuration,
+    "1 hour" as TokenDuration,
+    "1 year" as TokenDuration
+  ]
+})
+export type TokenDuration = typeof TokenDuration.Type
+
 /**
  * A branded type representing the identifier for an authenticated user.
  */

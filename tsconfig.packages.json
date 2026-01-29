@@ -4,6 +4,7 @@
   "include": [],
   "references": [
     { "path": "packages/amp" },
+    { "path": "packages/cli" },
     { "path": "packages/tools/oxc" }
   ]
 }
