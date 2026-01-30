@@ -1,5 +1,3 @@
-import * as ArrowFlight from "@edgeandnode/amp/arrow-flight"
-import * as NodeArrowFlight from "@edgeandnode/amp/arrow-flight/node"
 import * as Auth from "@edgeandnode/amp/auth/service"
 import * as CliConfig from "@effect/cli/CliConfig"
 import * as Command from "@effect/cli/Command"
