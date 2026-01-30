@@ -50,11 +50,7 @@ const handleTokenCommand = Effect.fnUntraced(function*({ audience, duration }: {
 
   const response = yield* auth.generateAccessToken({ authInfo, audience, duration }).pipe(
     Effect.catchAll(Effect.fnUntraced(function*(error) {
-      const errorMessage = [
-        "Failed to generate access token.\n",
-        error.userMessage,
-        error.userSuggestion
-      ].join("\n")
+      const errorMessage = `${error.userMessage}. ${error.userSuggestion}`
       yield* Console.error(errorMessage)
       return yield* new Errors.NonZeroExitCode()
     }))
@@ -79,7 +75,7 @@ const handleTokenCommand = Effect.fnUntraced(function*({ audience, duration }: {
   })
   const message = [
     "Access token generated successfully!",
-    "We do not store this value - you will need to store it safely.",
+    "We do not store this value - make sure you store it securely.",
     "You can use this token as an bearer authorization header in requests to Amp",
     String.stripMargin(
       `|      token: ${response.token}

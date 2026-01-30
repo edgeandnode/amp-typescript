@@ -71,7 +71,7 @@ export class AuthRefreshError extends Schema.TaggedError<AuthRefreshError>(
   cause: Schema.optionalWith(Schema.Defect, { as: "Option" })
 }) {
   get userMessage(): string {
-    return "Failed to refresh your authentication"
+    return "Failed to refresh your authentication token"
   }
   get userSuggestion(): string {
     return "Try signing out and signing in again with 'amp auth logout' then 'amp auth login'"

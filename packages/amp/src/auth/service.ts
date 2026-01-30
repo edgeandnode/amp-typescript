@@ -524,7 +524,7 @@ const make = Effect.gen(function*() {
       readonly audience?: ReadonlyArray<string> | undefined
       readonly duration?: TokenDuration | undefined
     }) {
-      const endpoint = "/generate"
+      const endpoint = "/api/v1/auth/generate"
       const request = HttpClientRequest.post(endpoint, {
         body: HttpBody.unsafeJson(new GenerateTokenRequest({ audience, duration })),
         acceptJson: true
@@ -540,7 +540,7 @@ const make = Effect.gen(function*() {
 
   const refreshAccessToken = Effect.fn("Auth.refreshAccessToken")(
     function*(authInfo: AuthInfo) {
-      const endpoint = "/refresh"
+      const endpoint = "/api/v1/auth/refresh"
       const request = HttpClientRequest.post(endpoint, {
         body: HttpBody.unsafeJson(RefreshTokenRequest.fromAuthInfo(authInfo)),
         acceptJson: true

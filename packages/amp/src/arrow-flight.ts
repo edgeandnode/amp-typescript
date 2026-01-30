@@ -212,7 +212,7 @@ export class ParseSchemaError extends Schema.TaggedError<ParseSchemaError>(
  * is successfully executed.
  */
 export interface QueryResult<A> {
-  readonly data: A
+  readonly data: ReadonlyArray<A>
   readonly metadata: RecordBatchMetadata
 }
 
@@ -239,7 +239,7 @@ export interface QueryOptions {
 export type ExtractQueryResult<Options extends QueryOptions> = Options extends {
   readonly schema: Schema.Schema<infer _A, infer _I, infer _R>
 } ? QueryResult<_A>
-  : Record<string, unknown>
+  : QueryResult<Record<string, unknown>>
 
 // =============================================================================
 // Arrow Flight Service

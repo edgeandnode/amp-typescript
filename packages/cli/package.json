@@ -52,11 +52,12 @@
   "peerDependencies": {
     "@edgeandnode/amp": "workspace:^",
     "@effect/cli": "^0.73.1",
-    "@effect/platform": "^0.94.0",
+    "@effect/platform": "^0.94.2",
     "@effect/platform-node": "^0.104.1",
-    "effect": "^3.19.11"
+    "effect": "^3.19.15"
   },
   "devDependencies": {
+    "@connectrpc/connect": "^2.1.1",
     "@effect/cli": "^0.73.1",
     "@effect/platform": "^0.94.2",
     "@effect/platform-node": "^0.104.1",

@@ -16,11 +16,18 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
+            # JavaScript / TypeScript
             bun
             deno
             corepack
             nodejs_24
             python3
+
+            # Justfile
+            just
+
+            # Blockchain
+            foundry
           ];
         };
       });

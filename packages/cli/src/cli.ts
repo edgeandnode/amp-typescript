@@ -1,3 +1,5 @@
+import * as ArrowFlight from "@edgeandnode/amp/arrow-flight"
+import * as NodeArrowFlight from "@edgeandnode/amp/arrow-flight/node"
 import * as Auth from "@edgeandnode/amp/auth/service"
 import * as CliConfig from "@effect/cli/CliConfig"
 import * as Command from "@effect/cli/Command"
@@ -10,9 +12,10 @@ import * as Layer from "effect/Layer"
 import * as NodeOS from "node:os"
 import PackageJson from "../package.json" with { type: "json" }
 import { AuthCommand } from "./commands/auth.ts"
+import { QueryCommand } from "./commands/query.ts"
 
 const RootCommand = Command.make("amp").pipe(
-  Command.withSubcommands([AuthCommand])
+  Command.withSubcommands([AuthCommand, QueryCommand])
 )
 
 const run = Command.run(RootCommand, {
