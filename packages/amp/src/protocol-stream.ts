@@ -38,11 +38,12 @@
  *   )
  * })
  *
- * Effect.runPromise(program.pipe(
- *   Effect.provide(ProtocolStream.layer),
- *   Effect.provide(ArrowFlight.layer),
- *   Effect.provide(Transport.layer)
- * ))
+ * const AppLayer = ProtocolStream.layer.pipe(
+ *   Layer.provide(ArrowFlight.layer),
+ *   Layer.provide(Transport.layer)
+ * )
+ *
+ * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  *
  * ## Reorg Detection
@@ -76,14 +77,14 @@
 // =============================================================================
 
 export {
+  data,
+  invalidates,
   InvalidationRange,
+  makeInvalidationRange,
   ProtocolMessage,
   ProtocolMessageData,
   ProtocolMessageReorg,
   ProtocolMessageWatermark,
-  data,
-  invalidates,
-  makeInvalidationRange,
   reorg,
   watermark
 } from "./protocol-stream/messages.ts"
@@ -101,13 +102,12 @@ export {
   InvalidReorgError,
   MissingPrevHashError,
   NetworkCountChangedError,
-  UnexpectedNetworkError,
-  type ValidationError,
-
   // Protocol stream errors
   ProtocolArrowFlightError,
+  type ProtocolStreamError,
   ProtocolValidationError,
-  type ProtocolStreamError
+  UnexpectedNetworkError,
+  type ValidationError
 } from "./protocol-stream/errors.ts"
 
 // =============================================================================
@@ -126,8 +126,8 @@ export {
 // =============================================================================
 
 export {
-  ProtocolStream,
   layer,
-  type ProtocolStreamService,
-  type ProtocolStreamOptions
+  ProtocolStream,
+  type ProtocolStreamOptions,
+  type ProtocolStreamService
 } from "./protocol-stream/service.ts"

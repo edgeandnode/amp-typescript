@@ -6,16 +6,11 @@
  *
  * @module
  */
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
-import {
-  StateStore,
-  type StateSnapshot,
-  type StateStoreService,
-  type Commit,
-  emptySnapshot
-} from "./state-store.ts"
+import { type Commit, emptySnapshot, type StateSnapshot, StateStore, type StateStoreService } from "./state-store.ts"
 import type { TransactionId } from "./types.ts"
 
 // =============================================================================
@@ -25,48 +20,47 @@ import type { TransactionId } from "./types.ts"
 /**
  * Create InMemoryStateStore service implementation.
  */
-const makeWithInitialState = (initial: StateSnapshot) =>
-  Effect.gen(function*() {
-    const stateRef = yield* Ref.make<StateSnapshot>(initial)
+const makeWithInitialState = Effect.fnUntraced(function*(initial: StateSnapshot): Effect.fn.Return<StateStoreService> {
+  const stateRef = yield* Ref.make<StateSnapshot>(initial)
 
-    const advance = (next: TransactionId) =>
-      Ref.update(stateRef, (state) => ({
-        ...state,
-        next
-      }))
+  const advance = (next: TransactionId) =>
+    Ref.update(stateRef, (state) => ({
+      ...state,
+      next
+    }))
 
-    const commit = (commitData: Commit) =>
-      Ref.update(stateRef, (state) => {
-        let buffer = [...state.buffer]
+  const commit = (commitData: Commit) =>
+    Ref.update(stateRef, (state) => {
+      let buffer = [...state.buffer]
 
-        // Remove pruned watermarks (all IDs <= prune)
-        if (commitData.prune !== undefined) {
-          buffer = buffer.filter(([id]) => id > commitData.prune!)
-        }
+      // Remove pruned watermarks (all IDs <= prune)
+      if (commitData.prune !== undefined) {
+        buffer = buffer.filter(([id]) => id > commitData.prune!)
+      }
 
-        // Add new watermarks
-        for (const entry of commitData.insert) {
-          buffer.push(entry)
-        }
+      // Add new watermarks
+      for (const entry of commitData.insert) {
+        buffer.push(entry)
+      }
 
-        return { ...state, buffer }
-      })
+      return { ...state, buffer }
+    })
 
-    const truncate = (from: TransactionId) =>
-      Ref.update(stateRef, (state) => ({
-        ...state,
-        buffer: state.buffer.filter(([id]) => id < from)
-      }))
+  const truncate = (from: TransactionId) =>
+    Ref.update(stateRef, (state) => ({
+      ...state,
+      buffer: state.buffer.filter(([id]) => id < from)
+    }))
 
-    const load = () => Ref.get(stateRef)
+  const load = () => Ref.get(stateRef)
 
-    return {
-      advance,
-      commit,
-      truncate,
-      load
-    } satisfies StateStoreService
-  })
+  return {
+    advance,
+    commit,
+    truncate,
+    load
+  } satisfies StateStoreService
+})
 
 /**
  * Create InMemoryStateStore service with empty initial state.
@@ -120,99 +114,79 @@ export const layerWithState = (initial: StateSnapshot): Layer.Layer<StateStore> 
 // =============================================================================
 
 /**
- * Create an InMemoryStateStore service directly (for testing).
+ * Service tag exposing the internal state of a test store for inspection.
  *
- * Returns both the service and a reference to inspect internal state.
+ * Provided alongside `StateStore` by {@link layerTest}.
  *
  * @example
  * ```typescript
- * const { service, stateRef } = yield* InMemoryStateStore.makeTestable()
- *
- * yield* service.advance(5 as TransactionId)
- *
- * const state = yield* Ref.get(stateRef)
- * expect(state.next).toBe(5)
+ * const testState = yield* InMemoryStateStore.TestState
+ * const snapshot = yield* testState.get
+ * expect(snapshot.next).toBe(5)
  * ```
  */
-export const makeTestable = Effect.gen(function*() {
-  const stateRef = yield* Ref.make<StateSnapshot>(emptySnapshot)
-
-  const advance = (next: TransactionId) =>
-    Ref.update(stateRef, (state) => ({
-      ...state,
-      next
-    }))
-
-  const commit = (commitData: Commit) =>
-    Ref.update(stateRef, (state) => {
-      let buffer = [...state.buffer]
-
-      if (commitData.prune !== undefined) {
-        buffer = buffer.filter(([id]) => id > commitData.prune!)
-      }
-
-      for (const entry of commitData.insert) {
-        buffer.push(entry)
-      }
-
-      return { ...state, buffer }
-    })
-
-  const truncate = (from: TransactionId) =>
-    Ref.update(stateRef, (state) => ({
-      ...state,
-      buffer: state.buffer.filter(([id]) => id < from)
-    }))
-
-  const load = () => Ref.get(stateRef)
-
-  const service: StateStoreService = {
-    advance,
-    commit,
-    truncate,
-    load
-  }
-
-  return { service, stateRef }
-})
+export class TestState extends Context.Tag("Amp/TransactionalStream/TestState")<
+  TestState,
+  { readonly get: Effect.Effect<StateSnapshot> }
+>() {}
 
 /**
- * Create a layer that also exposes the internal state ref for testing.
+ * Test layer providing both `StateStore` and `TestState`.
+ *
+ * Creates a fresh in-memory store and exposes its internal state
+ * via the `TestState` tag, allowing tests to inspect snapshots
+ * without needing a raw Ref.
+ *
+ * @example
+ * ```typescript
+ * const program = Effect.gen(function*() {
+ *   const store = yield* StateStore
+ *   const testState = yield* InMemoryStateStore.TestState
+ *
+ *   yield* store.advance(5 as TransactionId)
+ *
+ *   const snapshot = yield* testState.get
+ *   expect(snapshot.next).toBe(5)
+ * })
+ *
+ * Effect.runPromise(program.pipe(Effect.provide(InMemoryStateStore.layerTest)))
+ * ```
  */
-export class TestStateRef extends Effect.Service<TestStateRef>()("TestStateRef", {
-  effect: Effect.gen(function*() {
-    return yield* Ref.make<StateSnapshot>(emptySnapshot)
-  })
-}) {}
-
-export const testLayer: Layer.Layer<StateStore | TestStateRef> = Layer.effect(
-  StateStore,
+export const layerTest: Layer.Layer<TestState | StateStore> = Layer.effectContext(
   Effect.gen(function*() {
-    const stateRef = yield* TestStateRef
+    const ref = yield* Ref.make(emptySnapshot)
 
-    const advance = (next: TransactionId) =>
-      Ref.update(stateRef, (state) => ({ ...state, next }))
+    const state = TestState.of({
+      get: Ref.get(ref)
+    })
 
-    const commit = (commitData: Commit) =>
-      Ref.update(stateRef, (state) => {
-        let buffer = [...state.buffer]
-        if (commitData.prune !== undefined) {
-          buffer = buffer.filter(([id]) => id > commitData.prune!)
-        }
-        for (const entry of commitData.insert) {
-          buffer.push(entry)
-        }
-        return { ...state, buffer }
-      })
+    const store = StateStore.of({
+      advance: (next) => Ref.update(ref, (state) => ({ ...state, next })),
 
-    const truncate = (from: TransactionId) =>
-      Ref.update(stateRef, (state) => ({
-        ...state,
-        buffer: state.buffer.filter(([id]) => id < from)
-      }))
+      commit: (commitData) =>
+        Ref.update(ref, (state) => {
+          let buffer = [...state.buffer]
+          if (commitData.prune !== undefined) {
+            buffer = buffer.filter(([id]) => id > commitData.prune!)
+          }
+          for (const entry of commitData.insert) {
+            buffer.push(entry)
+          }
+          return { ...state, buffer }
+        }),
 
-    const load = () => Ref.get(stateRef)
+      truncate: (from) =>
+        Ref.update(ref, (state) => ({
+          ...state,
+          buffer: state.buffer.filter(([id]) => id < from)
+        })),
 
-    return { advance, commit, truncate, load } satisfies StateStoreService
+      load: () => Ref.get(ref)
+    })
+
+    return Context.mergeAll(
+      Context.make(StateStore, store),
+      Context.make(TestState, state)
+    )
   })
-).pipe(Layer.provideMerge(TestStateRef.Default))
+)

@@ -11,18 +11,18 @@ import * as Effect from "effect/Effect"
 import * as Ref from "effect/Ref"
 import type { BlockRange } from "../models.ts"
 import type { ProtocolMessage } from "../protocol-stream/messages.ts"
-import { findRecoveryPoint, findPruningPoint, checkPartialReorg, compressCommits } from "./algorithms.ts"
-import { makeCommitHandle, type CommitHandle } from "./commit-handle.ts"
+import { checkPartialReorg, compressCommits, findPruningPoint, findRecoveryPoint } from "./algorithms.ts"
+import { type CommitHandle, makeCommitHandle } from "./commit-handle.ts"
 import { PartialReorgError, type StateStoreError, UnrecoverableReorgError } from "./errors.ts"
 import type { StateStoreService } from "./state-store.ts"
 import {
-  type TransactionId,
-  type TransactionEvent,
   dataEvent,
-  undoEvent,
-  watermarkEvent,
   reorgCause,
-  rewindCause
+  rewindCause,
+  type TransactionEvent,
+  type TransactionId,
+  undoEvent,
+  watermarkEvent
 } from "./types.ts"
 
 // =============================================================================
@@ -69,7 +69,10 @@ export interface StateActor {
   /** Execute an action and return event with commit handle */
   readonly execute: (
     action: Action
-  ) => Effect.Effect<readonly [TransactionEvent, CommitHandle], StateStoreError | UnrecoverableReorgError | PartialReorgError>
+  ) => Effect.Effect<
+    readonly [TransactionEvent, CommitHandle],
+    StateStoreError | UnrecoverableReorgError | PartialReorgError
+  >
 
   /** Commit pending changes up to and including this ID */
   readonly commit: (id: TransactionId) => Effect.Effect<void, StateStoreError>
@@ -86,11 +89,8 @@ export interface StateActor {
  * @param retention - Retention window in blocks for pruning
  * @returns Effect that creates a StateActor
  */
-export const makeStateActor = (
-  store: StateStoreService,
-  retention: number
-): Effect.Effect<StateActor, StateStoreError> =>
-  Effect.gen(function*() {
+export const makeStateActor = Effect.fnUntraced(
+  function*(store: StateStoreService, retention: number): Effect.fn.Return<StateActor, StateStoreError> {
     // Load initial state from store
     const snapshot = yield* store.load()
 
@@ -124,88 +124,87 @@ export const makeStateActor = (
     // execute()
     // =========================================================================
 
-    const execute = (action: Action) =>
-      Effect.gen(function*() {
-        // 1. Pre-allocate monotonic ID
-        const id = yield* Ref.getAndUpdate(containerRef, (state) => ({
-          ...state,
-          next: (state.next + 1) as TransactionId
-        })).pipe(Effect.map((state) => state.next))
+    const execute = Effect.fnUntraced(function*(action: Action): Effect.fn.Return<
+      readonly [TransactionEvent, CommitHandle],
+      StateStoreError | UnrecoverableReorgError | PartialReorgError
+    > {
+      // 1. Pre-allocate monotonic ID
+      const id = yield* Ref.getAndUpdate(containerRef, (state) => ({
+        ...state,
+        next: (state.next + 1) as TransactionId
+      })).pipe(Effect.map((state) => state.next))
 
-        const nextId = (id + 1) as TransactionId
+      const nextId = (id + 1) as TransactionId
 
-        // Persist the new next ID immediately (ensures monotonicity survives crashes)
-        yield* store.advance(nextId)
+      // Persist the new next ID immediately (ensures monotonicity survives crashes)
+      yield* store.advance(nextId)
 
-        // 2. Execute action based on type
-        const event: TransactionEvent = yield* ((): Effect.Effect<
-          TransactionEvent,
-          StateStoreError | UnrecoverableReorgError | PartialReorgError
-        > => {
-          switch (action._tag) {
-            case "Rewind":
-              return executeRewind(id, containerRef)
+      // 2. Execute action based on type
+      const event: TransactionEvent = yield* (() => {
+        switch (action._tag) {
+          case "Rewind":
+            return executeRewind(id, containerRef)
 
-            case "Message":
-              return executeMessage(id, action.message, containerRef, store, retention)
-          }
-        })()
+          case "Message":
+            return executeMessage(id, action.message, containerRef, store, retention)
+        }
+      })()
 
-        // 3. Return event with commit handle
-        const handle = makeCommitHandle(id, commit)
+      // 3. Return event with commit handle
+      const handle = makeCommitHandle(id, commit)
 
-        return [event, handle] as const
-      })
+      return [event, handle] as const
+    })
 
     // =========================================================================
     // commit()
     // =========================================================================
 
-    const commit = (id: TransactionId): Effect.Effect<void, StateStoreError> =>
-      Effect.gen(function*() {
-        const state = yield* Ref.get(containerRef)
+    const commit = Effect.fnUntraced(function*(id: TransactionId): Effect.fn.Return<void, StateStoreError> {
+      const state = yield* Ref.get(containerRef)
 
-        // Find position where IDs become > id (all before this are <= id)
-        const pos = state.uncommitted.findIndex(([currentId]) => currentId > id)
-        const endIndex = pos === -1 ? state.uncommitted.length : pos
+      // Find position where IDs become > id (all before this are <= id)
+      const pos = state.uncommitted.findIndex(([currentId]) => currentId > id)
+      const endIndex = pos === -1 ? state.uncommitted.length : pos
 
-        if (endIndex === 0) {
-          // Nothing to commit
-          return
-        }
+      if (endIndex === 0) {
+        // Nothing to commit
+        return
+      }
 
-        // Collect commits [0..endIndex)
-        const pending = state.uncommitted.slice(0, endIndex)
+      // Collect commits [0..endIndex)
+      const pending = state.uncommitted.slice(0, endIndex)
 
-        // Compress and persist
-        const compressed = compressCommits(pending)
+      // Compress and persist
+      const compressed = compressCommits(pending)
 
-        if (compressed.insert.length > 0 || compressed.prune !== undefined) {
-          // Apply pruning to in-memory buffer
-          yield* Ref.update(containerRef, (s) => {
-            let buffer = s.buffer
-            if (compressed.prune !== undefined) {
-              buffer = buffer.filter(([bufferId]) => bufferId > compressed.prune!)
-            }
-            return { ...s, buffer }
-          })
+      if (compressed.insert.length > 0 || compressed.prune !== undefined) {
+        // Apply pruning to in-memory buffer
+        yield* Ref.update(containerRef, (s) => {
+          let buffer = s.buffer
+          if (compressed.prune !== undefined) {
+            buffer = buffer.filter(([bufferId]) => bufferId > compressed.prune!)
+          }
+          return { ...s, buffer }
+        })
 
-          // Persist to store
-          yield* store.commit({
-            insert: compressed.insert,
-            prune: compressed.prune
-          })
-        }
+        // Persist to store
+        yield* store.commit({
+          insert: compressed.insert,
+          prune: compressed.prune
+        })
+      }
 
-        // Remove committed from uncommitted queue
-        yield* Ref.update(containerRef, (s) => ({
-          ...s,
-          uncommitted: s.uncommitted.slice(endIndex)
-        }))
-      })
+      // Remove committed from uncommitted queue
+      yield* Ref.update(containerRef, (s) => ({
+        ...s,
+        uncommitted: s.uncommitted.slice(endIndex)
+      }))
+    })
 
     return { watermark, peek, execute, commit }
-  })
+  }
+)
 
 // =============================================================================
 // Action Handlers
@@ -214,153 +213,149 @@ export const makeStateActor = (
 /**
  * Execute a Rewind action.
  */
-const executeRewind = (
+const executeRewind = Effect.fnUntraced(function*(
   id: TransactionId,
   containerRef: Ref.Ref<StateContainer>
-): Effect.Effect<TransactionEvent> =>
-  Effect.gen(function*() {
-    const state = yield* Ref.get(containerRef)
+): Effect.fn.Return<TransactionEvent> {
+  const state = yield* Ref.get(containerRef)
 
-    // Compute invalidation range based on buffer state
-    let invalidateStart: TransactionId
-    let invalidateEnd: TransactionId
+  // Compute invalidation range based on buffer state
+  let invalidateStart: TransactionId
+  let invalidateEnd: TransactionId
 
-    if (state.buffer.length === 0) {
-      // Empty buffer (early crash before any watermark): invalidate from the beginning
-      invalidateStart = 0 as TransactionId
-      invalidateEnd = Math.max(0, id - 1) as TransactionId
-    } else {
-      // Normal rewind: invalidate after last watermark
-      const lastWatermarkId = state.buffer[state.buffer.length - 1]![0]
-      invalidateStart = (lastWatermarkId + 1) as TransactionId
-      invalidateEnd = Math.max(invalidateStart, id - 1) as TransactionId
-    }
+  if (state.buffer.length === 0) {
+    // Empty buffer (early crash before any watermark): invalidate from the beginning
+    invalidateStart = 0 as TransactionId
+    invalidateEnd = Math.max(0, id - 1) as TransactionId
+  } else {
+    // Normal rewind: invalidate after last watermark
+    const lastWatermarkId = state.buffer[state.buffer.length - 1]![0]
+    invalidateStart = (lastWatermarkId + 1) as TransactionId
+    invalidateEnd = Math.max(invalidateStart, id - 1) as TransactionId
+  }
 
-    return undoEvent(id, rewindCause(), {
-      start: invalidateStart,
-      end: invalidateEnd
-    })
+  return undoEvent(id, rewindCause(), {
+    start: invalidateStart,
+    end: invalidateEnd
   })
+})
 
 /**
  * Execute a Message action.
  */
-const executeMessage = (
+const executeMessage = Effect.fnUntraced(function*(
   id: TransactionId,
   message: ProtocolMessage,
   containerRef: Ref.Ref<StateContainer>,
   store: StateStoreService,
   retention: number
-): Effect.Effect<TransactionEvent, StateStoreError | UnrecoverableReorgError | PartialReorgError> =>
-  Effect.gen(function*() {
-    switch (message._tag) {
-      case "Data":
-        // Data events just pass through - no buffer mutation
-        return dataEvent(id, message.data, message.ranges)
+): Effect.fn.Return<TransactionEvent, StateStoreError | UnrecoverableReorgError | PartialReorgError> {
+  switch (message._tag) {
+    case "Data":
+      // Data events just pass through - no buffer mutation
+      return dataEvent(id, message.data, message.ranges)
 
-      case "Watermark":
-        return yield* executeWatermark(id, message.ranges, containerRef, retention)
+    case "Watermark":
+      return yield* executeWatermark(id, message.ranges, containerRef, retention)
 
-      case "Reorg":
-        return yield* executeReorg(id, message, containerRef, store)
-    }
-  })
+    case "Reorg":
+      return yield* executeReorg(id, message, containerRef, store)
+  }
+})
 
 /**
  * Execute a Watermark message.
  */
-const executeWatermark = (
+const executeWatermark = Effect.fnUntraced(function*(
   id: TransactionId,
   ranges: ReadonlyArray<BlockRange>,
   containerRef: Ref.Ref<StateContainer>,
   retention: number
-): Effect.Effect<TransactionEvent> =>
-  Effect.gen(function*() {
-    // Add watermark to buffer
-    yield* Ref.update(containerRef, (state) => ({
-      ...state,
-      buffer: [...state.buffer, [id, ranges] as const]
-    }))
+): Effect.fn.Return<TransactionEvent> {
+  // Add watermark to buffer
+  yield* Ref.update(containerRef, (state) => ({
+    ...state,
+    buffer: [...state.buffer, [id, ranges] as const]
+  }))
 
-    // Compute pruning point based on current buffer state
-    const state = yield* Ref.get(containerRef)
-    const prune = findPruningPoint(state.buffer, retention)
+  // Compute pruning point based on current buffer state
+  const state = yield* Ref.get(containerRef)
+  const prune = findPruningPoint(state.buffer, retention)
 
-    // Record in uncommitted queue
-    yield* Ref.update(containerRef, (s) => ({
-      ...s,
-      uncommitted: [...s.uncommitted, [id, { ranges, prune }] as const]
-    }))
+  // Record in uncommitted queue
+  yield* Ref.update(containerRef, (s) => ({
+    ...s,
+    uncommitted: [...s.uncommitted, [id, { ranges, prune }] as const]
+  }))
 
-    return watermarkEvent(id, ranges, prune ?? null)
-  })
+  return watermarkEvent(id, ranges, prune ?? null)
+})
 
 /**
  * Execute a Reorg message.
  */
-const executeReorg = (
+const executeReorg = Effect.fnUntraced(function*(
   id: TransactionId,
   message: Extract<ProtocolMessage, { _tag: "Reorg" }>,
   containerRef: Ref.Ref<StateContainer>,
   store: StateStoreService
-): Effect.Effect<TransactionEvent, StateStoreError | UnrecoverableReorgError | PartialReorgError> =>
-  Effect.gen(function*() {
-    const state = yield* Ref.get(containerRef)
-    const { invalidation } = message
+): Effect.fn.Return<TransactionEvent, StateStoreError | UnrecoverableReorgError | PartialReorgError> {
+  const state = yield* Ref.get(containerRef)
+  const { invalidation } = message
 
-    // 1. Find recovery point
-    const recovery = findRecoveryPoint(state.buffer, invalidation)
+  // 1. Find recovery point
+  const recovery = findRecoveryPoint(state.buffer, invalidation)
 
-    // 2. Compute invalidation range
-    let invalidateStart: TransactionId
-    let invalidateEnd: TransactionId
+  // 2. Compute invalidation range
+  let invalidateStart: TransactionId
+  let invalidateEnd: TransactionId
 
-    if (recovery === undefined) {
-      if (state.buffer.length === 0) {
-        // If the buffer is empty, invalidate everything up to before the current event
-        invalidateStart = 0 as TransactionId
-        invalidateEnd = Math.max(0, id - 1) as TransactionId
-      } else {
-        // No recovery point with a non-empty buffer means all buffered watermarks
-        // are affected by the reorg. This is not recoverable.
-        return yield* Effect.fail(
-          new UnrecoverableReorgError({
-            reason: "All buffered watermarks are affected by the reorg"
-          })
-        )
-      }
+  if (recovery === undefined) {
+    if (state.buffer.length === 0) {
+      // If the buffer is empty, invalidate everything up to before the current event
+      invalidateStart = 0 as TransactionId
+      invalidateEnd = Math.max(0, id - 1) as TransactionId
     } else {
-      const [recoveryId, recoveryRanges] = recovery
+      // No recovery point with a non-empty buffer means all buffered watermarks
+      // are affected by the reorg. This is not recoverable.
+      return yield* Effect.fail(
+        new UnrecoverableReorgError({
+          reason: "All buffered watermarks are affected by the reorg"
+        })
+      )
+    }
+  } else {
+    const [recoveryId, recoveryRanges] = recovery
 
-      // 3. Check for partial reorg
-      const partialNetwork = checkPartialReorg(recoveryRanges, invalidation)
-      if (partialNetwork !== undefined) {
-        return yield* Effect.fail(
-          new PartialReorgError({
-            reason: "Recovery point doesn't align with reorg boundary",
-            network: partialNetwork
-          })
-        )
-      }
-
-      invalidateStart = (recoveryId + 1) as TransactionId
-      invalidateEnd = Math.max(invalidateStart, id - 1) as TransactionId
+    // 3. Check for partial reorg
+    const partialNetwork = checkPartialReorg(recoveryRanges, invalidation)
+    if (partialNetwork !== undefined) {
+      return yield* Effect.fail(
+        new PartialReorgError({
+          reason: "Recovery point doesn't align with reorg boundary",
+          network: partialNetwork
+        })
+      )
     }
 
-    // 4. Truncate both in-memory and store
-    const truncateFrom = recovery !== undefined ? (recovery[0] + 1) as TransactionId : 0 as TransactionId
+    invalidateStart = (recoveryId + 1) as TransactionId
+    invalidateEnd = Math.max(invalidateStart, id - 1) as TransactionId
+  }
 
-    yield* Ref.update(containerRef, (s) => ({
-      ...s,
-      buffer: s.buffer.filter(([bufferId]) => bufferId < truncateFrom),
-      uncommitted: s.uncommitted.filter(([uncommittedId]) => uncommittedId < truncateFrom)
-    }))
+  // 4. Truncate both in-memory and store
+  const truncateFrom = recovery !== undefined ? (recovery[0] + 1) as TransactionId : 0 as TransactionId
 
-    yield* store.truncate(truncateFrom)
+  yield* Ref.update(containerRef, (s) => ({
+    ...s,
+    buffer: s.buffer.filter(([bufferId]) => bufferId < truncateFrom),
+    uncommitted: s.uncommitted.filter(([uncommittedId]) => uncommittedId < truncateFrom)
+  }))
 
-    // 5. Emit Undo with Cause::Reorg
-    return undoEvent(id, reorgCause(invalidation), {
-      start: invalidateStart,
-      end: invalidateEnd
-    })
+  yield* store.truncate(truncateFrom)
+
+  // 5. Emit Undo with Cause::Reorg
+  return undoEvent(id, reorgCause(invalidation), {
+    start: invalidateStart,
+    end: invalidateEnd
   })
+})

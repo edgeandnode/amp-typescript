@@ -12,23 +12,14 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
-import {
-  ArrowFlight,
-  type ArrowFlightError,
-  type QueryOptions,
-  type QueryResult
-} from "../arrow-flight.ts"
+import { ArrowFlight, type ArrowFlightError, type QueryOptions, type QueryResult } from "../arrow-flight.ts"
 import type { BlockRange } from "../models.ts"
+import { ProtocolArrowFlightError, type ProtocolStreamError, ProtocolValidationError } from "./errors.ts"
 import {
-  ProtocolArrowFlightError,
-  ProtocolValidationError,
-  type ProtocolStreamError
-} from "./errors.ts"
-import {
-  type InvalidationRange,
-  type ProtocolMessage,
   data as protocolData,
+  type InvalidationRange,
   makeInvalidationRange,
+  type ProtocolMessage,
   reorg as protocolReorg,
   watermark as protocolWatermark
 } from "./messages.ts"
@@ -120,11 +111,12 @@ export type { ProtocolStreamError }
  *   )
  * })
  *
- * Effect.runPromise(program.pipe(
- *   Effect.provide(ProtocolStream.layer),
- *   Effect.provide(ArrowFlight.layer),
- *   Effect.provide(Transport.layer)
- * ))
+ * const AppLayer = ProtocolStream.layer.pipe(
+ *   Layer.provide(ArrowFlight.layer),
+ *   Layer.provide(Transport.layer)
+ * )
+ *
+ * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  */
 export class ProtocolStream extends Context.Tag("Amp/ProtocolStream")<
@@ -219,65 +211,73 @@ const make = Effect.gen(function*() {
     return rawStream.pipe(
       // Map Arrow Flight errors to protocol errors
       Stream.mapError((error: ArrowFlightError) => new ProtocolArrowFlightError({ cause: error })),
-
       // Process each batch with state tracking
-      Stream.mapAccumEffect(initialState, (state, queryResult) =>
-        Effect.gen(function*() {
-          const batchData = queryResult.data
-          const metadata = queryResult.metadata
-          const incoming = metadata.ranges
+      Stream.mapAccumEffect(
+        initialState,
+        Effect.fnUntraced(
+          function*(
+            state: ProtocolStreamState,
+            queryResult: QueryResult<ReadonlyArray<Record<string, unknown>>>
+          ): Effect.fn.Return<
+            readonly [ProtocolStreamState, ProtocolMessage],
+            ProtocolStreamError
+          > {
+            const batchData = queryResult.data
+            const metadata = queryResult.metadata
+            const incoming = metadata.ranges
 
-          // Validate the incoming batch
-          if (state.initialized) {
-            yield* validateAll(state.previous, incoming).pipe(
-              Effect.mapError((error) => new ProtocolValidationError({ cause: error }))
-            )
-          } else {
-            // Validate prevHash for first batch
-            for (const range of incoming) {
-              const isGenesis = range.numbers.start === 0
-              if (isGenesis) {
-                if (range.prevHash !== undefined && range.prevHash !== ZERO_HASH) {
-                  return yield* Effect.fail(
-                    new ProtocolValidationError({
-                      cause: { _tag: "InvalidPrevHashError", network: range.network }
-                    })
-                  )
-                }
-              } else {
-                if (range.prevHash === undefined || range.prevHash === ZERO_HASH) {
-                  return yield* Effect.fail(
-                    new ProtocolValidationError({
-                      cause: { _tag: "MissingPrevHashError", network: range.network, block: range.numbers.start }
-                    })
-                  )
+            // Validate the incoming batch
+            if (state.initialized) {
+              yield* validateAll(state.previous, incoming).pipe(
+                Effect.mapError((error) => new ProtocolValidationError({ cause: error }))
+              )
+            } else {
+              // Validate prevHash for first batch
+              for (const range of incoming) {
+                const isGenesis = range.numbers.start === 0
+                if (isGenesis) {
+                  if (range.prevHash !== undefined && range.prevHash !== ZERO_HASH) {
+                    return yield* Effect.fail(
+                      new ProtocolValidationError({
+                        cause: { _tag: "InvalidPrevHashError", network: range.network }
+                      })
+                    )
+                  }
+                } else {
+                  if (range.prevHash === undefined || range.prevHash === ZERO_HASH) {
+                    return yield* Effect.fail(
+                      new ProtocolValidationError({
+                        cause: { _tag: "MissingPrevHashError", network: range.network, block: range.numbers.start }
+                      })
+                    )
+                  }
                 }
               }
             }
+
+            // Detect reorgs
+            const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
+
+            // Determine message type
+            let message: ProtocolMessage
+
+            if (invalidations.length > 0) {
+              message = protocolReorg(state.previous, incoming, invalidations)
+            } else if (metadata.rangesComplete && batchData.length === 0) {
+              message = protocolWatermark(incoming)
+            } else {
+              message = protocolData(batchData as unknown as ReadonlyArray<Record<string, unknown>>, incoming)
+            }
+
+            const newState: ProtocolStreamState = {
+              previous: incoming,
+              initialized: true
+            }
+
+            return [newState, message] as const
           }
-
-          // Detect reorgs
-          const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
-
-          // Determine message type
-          let message: ProtocolMessage
-
-          if (invalidations.length > 0) {
-            message = protocolReorg(state.previous, incoming, invalidations)
-          } else if (metadata.rangesComplete && batchData.length === 0) {
-            message = protocolWatermark(incoming)
-          } else {
-            message = protocolData(batchData as unknown as ReadonlyArray<Record<string, unknown>>, incoming)
-          }
-
-          const newState: ProtocolStreamState = {
-            previous: incoming,
-            initialized: true
-          }
-
-          return [newState, message] as const
-        })),
-
+        )
+      ),
       Stream.withSpan("ProtocolStream.stream")
     )
   }
@@ -302,5 +302,4 @@ const make = Effect.gen(function*() {
  * )
  * ```
  */
-export const layer: Layer.Layer<ProtocolStream, never, ArrowFlight> =
-  Layer.effect(ProtocolStream, make)
+export const layer: Layer.Layer<ProtocolStream, never, ArrowFlight> = Layer.effect(ProtocolStream, make)

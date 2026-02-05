@@ -19,7 +19,7 @@
  *   yield* txStream.forEach(
  *     "SELECT * FROM eth.logs",
  *     { retention: 128 },
- *     (event) => Effect.gen(function*() {
+ *     Effect.fnUntraced(function*(event) {
  *       switch (event._tag) {
  *         case "Data":
  *           yield* processData(event.data)
@@ -35,13 +35,14 @@
  *   )
  * })
  *
- * Effect.runPromise(program.pipe(
- *   Effect.provide(TransactionalStream.layer),
- *   Effect.provide(InMemoryStateStore.layer),
- *   Effect.provide(ProtocolStream.layer),
- *   Effect.provide(ArrowFlight.layer),
- *   Effect.provide(Transport.layer)
- * ))
+ * const AppLayer = TransactionalStream.layer.pipe(
+ *   Layer.provide(InMemoryStateStore.layer),
+ *   Layer.provide(ProtocolStream.layer),
+ *   Layer.provide(ArrowFlight.layer),
+ *   Layer.provide(Transport.layer)
+ * )
+ *
+ * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  *
  * @module
@@ -52,10 +53,10 @@
 // =============================================================================
 
 export {
-  type TransactionId,
-  TransactionId as TransactionIdSchema,
-  type TransactionIdRange,
-  TransactionIdRange as TransactionIdRangeSchema,
+  // Constructors
+  dataEvent,
+  reorgCause,
+  rewindCause,
   type TransactionEvent,
   TransactionEvent as TransactionEventSchema,
   type TransactionEventData,
@@ -64,18 +65,18 @@ export {
   TransactionEventUndo as TransactionEventUndoSchema,
   type TransactionEventWatermark,
   TransactionEventWatermark as TransactionEventWatermarkSchema,
+  type TransactionId,
+  TransactionId as TransactionIdSchema,
+  type TransactionIdRange,
+  TransactionIdRange as TransactionIdRangeSchema,
   type UndoCause,
   UndoCause as UndoCauseSchema,
   type UndoCauseReorg,
   UndoCauseReorg as UndoCauseReorgSchema,
   type UndoCauseRewind,
   UndoCauseRewind as UndoCauseRewindSchema,
-  // Constructors
-  dataEvent,
   undoEvent,
-  watermarkEvent,
-  reorgCause,
-  rewindCause
+  watermarkEvent
 } from "./transactional-stream/types.ts"
 
 // =============================================================================
@@ -83,10 +84,10 @@ export {
 // =============================================================================
 
 export {
-  StateStoreError,
-  UnrecoverableReorgError,
   PartialReorgError,
-  type TransactionalStreamError
+  StateStoreError,
+  type TransactionalStreamError,
+  UnrecoverableReorgError
 } from "./transactional-stream/errors.ts"
 
 // =============================================================================
@@ -94,13 +95,13 @@ export {
 // =============================================================================
 
 export {
-  StateStore,
-  type StateStoreService,
-  type StateSnapshot,
   type Commit,
-  emptySnapshot,
   emptyCommit,
-  makeCommit
+  emptySnapshot,
+  makeCommit,
+  type StateSnapshot,
+  StateStore,
+  type StateStoreService
 } from "./transactional-stream/state-store.ts"
 
 // =============================================================================
@@ -120,10 +121,10 @@ export { type CommitHandle, makeCommitHandle } from "./transactional-stream/comm
 // =============================================================================
 
 export {
-  TransactionalStream,
   layer,
-  type TransactionalStreamService,
-  type TransactionalStreamOptions
+  TransactionalStream,
+  type TransactionalStreamOptions,
+  type TransactionalStreamService
 } from "./transactional-stream/stream.ts"
 
 // =============================================================================
@@ -131,8 +132,8 @@ export {
 // =============================================================================
 
 export {
-  findRecoveryPoint,
-  findPruningPoint,
   checkPartialReorg,
-  compressCommits
+  compressCommits,
+  findPruningPoint,
+  findRecoveryPoint
 } from "./transactional-stream/algorithms.ts"

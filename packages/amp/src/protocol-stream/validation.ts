@@ -46,10 +46,8 @@ const isZeroHash = (hash: string): boolean => hash === ZERO_HASH
  * @param range - The block range to validate.
  * @returns An Effect that succeeds if valid, or fails with a validation error.
  */
-export const validatePrevHash = (
-  range: BlockRange
-): Effect.Effect<void, MissingPrevHashError | InvalidPrevHashError> =>
-  Effect.gen(function*() {
+export const validatePrevHash = Effect.fnUntraced(
+  function*(range: BlockRange): Effect.fn.Return<void, MissingPrevHashError | InvalidPrevHashError> {
     const isGenesis = range.numbers.start === 0
 
     if (isGenesis) {
@@ -72,7 +70,8 @@ export const validatePrevHash = (
         })
       }
     }
-  })
+  }
+)
 
 /**
  * Validates network consistency between previous and incoming batches.
@@ -85,11 +84,11 @@ export const validatePrevHash = (
  * @param incoming - The incoming batch's block ranges.
  * @returns An Effect that succeeds if valid, or fails with a validation error.
  */
-export const validateNetworks = (
-  previous: ReadonlyArray<BlockRange>,
-  incoming: ReadonlyArray<BlockRange>
-): Effect.Effect<void, DuplicateNetworkError | NetworkCountChangedError | UnexpectedNetworkError> =>
-  Effect.gen(function*() {
+export const validateNetworks = Effect.fnUntraced(
+  function*(
+    previous: ReadonlyArray<BlockRange>,
+    incoming: ReadonlyArray<BlockRange>
+  ): Effect.fn.Return<void, DuplicateNetworkError | NetworkCountChangedError | UnexpectedNetworkError> {
     // Check for duplicate networks in incoming batch
     const incomingNetworks = new Set<string>()
     for (const range of incoming) {
@@ -119,7 +118,8 @@ export const validateNetworks = (
         return yield* new UnexpectedNetworkError({ network: range.network })
       }
     }
-  })
+  }
+)
 
 /**
  * Checks if two block ranges are equal.
@@ -144,11 +144,11 @@ const blockRangeEquals = (a: BlockRange, b: BlockRange): boolean =>
  * @param incoming - The incoming batch's block ranges.
  * @returns An Effect that succeeds if valid, or fails with a validation error.
  */
-export const validateConsecutiveness = (
-  previous: ReadonlyArray<BlockRange>,
-  incoming: ReadonlyArray<BlockRange>
-): Effect.Effect<void, HashMismatchOnConsecutiveBlocksError | InvalidReorgError | GapError> =>
-  Effect.gen(function*() {
+export const validateConsecutiveness = Effect.fnUntraced(
+  function*(
+    previous: ReadonlyArray<BlockRange>,
+    incoming: ReadonlyArray<BlockRange>
+  ): Effect.fn.Return<void, HashMismatchOnConsecutiveBlocksError | InvalidReorgError | GapError> {
     // If this is the first batch, no consecutiveness check needed
     if (previous.length === 0) {
       return
@@ -197,7 +197,8 @@ export const validateConsecutiveness = (
         })
       }
     }
-  })
+  }
+)
 
 /**
  * Runs all validation checks on incoming block ranges.
@@ -206,11 +207,11 @@ export const validateConsecutiveness = (
  * @param incoming - The incoming batch's block ranges.
  * @returns An Effect that succeeds if all validations pass.
  */
-export const validateAll = (
-  previous: ReadonlyArray<BlockRange>,
-  incoming: ReadonlyArray<BlockRange>
-): Effect.Effect<void, ValidationError> =>
-  Effect.gen(function*() {
+export const validateAll = Effect.fnUntraced(
+  function*(
+    previous: ReadonlyArray<BlockRange>,
+    incoming: ReadonlyArray<BlockRange>
+  ): Effect.fn.Return<void, ValidationError> {
     // Validate prevHash for all incoming ranges
     for (const range of incoming) {
       yield* validatePrevHash(range)
@@ -221,4 +222,5 @@ export const validateAll = (
 
     // Validate consecutiveness
     yield* validateConsecutiveness(previous, incoming)
-  })
+  }
+)

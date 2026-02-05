@@ -3,16 +3,16 @@
  *
  * @module
  */
-import { describe, expect, it } from "vitest"
-import type { BlockRange } from "../../src/models.ts"
-import type { InvalidationRange } from "../../src/protocol-stream/messages.ts"
+import type { BlockRange } from "@edgeandnode/amp/models"
+import type { InvalidationRange } from "@edgeandnode/amp/protocol-stream"
 import {
   checkPartialReorg,
   compressCommits,
   findPruningPoint,
-  findRecoveryPoint
-} from "../../src/transactional-stream/algorithms.ts"
-import type { TransactionId } from "../../src/transactional-stream/types.ts"
+  findRecoveryPoint,
+  type TransactionId
+} from "@edgeandnode/amp/transactional-stream"
+import { describe, expect, it } from "vitest"
 
 // =============================================================================
 // Test Helpers

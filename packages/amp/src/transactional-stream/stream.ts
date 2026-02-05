@@ -18,7 +18,7 @@ import type { BlockRange } from "../models.ts"
 import type { ProtocolStreamError } from "../protocol-stream/errors.ts"
 import { ProtocolStream, type ProtocolStreamOptions } from "../protocol-stream/service.ts"
 import type { CommitHandle } from "./commit-handle.ts"
-import type { StateStoreError, TransactionalStreamError, UnrecoverableReorgError, PartialReorgError } from "./errors.ts"
+import type { PartialReorgError, StateStoreError, TransactionalStreamError, UnrecoverableReorgError } from "./errors.ts"
 import { type Action, makeStateActor, type StateActor } from "./state-actor.ts"
 import { StateStore } from "./state-store.ts"
 import type { TransactionEvent, TransactionId } from "./types.ts"
@@ -72,8 +72,7 @@ export interface TransactionalStreamService {
    * const txStream = yield* TransactionalStream
    *
    * yield* txStream.streamTransactional("SELECT * FROM eth.logs", { retention: 128 }).pipe(
-   *   Stream.runForEach(([event, commitHandle]) =>
-   *     Effect.gen(function*() {
+   *   Stream.runForEach(Effect.fnUntraced(function*([event, commitHandle]) {
    *       yield* processEvent(event)
    *       yield* commitHandle.commit()
    *     })
@@ -102,7 +101,7 @@ export interface TransactionalStreamService {
    * yield* txStream.forEach(
    *   "SELECT * FROM eth.logs",
    *   { retention: 128 },
-   *   (event) => Effect.gen(function*() {
+   *   Effect.fnUntraced(function*(event) {
    *     switch (event._tag) {
    *       case "Data":
    *         yield* processData(event.data)
@@ -139,13 +138,14 @@ export interface TransactionalStreamService {
  *   yield* txStream.forEach("SELECT * FROM eth.logs", {}, processEvent)
  * })
  *
- * Effect.runPromise(program.pipe(
- *   Effect.provide(TransactionalStream.layer),
- *   Effect.provide(InMemoryStateStore.layer),
- *   Effect.provide(ProtocolStream.layer),
- *   Effect.provide(ArrowFlight.layer),
- *   Effect.provide(Transport.layer)
- * ))
+ * const AppLayer = TransactionalStream.layer.pipe(
+ *   Layer.provide(InMemoryStateStore.layer),
+ *   Layer.provide(ProtocolStream.layer),
+ *   Layer.provide(ArrowFlight.layer),
+ *   Layer.provide(Transport.layer)
+ * )
+ *
+ * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  */
 export class TransactionalStream extends Context.Tag("Amp/TransactionalStream")<
@@ -226,17 +226,15 @@ const make = Effect.gen(function*() {
           StateStoreError | UnrecoverableReorgError | PartialReorgError
         > = shouldRewind
           ? Stream.fromEffect(
-              actor.execute({ _tag: "Rewind" })
-            )
+            actor.execute({ _tag: "Rewind" })
+          )
           : Stream.empty
 
         const messageStream: Stream.Stream<
           readonly [TransactionEvent, CommitHandle],
           ProtocolStreamError | StateStoreError | UnrecoverableReorgError | PartialReorgError
         > = protocolStream.pipe(
-          Stream.mapEffect((message) =>
-            actor.execute({ _tag: "Message", message } as Action)
-          )
+          Stream.mapEffect((message) => actor.execute({ _tag: "Message", message } as Action))
         )
 
         return Stream.concat(rewindStream, messageStream)
@@ -252,14 +250,12 @@ const make = Effect.gen(function*() {
     handler: (event: TransactionEvent) => Effect.Effect<void, E, R>
   ): Effect.Effect<void, TransactionalStreamError | E, R> =>
     streamTransactional(sql, options).pipe(
-      Stream.runForEach(([event, commitHandle]) =>
-        Effect.gen(function*() {
-          // Process the event
-          yield* handler(event)
-          // Auto-commit after successful processing
-          yield* commitHandle.commit()
-        })
-      ),
+      Stream.runForEach(Effect.fnUntraced(function*([event, commitHandle]: readonly [TransactionEvent, CommitHandle]) {
+        // Process the event
+        yield* handler(event)
+        // Auto-commit after successful processing
+        yield* commitHandle.commit()
+      })),
       Effect.withSpan("TransactionalStream.forEach")
     )
 
@@ -297,5 +293,7 @@ const make = Effect.gen(function*() {
  * )
  * ```
  */
-export const layer: Layer.Layer<TransactionalStream, never, ProtocolStream | StateStore> =
-  Layer.effect(TransactionalStream, make)
+export const layer: Layer.Layer<TransactionalStream, never, ProtocolStream | StateStore> = Layer.effect(
+  TransactionalStream,
+  make
+)

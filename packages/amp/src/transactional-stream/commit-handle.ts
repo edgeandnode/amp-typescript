@@ -24,8 +24,7 @@ import type { TransactionId } from "./types.ts"
  * @example
  * ```typescript
  * yield* txStream.pipe(
- *   Stream.runForEach(([event, commitHandle]) =>
- *     Effect.gen(function*() {
+ *   Stream.runForEach(Effect.fnUntraced(function*([event, commitHandle]) {
  *       // Process the event
  *       yield* processEvent(event)
  *
