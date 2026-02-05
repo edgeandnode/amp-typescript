@@ -26,20 +26,6 @@ import { parseRecordBatch } from "./internal/arrow-flight-ipc/RecordBatch.ts"
 import { type ArrowSchema, getMessageType, MessageHeaderType, parseSchema } from "./internal/arrow-flight-ipc/Schema.ts"
 import type { AuthInfo, BlockRange, RecordBatchMetadata } from "./models.ts"
 import { RecordBatchMetadataFromUint8Array } from "./models.ts"
-import {
-  type ProtocolStreamError,
-  ProtocolArrowFlightError,
-  ProtocolValidationError
-} from "./protocol-stream/errors.ts"
-import {
-  type InvalidationRange,
-  type ProtocolMessage,
-  data as protocolData,
-  makeInvalidationRange,
-  reorg as protocolReorg,
-  watermark as protocolWatermark
-} from "./protocol-stream/messages.ts"
-import { validateAll } from "./protocol-stream/validation.ts"
 import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./protobuf/Flight_pb.ts"
 import { CommandStatementQuerySchema } from "./protobuf/FlightSql_pb.ts"
 
@@ -284,56 +270,7 @@ export class ArrowFlight extends Context.Tag("Amp/ArrowFlight")<ArrowFlight, {
     sql: string,
     options?: Options
   ) => Stream.Stream<ExtractQueryResult<Options>, ArrowFlightError>
-
-  /**
-   * Executes an Arrow Flight SQL query and returns a stream of protocol messages
-   * with stateless reorg detection.
-   *
-   * Protocol messages include:
-   * - `Data`: New records to process with block ranges
-   * - `Reorg`: Chain reorganization detected with invalidation ranges
-   * - `Watermark`: Confirmation that block ranges are complete
-   *
-   * @example
-   * ```typescript
-   * const arrowFlight = yield* ArrowFlight
-   *
-   * yield* arrowFlight.streamProtocol("SELECT * FROM eth.logs").pipe(
-   *   Stream.runForEach((message) => {
-   *     switch (message._tag) {
-   *       case "Data":
-   *         return Effect.log(`Data: ${message.data.length} records`)
-   *       case "Reorg":
-   *         return Effect.log(`Reorg: ${message.invalidation.length} ranges`)
-   *       case "Watermark":
-   *         return Effect.log(`Watermark confirmed`)
-   *     }
-   *   })
-   * )
-   * ```
-   */
-  readonly streamProtocol: (
-    sql: string,
-    options?: ProtocolStreamOptions
-  ) => Stream.Stream<ProtocolMessage, ProtocolStreamError>
 }>() {}
-
-/**
- * Options for creating a protocol stream.
- */
-export interface ProtocolStreamOptions {
-  /**
-   * Schema to validate and decode the record batch data.
-   * If provided, data will be validated against this schema.
-   */
-  readonly schema?: QueryOptions["schema"]
-
-  /**
-   * Resume watermark from a previous session.
-   * Allows resumption of streaming queries from a known position.
-   */
-  readonly resumeWatermark?: ReadonlyArray<BlockRange>
-}
 
 const make = Effect.gen(function*() {
   const auth = yield* Effect.serviceOption(Auth)
@@ -471,148 +408,10 @@ const make = Effect.gen(function*() {
     }
   ) as any
 
-  /**
-   * Internal state maintained by the protocol stream for reorg detection.
-   */
-  interface ProtocolStreamState {
-    readonly previous: ReadonlyArray<BlockRange>
-    readonly initialized: boolean
-  }
-
-  /**
-   * Detects reorgs by comparing incoming ranges to previous ranges.
-   */
-  const detectReorgs = (
-    previous: ReadonlyArray<BlockRange>,
-    incoming: ReadonlyArray<BlockRange>
-  ): ReadonlyArray<InvalidationRange> => {
-    const invalidations: Array<InvalidationRange> = []
-
-    for (const incomingRange of incoming) {
-      const prevRange = previous.find((p) => p.network === incomingRange.network)
-      if (!prevRange) continue
-
-      // Skip identical ranges (watermarks can repeat)
-      if (
-        incomingRange.network === prevRange.network &&
-        incomingRange.numbers.start === prevRange.numbers.start &&
-        incomingRange.numbers.end === prevRange.numbers.end &&
-        incomingRange.hash === prevRange.hash &&
-        incomingRange.prevHash === prevRange.prevHash
-      ) {
-        continue
-      }
-
-      const incomingStart = incomingRange.numbers.start
-      const prevEnd = prevRange.numbers.end
-
-      // Detect backwards jump (reorg indicator)
-      if (incomingStart < prevEnd + 1) {
-        invalidations.push(
-          makeInvalidationRange(
-            incomingRange.network,
-            incomingStart,
-            Math.max(incomingRange.numbers.end, prevEnd)
-          )
-        )
-      }
-    }
-
-    return invalidations
-  }
-
-  const streamProtocol = (
-    sql: string,
-    options?: ProtocolStreamOptions
-  ): Stream.Stream<ProtocolMessage, ProtocolStreamError> => {
-    // Get the underlying Arrow Flight stream
-    const rawStream = streamQuery(sql, {
-      schema: options?.schema,
-      stream: true,
-      resumeWatermark: options?.resumeWatermark
-    }) as unknown as Stream.Stream<
-      QueryResult<ReadonlyArray<Record<string, unknown>>>,
-      ArrowFlightError
-    >
-
-    const initialState: ProtocolStreamState = {
-      previous: [],
-      initialized: false
-    }
-
-    const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000"
-
-    return rawStream.pipe(
-      // Map Arrow Flight errors to protocol errors
-      Stream.mapError((error: ArrowFlightError) => new ProtocolArrowFlightError({ cause: error })),
-
-      // Process each batch with state tracking
-      Stream.mapAccumEffect(initialState, (state, queryResult) =>
-        Effect.gen(function*() {
-          const batchData = queryResult.data
-          const metadata = queryResult.metadata
-          const incoming = metadata.ranges
-
-          // Validate the incoming batch
-          if (state.initialized) {
-            yield* validateAll(state.previous, incoming).pipe(
-              Effect.mapError((error) => new ProtocolValidationError({ cause: error }))
-            )
-          } else {
-            // Validate prevHash for first batch
-            for (const range of incoming) {
-              const isGenesis = range.numbers.start === 0
-              if (isGenesis) {
-                if (range.prevHash !== undefined && range.prevHash !== ZERO_HASH) {
-                  return yield* Effect.fail(
-                    new ProtocolValidationError({
-                      cause: { _tag: "InvalidPrevHashError", network: range.network }
-                    })
-                  )
-                }
-              } else {
-                if (range.prevHash === undefined || range.prevHash === ZERO_HASH) {
-                  return yield* Effect.fail(
-                    new ProtocolValidationError({
-                      cause: { _tag: "MissingPrevHashError", network: range.network, block: range.numbers.start }
-                    })
-                  )
-                }
-              }
-            }
-          }
-
-          // Detect reorgs
-          const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
-
-          // Determine message type
-          let message: ProtocolMessage
-
-          if (invalidations.length > 0) {
-            message = protocolReorg(state.previous, incoming, invalidations)
-          } else if (metadata.rangesComplete && batchData.length === 0) {
-            message = protocolWatermark(incoming)
-          } else {
-            message = protocolData(batchData as unknown as ReadonlyArray<Record<string, unknown>>, incoming)
-          }
-
-          const newState: ProtocolStreamState = {
-            previous: incoming,
-            initialized: true
-          }
-
-          return [newState, message] as const
-        })),
-
-      Stream.withSpan("ArrowFlight.streamProtocol")
-    )
-  }
-
   return {
     client,
     query,
-    streamQuery,
-    streamProtocol
+    streamQuery
   } as const
 })
 
@@ -642,27 +441,3 @@ const blockRangesToResumeWatermark = (ranges: ReadonlyArray<BlockRange>): string
   }
   return JSON.stringify(watermarks)
 }
-
-// =============================================================================
-// Protocol Stream Re-exports
-// =============================================================================
-
-export type { ProtocolStreamError }
-
-export {
-  ProtocolArrowFlightError,
-  ProtocolValidationError
-} from "./protocol-stream/errors.ts"
-
-export {
-  InvalidationRange,
-  ProtocolMessage,
-  ProtocolMessageData,
-  ProtocolMessageReorg,
-  ProtocolMessageWatermark,
-  data as protocolMessageData,
-  invalidates,
-  makeInvalidationRange,
-  reorg as protocolMessageReorg,
-  watermark as protocolMessageWatermark
-} from "./protocol-stream/messages.ts"

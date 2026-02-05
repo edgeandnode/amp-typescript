@@ -1,8 +1,8 @@
 /**
- * Protocol Stream types for processing Amp streams with reorg detection.
+ * Protocol Stream - provides protocol-level stream processing with reorg detection.
  *
- * This module provides the types and validation functions used by
- * `ArrowFlight.streamProtocol()` for stateless reorg detection.
+ * This module provides the `ProtocolStream` service and related types for
+ * processing Amp streams with stateless reorg detection.
  *
  * ## Overview
  *
@@ -18,12 +18,13 @@
  * ```typescript
  * import * as Effect from "effect/Effect"
  * import * as Stream from "effect/Stream"
- * import { ArrowFlight } from "@edgeandnode/amp"
+ * import { ProtocolStream } from "@edgeandnode/amp/protocol-stream"
+ * import { ArrowFlight, Transport } from "@edgeandnode/amp"
  *
  * const program = Effect.gen(function*() {
- *   const arrowFlight = yield* ArrowFlight.ArrowFlight
+ *   const protocolStream = yield* ProtocolStream
  *
- *   yield* arrowFlight.streamProtocol("SELECT * FROM eth.logs").pipe(
+ *   yield* protocolStream.stream("SELECT * FROM eth.logs").pipe(
  *     Stream.runForEach((message) => {
  *       switch (message._tag) {
  *         case "Data":
@@ -36,6 +37,12 @@
  *     })
  *   )
  * })
+ *
+ * Effect.runPromise(program.pipe(
+ *   Effect.provide(ProtocolStream.layer),
+ *   Effect.provide(ArrowFlight.layer),
+ *   Effect.provide(Transport.layer)
+ * ))
  * ```
  *
  * ## Reorg Detection
@@ -113,3 +120,14 @@ export {
   validateNetworks,
   validatePrevHash
 } from "./validation.ts"
+
+// =============================================================================
+// Service
+// =============================================================================
+
+export {
+  ProtocolStream,
+  layer,
+  type ProtocolStreamService,
+  type ProtocolStreamOptions
+} from "./service.ts"

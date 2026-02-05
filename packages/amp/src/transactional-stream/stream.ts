@@ -1,7 +1,7 @@
 /**
  * TransactionalStream service - provides exactly-once semantics for data processing.
  *
- * The TransactionalStream wraps ArrowFlight's protocol stream with:
+ * The TransactionalStream wraps ProtocolStream with:
  * - Transaction IDs for each event
  * - Crash recovery via persistent state
  * - Rewind detection for uncommitted transactions
@@ -13,9 +13,10 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
-import { ArrowFlight, type ProtocolStreamOptions, type QueryOptions } from "../arrow-flight.ts"
+import type { QueryOptions } from "../arrow-flight.ts"
 import type { BlockRange } from "../models.ts"
 import type { ProtocolStreamError } from "../protocol-stream/errors.ts"
+import { ProtocolStream, type ProtocolStreamOptions } from "../protocol-stream/service.ts"
 import type { CommitHandle } from "./commit-handle.ts"
 import type { StateStoreError, TransactionalStreamError, UnrecoverableReorgError, PartialReorgError } from "./errors.ts"
 import { type Action, makeStateActor, type StateActor } from "./state-actor.ts"
@@ -141,6 +142,7 @@ export interface TransactionalStreamService {
  * Effect.runPromise(program.pipe(
  *   Effect.provide(TransactionalStream.layer),
  *   Effect.provide(InMemoryStateStore.layer),
+ *   Effect.provide(ProtocolStream.layer),
  *   Effect.provide(ArrowFlight.layer),
  *   Effect.provide(Transport.layer)
  * ))
@@ -180,7 +182,7 @@ const needsRewind = (
  * Create TransactionalStream service implementation.
  */
 const make = Effect.gen(function*() {
-  const arrowFlight = yield* ArrowFlight
+  const protocolStreamService = yield* ProtocolStream
   const storeService = yield* StateStore
 
   const streamTransactional = (
@@ -215,7 +217,7 @@ const make = Effect.gen(function*() {
         const protocolOptions: ProtocolStreamOptions = resumeWatermark !== undefined
           ? { schema: options?.schema, resumeWatermark }
           : { schema: options?.schema }
-        const protocolStream = arrowFlight.streamProtocol(sql, protocolOptions)
+        const protocolStream = protocolStreamService.stream(sql, protocolOptions)
 
         // 6. Build transactional stream
         // First emit Rewind if needed, then map protocol messages through actor
@@ -274,13 +276,14 @@ const make = Effect.gen(function*() {
 /**
  * Layer providing TransactionalStream.
  *
- * Requires ArrowFlight and StateStore in context.
+ * Requires ProtocolStream and StateStore in context.
  *
  * @example
  * ```typescript
  * // Development/Testing with InMemoryStateStore
  * const DevLayer = TransactionalStream.layer.pipe(
  *   Layer.provide(InMemoryStateStore.layer),
+ *   Layer.provide(ProtocolStream.layer),
  *   Layer.provide(ArrowFlight.layer),
  *   Layer.provide(Transport.layer)
  * )
@@ -288,10 +291,11 @@ const make = Effect.gen(function*() {
  * // Production with persistent store (future)
  * const ProdLayer = TransactionalStream.layer.pipe(
  *   Layer.provide(IndexedDBStateStore.layer),
+ *   Layer.provide(ProtocolStream.layer),
  *   Layer.provide(ArrowFlight.layer),
  *   Layer.provide(Transport.layer)
  * )
  * ```
  */
-export const layer: Layer.Layer<TransactionalStream, never, ArrowFlight | StateStore> =
+export const layer: Layer.Layer<TransactionalStream, never, ProtocolStream | StateStore> =
   Layer.effect(TransactionalStream, make)
