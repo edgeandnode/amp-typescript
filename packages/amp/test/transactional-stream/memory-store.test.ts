@@ -11,8 +11,8 @@ import {
   StateStore,
   type TransactionId
 } from "@edgeandnode/amp/transactional-stream"
-import * as Effect from "effect/Effect"
 import { describe, expect, it } from "@effect/vitest"
+import * as Effect from "effect/Effect"
 
 // =============================================================================
 // Test Helpers

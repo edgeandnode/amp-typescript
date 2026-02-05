@@ -5,15 +5,10 @@
  */
 import type { BlockNumber, BlockRange, Network } from "@edgeandnode/amp/models"
 import type { ProtocolMessage } from "@edgeandnode/amp/protocol-stream"
-import {
-  InMemoryStateStore,
-  type StateSnapshot,
-  StateStore,
-  type TransactionId
-} from "@edgeandnode/amp/transactional-stream"
-import { makeStateActor, type StateActor } from "@edgeandnode/amp/transactional-stream/state-actor"
-import * as Effect from "effect/Effect"
+import { InMemoryStateStore, StateStore, type TransactionId } from "@edgeandnode/amp/transactional-stream"
+import { makeStateActor } from "@edgeandnode/amp/transactional-stream/state-actor"
 import { describe, expect, it } from "@effect/vitest"
+import * as Effect from "effect/Effect"
 
 // =============================================================================
 // Test Helpers
