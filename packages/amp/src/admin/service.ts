@@ -20,8 +20,8 @@ import * as Effect from "effect/Effect"
 import { constUndefined } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import * as Auth from "../Auth.ts"
-import type * as Models from "../Models.ts"
+import * as Auth from "../auth/service.ts"
+import type * as Models from "../models.ts"
 import * as Api from "./api.ts"
 import type * as Domain from "./domain.ts"
 
@@ -263,7 +263,10 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
       onSome: (auth) =>
         HttpClient.mapRequestEffect(
           Effect.fnUntraced(function*(request) {
-            const authInfo = yield* auth.getCachedAuthInfo
+            const authInfo = yield* auth.getCachedAuthInfo.pipe(
+              // Treat cache errors as "no auth available"
+              Effect.catchAll(() => Effect.succeed(Option.none()))
+            )
             if (Option.isNone(authInfo)) return request
             const token = authInfo.value.accessToken
             return HttpClientRequest.bearerToken(request, token)

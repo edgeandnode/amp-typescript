@@ -1,5 +1,5 @@
 import * as Schema from "effect/Schema"
-import * as Models from "../Models.ts"
+import * as Models from "../models.ts"
 
 // TODO(Chris/Max/Sebastian): Should we consider moving these "general" schemas
 // to the top-level models module (Which I'm considering moving into a /domain

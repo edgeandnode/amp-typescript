@@ -6,7 +6,7 @@ inputs:
 
 plugins:
   - local: protoc-gen-es
-    out: src/Protobuf
+    out: src/protobuf
     opt:
       - target=ts
       - import_extension=ts

@@ -4,7 +4,8 @@
   "include": [
     "**/vitest.*.ts",
     "./packages/**/*.ts",
-    "./packages/*/test/**/*.ts"
+    "./packages/*/test/**/*.ts",
+    "./packages/*/package.json"
   ],
   "compilerOptions": {
     "rootDir": ".",
@@ -17,7 +18,9 @@
       // that would otherwise be considered cyclic dependencies (e.g. loading `@edgeandnode/amp` in the another test
       // suite where the package _also_ depends on `@edgeandnode/amp`).
       "@edgeandnode/amp": ["./packages/amp/src/index.ts"],
-      "@edgeandnode/amp/*": ["./packages/amp/src/*.ts"]
+      "@edgeandnode/amp/*": ["./packages/amp/src/*.ts"],
+      "@edgeandnode/amp-cli": ["./packages/cli/src/index.ts"],
+      "@edgeandnode/amp-cli/*": ["./packages/cli/src/*.ts"]
     },
     "plugins": [{
       "name": "@effect/language-service",

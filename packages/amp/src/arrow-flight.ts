@@ -19,15 +19,15 @@ import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
-import { Auth } from "./Auth.ts"
+import { Auth } from "./auth/service.ts"
 import { decodeRecordBatch, DictionaryRegistry } from "./internal/arrow-flight-ipc/Decoder.ts"
 import { recordBatchToJson } from "./internal/arrow-flight-ipc/Json.ts"
 import { parseRecordBatch } from "./internal/arrow-flight-ipc/RecordBatch.ts"
 import { type ArrowSchema, getMessageType, MessageHeaderType, parseSchema } from "./internal/arrow-flight-ipc/Schema.ts"
-import type { AuthInfo, BlockRange, RecordBatchMetadata } from "./Models.ts"
-import { RecordBatchMetadataFromUint8Array } from "./Models.ts"
-import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./Protobuf/Flight_pb.ts"
-import { CommandStatementQuerySchema } from "./Protobuf/FlightSql_pb.ts"
+import type { AuthInfo, BlockRange, RecordBatchMetadata } from "./models.ts"
+import { RecordBatchMetadataFromUint8Array } from "./models.ts"
+import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "./protobuf/Flight_pb.ts"
+import { CommandStatementQuerySchema } from "./protobuf/FlightSql_pb.ts"
 
 // =============================================================================
 // Connect RPC Transport
@@ -212,7 +212,7 @@ export class ParseSchemaError extends Schema.TaggedError<ParseSchemaError>(
  * is successfully executed.
  */
 export interface QueryResult<A> {
-  readonly data: A
+  readonly data: ReadonlyArray<A>
   readonly metadata: RecordBatchMetadata
 }
 
@@ -239,7 +239,7 @@ export interface QueryOptions {
 export type ExtractQueryResult<Options extends QueryOptions> = Options extends {
   readonly schema: Schema.Schema<infer _A, infer _I, infer _R>
 } ? QueryResult<_A>
-  : Record<string, unknown>
+  : QueryResult<Record<string, unknown>>
 
 // =============================================================================
 // Arrow Flight Service

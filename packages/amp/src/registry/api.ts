@@ -4,7 +4,7 @@ import * as HttpApiError from "@effect/platform/HttpApiError"
 import * as HttpApiGroup from "@effect/platform/HttpApiGroup"
 import * as HttpApiSchema from "@effect/platform/HttpApiSchema"
 import * as Schema from "effect/Schema"
-import * as Models from "../Models.ts"
+import * as Models from "../models.ts"
 import * as Domain from "./domain.ts"
 import * as Errors from "./error.ts"
 
