@@ -16,7 +16,7 @@
  * - Watermark and data message generation
  */
 import type { BlockHash, BlockNumber, BlockRange, Network } from "@edgeandnode/amp/models"
-import { data, invalidates, makeInvalidationRange, reorg, watermark } from "@edgeandnode/amp/protocol-stream/index"
+import { data, invalidates, makeInvalidationRange, reorg, watermark } from "@edgeandnode/amp/protocol-stream"
 import { describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Either from "effect/Either"

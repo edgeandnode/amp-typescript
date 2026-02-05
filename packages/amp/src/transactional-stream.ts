@@ -38,6 +38,7 @@
  * Effect.runPromise(program.pipe(
  *   Effect.provide(TransactionalStream.layer),
  *   Effect.provide(InMemoryStateStore.layer),
+ *   Effect.provide(ProtocolStream.layer),
  *   Effect.provide(ArrowFlight.layer),
  *   Effect.provide(Transport.layer)
  * ))
@@ -75,7 +76,7 @@ export {
   watermarkEvent,
   reorgCause,
   rewindCause
-} from "./types.ts"
+} from "./transactional-stream/types.ts"
 
 // =============================================================================
 // Errors
@@ -86,7 +87,7 @@ export {
   UnrecoverableReorgError,
   PartialReorgError,
   type TransactionalStreamError
-} from "./errors.ts"
+} from "./transactional-stream/errors.ts"
 
 // =============================================================================
 // StateStore Service
@@ -100,19 +101,19 @@ export {
   emptySnapshot,
   emptyCommit,
   makeCommit
-} from "./state-store.ts"
+} from "./transactional-stream/state-store.ts"
 
 // =============================================================================
 // InMemoryStateStore Layer
 // =============================================================================
 
-export * as InMemoryStateStore from "./memory-store.ts"
+export * as InMemoryStateStore from "./transactional-stream/memory-store.ts"
 
 // =============================================================================
 // CommitHandle
 // =============================================================================
 
-export { type CommitHandle, makeCommitHandle } from "./commit-handle.ts"
+export { type CommitHandle, makeCommitHandle } from "./transactional-stream/commit-handle.ts"
 
 // =============================================================================
 // TransactionalStream Service
@@ -123,7 +124,7 @@ export {
   layer,
   type TransactionalStreamService,
   type TransactionalStreamOptions
-} from "./stream.ts"
+} from "./transactional-stream/stream.ts"
 
 // =============================================================================
 // Algorithms (for advanced use cases and testing)
@@ -134,4 +135,4 @@ export {
   findPruningPoint,
   checkPartialReorg,
   compressCommits
-} from "./algorithms.ts"
+} from "./transactional-stream/algorithms.ts"

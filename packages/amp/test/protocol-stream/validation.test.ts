@@ -17,7 +17,7 @@ import {
   validateConsecutiveness,
   validateNetworks,
   validatePrevHash
-} from "@edgeandnode/amp/protocol-stream/index"
+} from "@edgeandnode/amp/protocol-stream"
 import { describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Either from "effect/Either"

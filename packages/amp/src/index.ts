@@ -26,8 +26,6 @@ export * as AdminApi from "./admin/api.ts"
 export * as RegistryApi from "./registry/api.ts"
 
 /**
- * Protocol stream types and validation for reorg detection.
- *
- * These types are used by `ArrowFlight.streamProtocol()`.
+ * Protocol stream service with reorg detection.
  */
-export * as ProtocolStream from "./protocol-stream/index.ts"
+export * as ProtocolStream from "./protocol-stream.ts"

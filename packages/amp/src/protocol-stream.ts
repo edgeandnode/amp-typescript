@@ -86,7 +86,7 @@ export {
   makeInvalidationRange,
   reorg,
   watermark
-} from "./messages.ts"
+} from "./protocol-stream/messages.ts"
 
 // =============================================================================
 // Errors
@@ -108,7 +108,7 @@ export {
   ProtocolArrowFlightError,
   ProtocolValidationError,
   type ProtocolStreamError
-} from "./errors.ts"
+} from "./protocol-stream/errors.ts"
 
 // =============================================================================
 // Validation
@@ -119,7 +119,7 @@ export {
   validateConsecutiveness,
   validateNetworks,
   validatePrevHash
-} from "./validation.ts"
+} from "./protocol-stream/validation.ts"
 
 // =============================================================================
 // Service
@@ -130,4 +130,4 @@ export {
   layer,
   type ProtocolStreamService,
   type ProtocolStreamOptions
-} from "./service.ts"
+} from "./protocol-stream/service.ts"
