@@ -201,8 +201,8 @@ const make = Effect.gen(function*() {
         const actor: StateActor = yield* makeStateActor(storeService, retention)
 
         // 2. Get current watermark and next ID
-        const watermark = yield* actor.watermark()
-        const nextId = yield* actor.peek()
+        const watermark = yield* actor.watermark
+        const nextId = yield* actor.peek
 
         // 3. Determine resume cursor
         const resumeWatermark: ReadonlyArray<BlockRange> | undefined = watermark !== undefined
@@ -254,7 +254,7 @@ const make = Effect.gen(function*() {
         // Process the event
         yield* handler(event)
         // Auto-commit after successful processing
-        yield* commitHandle.commit()
+        yield* commitHandle.commit
       })),
       Effect.withSpan("TransactionalStream.forEach")
     )

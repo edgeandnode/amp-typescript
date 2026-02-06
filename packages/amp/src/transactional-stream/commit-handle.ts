@@ -29,7 +29,7 @@ import type { TransactionId } from "./types.ts"
  *       yield* processEvent(event)
  *
  *       // Commit the state change
- *       yield* commitHandle.commit()
+ *       yield* commitHandle.commit
  *     })
  *   )
  * )
@@ -49,7 +49,7 @@ export interface CommitHandle {
    * Multiple commits can be batched together for efficiency - if you don't commit
    * after every event, the next commit will include all previous uncommitted events.
    */
-  readonly commit: () => Effect.Effect<void, StateStoreError>
+  readonly commit: Effect.Effect<void, StateStoreError>
 }
 
 // =============================================================================
@@ -66,5 +66,5 @@ export const makeCommitHandle = (
   commitFn: (id: TransactionId) => Effect.Effect<void, StateStoreError>
 ): CommitHandle => ({
   id,
-  commit: () => commitFn(id)
+  commit: commitFn(id)
 })

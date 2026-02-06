@@ -10,26 +10,23 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
-import { type Commit, emptySnapshot, type StateSnapshot, StateStore, type StateStoreService } from "./state-store.ts"
-import type { TransactionId } from "./types.ts"
+import { emptySnapshot, type StateSnapshot, StateStore, type StateStoreService } from "./state-store.ts"
 
 // =============================================================================
 // Implementation
 // =============================================================================
 
 /**
- * Create InMemoryStateStore service implementation.
+ * Build a StateStoreService backed by a single Ref.
  */
-const makeWithInitialState = Effect.fnUntraced(function*(initial: StateSnapshot): Effect.fn.Return<StateStoreService> {
-  const stateRef = yield* Ref.make<StateSnapshot>(initial)
-
-  const advance = (next: TransactionId) =>
+const makeServiceFromRef = (stateRef: Ref.Ref<StateSnapshot>): StateStoreService => ({
+  advance: (next) =>
     Ref.update(stateRef, (state) => ({
       ...state,
       next
-    }))
+    })),
 
-  const commit = (commitData: Commit) =>
+  commit: (commitData) =>
     Ref.update(stateRef, (state) => {
       let buffer = [...state.buffer]
 
@@ -44,22 +41,23 @@ const makeWithInitialState = Effect.fnUntraced(function*(initial: StateSnapshot)
       }
 
       return { ...state, buffer }
-    })
+    }),
 
-  const truncate = (from: TransactionId) =>
+  truncate: (from) =>
     Ref.update(stateRef, (state) => ({
       ...state,
       buffer: state.buffer.filter(([id]) => id < from)
-    }))
+    })),
 
-  const load = () => Ref.get(stateRef)
+  load: Ref.get(stateRef)
+})
 
-  return {
-    advance,
-    commit,
-    truncate,
-    load
-  } satisfies StateStoreService
+/**
+ * Create InMemoryStateStore service implementation.
+ */
+const makeWithInitialState = Effect.fnUntraced(function*(initial: StateSnapshot): Effect.fn.Return<StateStoreService> {
+  const stateRef = yield* Ref.make<StateSnapshot>(initial)
+  return makeServiceFromRef(stateRef)
 })
 
 /**
@@ -78,7 +76,7 @@ const make = makeWithInitialState(emptySnapshot)
  * ```typescript
  * const program = Effect.gen(function*() {
  *   const store = yield* StateStore
- *   const snapshot = yield* store.load()
+ *   const snapshot = yield* store.load
  *   console.log(snapshot.next) // 0
  * })
  *
@@ -160,29 +158,7 @@ export const layerTest: Layer.Layer<TestState | StateStore> = Layer.effectContex
       get: Ref.get(ref)
     })
 
-    const store = StateStore.of({
-      advance: (next) => Ref.update(ref, (state) => ({ ...state, next })),
-
-      commit: (commitData) =>
-        Ref.update(ref, (state) => {
-          let buffer = [...state.buffer]
-          if (commitData.prune !== undefined) {
-            buffer = buffer.filter(([id]) => id > commitData.prune!)
-          }
-          for (const entry of commitData.insert) {
-            buffer.push(entry)
-          }
-          return { ...state, buffer }
-        }),
-
-      truncate: (from) =>
-        Ref.update(ref, (state) => ({
-          ...state,
-          buffer: state.buffer.filter(([id]) => id < from)
-        })),
-
-      load: () => Ref.get(ref)
-    })
+    const store = StateStore.of(makeServiceFromRef(ref))
 
     return Context.mergeAll(
       Context.make(StateStore, store),

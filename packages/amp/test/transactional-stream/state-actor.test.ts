@@ -65,7 +65,7 @@ describe("StateActor.watermark", () => {
     Effect.gen(function*() {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
-      const result = yield* actor.watermark()
+      const result = yield* actor.watermark
       expect(result).toBeUndefined()
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [],
@@ -76,7 +76,7 @@ describe("StateActor.watermark", () => {
     Effect.gen(function*() {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
-      const result = yield* actor.watermark()
+      const result = yield* actor.watermark
       expect(result?.[0]).toBe(2)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [
@@ -92,7 +92,7 @@ describe("StateActor.peek", () => {
     Effect.gen(function*() {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
-      const result = yield* actor.peek()
+      const result = yield* actor.peek
       expect(result).toBe(10)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [],
@@ -170,7 +170,7 @@ describe("StateActor.execute - Watermark", () => {
         _tag: "Message",
         message: watermarkMessage([makeBlockRange("eth", 0, 10)])
       })
-      const watermark = yield* actor.watermark()
+      const watermark = yield* actor.watermark
       expect(watermark?.[0]).toBe(0)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [],
@@ -293,7 +293,7 @@ describe("StateActor.execute - Reorg", () => {
       })
 
       // Check that buffer is truncated
-      const result = yield* actor.watermark()
+      const result = yield* actor.watermark
       // Recovery point is id=2 (last unaffected), buffer truncated to keep only id=1,2
       expect(result?.[0]).toBe(2)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
@@ -397,10 +397,10 @@ describe("StateActor.commit", () => {
         message: watermarkMessage([makeBlockRange("eth", 0, 10)])
       })
 
-      yield* handle.commit()
+      yield* handle.commit
 
       // The watermark should now be committed
-      const result = yield* actor.watermark()
+      const result = yield* actor.watermark
       expect(result?.[0]).toBe(0)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [],
@@ -422,9 +422,9 @@ describe("StateActor.commit", () => {
       })
 
       // Commit only the second one - should commit both
-      yield* handle2.commit()
+      yield* handle2.commit
 
-      const watermark = yield* actor.watermark()
+      const watermark = yield* actor.watermark
       expect(watermark?.[0]).toBe(1)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [],

@@ -66,7 +66,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    *
    * @return The list of all datasets.
    */
-  readonly getDatasets: () => Effect.Effect<
+  readonly getDatasets: Effect.Effect<
     Domain.GetDatasetsResponse,
     HttpError | Api.GetDatasetsError
   >
@@ -208,7 +208,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    *
    * @return The list of workers.
    */
-  readonly getWorkers: () => Effect.Effect<
+  readonly getWorkers: Effect.Effect<
     Domain.GetWorkersResponse,
     HttpError | Api.GetWorkersError
   >
@@ -218,7 +218,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    *
    * @return The list of providers.
    */
-  readonly getProviders: () => Effect.Effect<Domain.GetProvidersResponse, HttpError>
+  readonly getProviders: Effect.Effect<Domain.GetProvidersResponse, HttpError>
 
   /**
    * Register a manifest.
@@ -300,11 +300,11 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
     Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
   )
 
-  const getDatasets: Service["getDatasets"] = Effect.fn("AdminApi.getDatasets")(
-    function*() {
-      return yield* client.dataset.getDatasets({})
-    },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+  const getDatasets: Service["getDatasets"] = Effect.gen(function*() {
+    return yield* client.dataset.getDatasets({})
+  }).pipe(
+    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die),
+    Effect.withSpan("AdminApi.getDatasets")
   )
 
   const getDatasetVersion: Service["getDatasetVersion"] = Effect.fn("AdminApi.getDatasetVersion")(
@@ -387,20 +387,20 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
 
   // Worker Operations
 
-  const getWorkers: Service["getWorkers"] = Effect.fn("AdminApi.getWorkers")(
-    function*() {
-      return yield* client.worker.getWorkers({})
-    },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+  const getWorkers: Service["getWorkers"] = Effect.gen(function*() {
+    return yield* client.worker.getWorkers({})
+  }).pipe(
+    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die),
+    Effect.withSpan("AdminApi.getWorkers")
   )
 
   // Provider Operations
 
-  const getProviders: Service["getProviders"] = Effect.fn("AdminApi.getProviders")(
-    function*() {
-      return yield* client.provider.getProviders({})
-    },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+  const getProviders: Service["getProviders"] = Effect.gen(function*() {
+    return yield* client.provider.getProviders({})
+  }).pipe(
+    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die),
+    Effect.withSpan("AdminApi.getProviders")
   )
 
   // Manifest Operations

@@ -11,7 +11,13 @@ import * as Effect from "effect/Effect"
 import * as Ref from "effect/Ref"
 import type { BlockRange } from "../models.ts"
 import type { ProtocolMessage } from "../protocol-stream/messages.ts"
-import { checkPartialReorg, compressCommits, findPruningPoint, findRecoveryPoint } from "./algorithms.ts"
+import {
+  checkPartialReorg,
+  compressCommits,
+  findPruningPoint,
+  findRecoveryPoint,
+  type PendingCommit
+} from "./algorithms.ts"
 import { type CommitHandle, makeCommitHandle } from "./commit-handle.ts"
 import { PartialReorgError, type StateStoreError, UnrecoverableReorgError } from "./errors.ts"
 import type { StateStoreService } from "./state-store.ts"
@@ -21,6 +27,7 @@ import {
   rewindCause,
   type TransactionEvent,
   type TransactionId,
+  type TransactionIdRange,
   undoEvent,
   watermarkEvent
 } from "./types.ts"
@@ -28,14 +35,6 @@ import {
 // =============================================================================
 // Types
 // =============================================================================
-
-/**
- * Pending commit waiting for user to call commit handle.
- */
-interface PendingCommit {
-  readonly ranges: ReadonlyArray<BlockRange>
-  readonly prune: TransactionId | undefined
-}
 
 /**
  * Internal state container - in-memory copy of persisted state.
@@ -61,10 +60,10 @@ export type Action =
  */
 export interface StateActor {
   /** Get last watermark from buffer */
-  readonly watermark: () => Effect.Effect<readonly [TransactionId, ReadonlyArray<BlockRange>] | undefined>
+  readonly watermark: Effect.Effect<readonly [TransactionId, ReadonlyArray<BlockRange>] | undefined>
 
   /** Get next transaction ID without incrementing */
-  readonly peek: () => Effect.Effect<TransactionId>
+  readonly peek: Effect.Effect<TransactionId>
 
   /** Execute an action and return event with commit handle */
   readonly execute: (
@@ -92,7 +91,7 @@ export interface StateActor {
 export const makeStateActor = Effect.fnUntraced(
   function*(store: StateStoreService, retention: number): Effect.fn.Return<StateActor, StateStoreError> {
     // Load initial state from store
-    const snapshot = yield* store.load()
+    const snapshot = yield* store.load
 
     // Create mutable state container wrapped in Ref
     const containerRef = yield* Ref.make<StateContainer>({
@@ -105,20 +104,19 @@ export const makeStateActor = Effect.fnUntraced(
     // watermark()
     // =========================================================================
 
-    const watermark = () =>
-      Ref.get(containerRef).pipe(
-        Effect.map((state) =>
-          state.buffer.length > 0
-            ? state.buffer[state.buffer.length - 1]
-            : undefined
-        )
+    const watermark = Ref.get(containerRef).pipe(
+      Effect.map((state) =>
+        state.buffer.length > 0
+          ? state.buffer[state.buffer.length - 1]
+          : undefined
       )
+    )
 
     // =========================================================================
     // peek()
     // =========================================================================
 
-    const peek = () => Ref.get(containerRef).pipe(Effect.map((state) => state.next))
+    const peek = Ref.get(containerRef).pipe(Effect.map((state) => state.next))
 
     // =========================================================================
     // execute()
@@ -207,6 +205,25 @@ export const makeStateActor = Effect.fnUntraced(
 )
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Compute the invalidation range for an undo event.
+ *
+ * @param afterId - The anchor transaction ID (invalidation starts at afterId + 1), or undefined to start from 0
+ * @param currentId - The current transaction ID being assigned to the undo event
+ */
+const computeInvalidationRange = (
+  afterId: TransactionId | undefined,
+  currentId: TransactionId
+): TransactionIdRange => {
+  const start = (afterId !== undefined ? afterId + 1 : 0) as TransactionId
+  const end = Math.max(start, currentId - 1) as TransactionId
+  return { start, end }
+}
+
+// =============================================================================
 // Action Handlers
 // =============================================================================
 
@@ -219,25 +236,11 @@ const executeRewind = Effect.fnUntraced(function*(
 ): Effect.fn.Return<TransactionEvent> {
   const state = yield* Ref.get(containerRef)
 
-  // Compute invalidation range based on buffer state
-  let invalidateStart: TransactionId
-  let invalidateEnd: TransactionId
+  const anchor = state.buffer.length > 0
+    ? state.buffer[state.buffer.length - 1]![0]
+    : undefined
 
-  if (state.buffer.length === 0) {
-    // Empty buffer (early crash before any watermark): invalidate from the beginning
-    invalidateStart = 0 as TransactionId
-    invalidateEnd = Math.max(0, id - 1) as TransactionId
-  } else {
-    // Normal rewind: invalidate after last watermark
-    const lastWatermarkId = state.buffer[state.buffer.length - 1]![0]
-    invalidateStart = (lastWatermarkId + 1) as TransactionId
-    invalidateEnd = Math.max(invalidateStart, id - 1) as TransactionId
-  }
-
-  return undoEvent(id, rewindCause(), {
-    start: invalidateStart,
-    end: invalidateEnd
-  })
+  return undoEvent(id, rewindCause(), computeInvalidationRange(anchor, id))
 })
 
 /**
@@ -306,15 +309,13 @@ const executeReorg = Effect.fnUntraced(function*(
   // 1. Find recovery point
   const recovery = findRecoveryPoint(state.buffer, invalidation)
 
-  // 2. Compute invalidation range
-  let invalidateStart: TransactionId
-  let invalidateEnd: TransactionId
+  // 2. Determine anchor ID for invalidation range
+  let anchor: TransactionId | undefined
 
   if (recovery === undefined) {
     if (state.buffer.length === 0) {
-      // If the buffer is empty, invalidate everything up to before the current event
-      invalidateStart = 0 as TransactionId
-      invalidateEnd = Math.max(0, id - 1) as TransactionId
+      // Empty buffer: invalidate everything from 0
+      anchor = undefined
     } else {
       // No recovery point with a non-empty buffer means all buffered watermarks
       // are affected by the reorg. This is not recoverable.
@@ -338,24 +339,20 @@ const executeReorg = Effect.fnUntraced(function*(
       )
     }
 
-    invalidateStart = (recoveryId + 1) as TransactionId
-    invalidateEnd = Math.max(invalidateStart, id - 1) as TransactionId
+    anchor = recoveryId
   }
 
-  // 4. Truncate both in-memory and store
-  const truncateFrom = recovery !== undefined ? (recovery[0] + 1) as TransactionId : 0 as TransactionId
+  // 4. Compute invalidation range and truncate both in-memory and store
+  const range = computeInvalidationRange(anchor, id)
 
   yield* Ref.update(containerRef, (s) => ({
     ...s,
-    buffer: s.buffer.filter(([bufferId]) => bufferId < truncateFrom),
-    uncommitted: s.uncommitted.filter(([uncommittedId]) => uncommittedId < truncateFrom)
+    buffer: s.buffer.filter(([bufferId]) => bufferId < range.start),
+    uncommitted: s.uncommitted.filter(([uncommittedId]) => uncommittedId < range.start)
   }))
 
-  yield* store.truncate(truncateFrom)
+  yield* store.truncate(range.start)
 
   // 5. Emit Undo with Cause::Reorg
-  return undoEvent(id, reorgCause(invalidation), {
-    start: invalidateStart,
-    end: invalidateEnd
-  })
+  return undoEvent(id, reorgCause(invalidation), range)
 })

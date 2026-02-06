@@ -34,7 +34,7 @@ describe("InMemoryStateStore.layer", () => {
   it.effect("provides empty initial state", () =>
     Effect.gen(function*() {
       const store = yield* StateStore
-      const result = yield* store.load()
+      const result = yield* store.load
       expect(result).toEqual(emptySnapshot)
     }).pipe(Effect.provide(InMemoryStateStore.layer)))
 })
@@ -48,7 +48,7 @@ describe("InMemoryStateStore.layerWithState", () => {
       }
 
       const store = yield* StateStore
-      const result = yield* store.load()
+      const result = yield* store.load
       expect(result).toEqual(initial)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [[5 as TransactionId, [makeBlockRange("eth", 0, 10)]]],
@@ -67,7 +67,7 @@ describe("StateStore.advance", () => {
 
       yield* store.advance(5 as TransactionId)
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       expect(snapshot.next).toBe(5)
     }).pipe(Effect.provide(InMemoryStateStore.layer)))
 
@@ -79,7 +79,7 @@ describe("StateStore.advance", () => {
       yield* store.advance(2 as TransactionId)
       yield* store.advance(10 as TransactionId)
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       expect(snapshot.next).toBe(10)
     }).pipe(Effect.provide(InMemoryStateStore.layer)))
 })
@@ -97,7 +97,7 @@ describe("StateStore.commit", () => {
         prune: undefined
       })
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       const result = snapshot.buffer
       expect(result).toHaveLength(2)
       expect(result[0]![0]).toBe(1)
@@ -113,7 +113,7 @@ describe("StateStore.commit", () => {
         prune: 2 as TransactionId
       })
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       const result = snapshot.buffer
       expect(result).toHaveLength(1)
       expect(result[0]![0]).toBe(3)
@@ -135,7 +135,7 @@ describe("StateStore.commit", () => {
         prune: 1 as TransactionId
       })
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       const result = snapshot.buffer
       expect(result).toHaveLength(2)
       expect(result.map(([id]) => id)).toEqual([2, 3])
@@ -155,7 +155,7 @@ describe("StateStore.truncate", () => {
 
       yield* store.truncate(2 as TransactionId)
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       const result = snapshot.buffer
       expect(result).toHaveLength(1)
       expect(result[0]![0]).toBe(1)
@@ -174,7 +174,7 @@ describe("StateStore.truncate", () => {
 
       yield* store.truncate(0 as TransactionId)
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       const result = snapshot.buffer
       expect(result).toHaveLength(0)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
@@ -191,7 +191,7 @@ describe("StateStore.truncate", () => {
 
       yield* store.truncate(1 as TransactionId)
 
-      const snapshot = yield* store.load()
+      const snapshot = yield* store.load
       expect(snapshot.next).toBe(10)
     }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
       buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 10)]]],

@@ -19,7 +19,6 @@ import type { BlockHash, BlockNumber, BlockRange, Network } from "@edgeandnode/a
 import { data, invalidates, makeInvalidationRange, reorg, watermark } from "@edgeandnode/amp/protocol-stream"
 import { describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import * as Either from "effect/Either"
 
 // =============================================================================
 // Test Helpers - Ported from Rust utils/response.rs
@@ -29,10 +28,6 @@ import * as Either from "effect/Either"
  * Standard test hashes for different epochs.
  * Epoch 0 = HASH_A, Epoch 1 = HASH_B, etc.
  */
-const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000" as BlockHash
-const HASH_EPOCH_0 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as BlockHash
-const HASH_EPOCH_1 = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as BlockHash
-const HASH_EPOCH_2 = "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" as BlockHash
 
 /**
  * Generates a deterministic hash for a block based on network, block number, and epoch.

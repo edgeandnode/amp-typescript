@@ -104,7 +104,7 @@ export interface StateStoreService {
    * Called once when TransactionalStream is created.
    * Returns empty state if no prior state exists.
    */
-  readonly load: () => Effect.Effect<StateSnapshot, StateStoreError>
+  readonly load: Effect.Effect<StateSnapshot, StateStoreError>
 }
 
 // =============================================================================
@@ -118,7 +118,7 @@ export interface StateStoreService {
  * ```typescript
  * const program = Effect.gen(function*() {
  *   const store = yield* StateStore
- *   const snapshot = yield* store.load()
+ *   const snapshot = yield* store.load
  *   // ...
  * })
  * ```
