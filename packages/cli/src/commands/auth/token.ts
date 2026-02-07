@@ -1,5 +1,5 @@
 import * as Auth from "@edgeandnode/amp/auth/service"
-import * as Models from "@edgeandnode/amp/models"
+import * as Models from "@edgeandnode/amp/core"
 import * as Args from "@effect/cli/Args"
 import * as Command from "@effect/cli/Command"
 import * as Options from "@effect/cli/Options"

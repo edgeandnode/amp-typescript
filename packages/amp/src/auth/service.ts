@@ -17,8 +17,8 @@ import * as Predicate from "effect/Predicate"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import * as Jose from "jose"
+import { AccessToken, Address, AuthInfo, RefreshToken, TokenDuration, UserId } from "../core/domain.ts"
 import { pkceChallenge } from "../internal/pkce.ts"
-import { AccessToken, Address, AuthInfo, RefreshToken, TokenDuration, UserId } from "../models.ts"
 import {
   AuthCacheError,
   AuthDeviceFlowError,

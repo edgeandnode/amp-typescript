@@ -3,7 +3,7 @@
  * and responses.
  */
 import * as Schema from "effect/Schema"
-import * as Models from "../models.ts"
+import * as Models from "../core/domain.ts"
 
 // =============================================================================
 // Dataset Request/Response Schemas
