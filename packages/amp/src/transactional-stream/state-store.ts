@@ -10,7 +10,7 @@
  */
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
-import type { BlockRange } from "../models.ts"
+import type { BlockRange } from "../core/domain.ts"
 import type { StateStoreError } from "./errors.ts"
 import type { TransactionId } from "./types.ts"
 

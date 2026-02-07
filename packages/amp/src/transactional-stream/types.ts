@@ -5,7 +5,7 @@
  */
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { BlockRange } from "../models.ts"
+import { BlockRange } from "../core/domain.ts"
 import { InvalidationRange } from "../protocol-stream/messages.ts"
 
 // =============================================================================

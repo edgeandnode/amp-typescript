@@ -3,7 +3,7 @@
  *
  * @module
  */
-import type { BlockRange } from "@edgeandnode/amp/models"
+import type { BlockRange } from "@edgeandnode/amp/core"
 import type { InvalidationRange } from "@edgeandnode/amp/protocol-stream"
 import {
   checkPartialReorg,

@@ -9,7 +9,7 @@
  */
 import * as Effect from "effect/Effect"
 import * as Ref from "effect/Ref"
-import type { BlockRange } from "../models.ts"
+import type { BlockRange } from "../core/domain.ts"
 import type { ProtocolMessage } from "../protocol-stream/messages.ts"
 import {
   checkPartialReorg,

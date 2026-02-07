@@ -13,7 +13,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
 import { ArrowFlight, type ArrowFlightError, type QueryOptions, type QueryResult } from "../arrow-flight.ts"
-import type { BlockRange } from "../models.ts"
+import type { BlockRange } from "../core/domain.ts"
 import { ProtocolArrowFlightError, type ProtocolStreamError, ProtocolValidationError } from "./errors.ts"
 import {
   data as protocolData,
@@ -23,7 +23,7 @@ import {
   reorg as protocolReorg,
   watermark as protocolWatermark
 } from "./messages.ts"
-import { validateAll } from "./validation.ts"
+import { blockRangeEquals, validateAll } from "./validation.ts"
 
 // =============================================================================
 // Options
@@ -92,9 +92,6 @@ export interface ProtocolStreamService {
   ) => Stream.Stream<ProtocolMessage, ProtocolStreamError>
 }
 
-// Re-export ProtocolStreamError from errors.ts for convenience
-export type { ProtocolStreamError }
-
 // =============================================================================
 // Context.Tag
 // =============================================================================
@@ -149,17 +146,14 @@ const detectReorgs = (
   const invalidations: Array<InvalidationRange> = []
 
   for (const incomingRange of incoming) {
-    const prevRange = previous.find((p) => p.network === incomingRange.network)
-    if (!prevRange) continue
+    const prevRange = previous.find((_) => _.network === incomingRange.network)
+
+    if (!prevRange) {
+      continue
+    }
 
     // Skip identical ranges (watermarks can repeat)
-    if (
-      incomingRange.network === prevRange.network &&
-      incomingRange.numbers.start === prevRange.numbers.start &&
-      incomingRange.numbers.end === prevRange.numbers.end &&
-      incomingRange.hash === prevRange.hash &&
-      incomingRange.prevHash === prevRange.prevHash
-    ) {
+    if (blockRangeEquals(incomingRange, prevRange)) {
       continue
     }
 
@@ -181,27 +175,21 @@ const detectReorgs = (
   return invalidations
 }
 
-const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000"
-
 /**
  * Create ProtocolStream service implementation.
  */
 const make = Effect.gen(function*() {
   const arrowFlight = yield* ArrowFlight
 
-  const stream = (
-    sql: string,
-    options?: ProtocolStreamOptions
-  ): Stream.Stream<ProtocolMessage, ProtocolStreamError> => {
-    // Get the underlying Arrow Flight stream
+  const stream = (sql: string, options?: ProtocolStreamOptions): Stream.Stream<
+    ProtocolMessage,
+    ProtocolStreamError
+  > => {
     const rawStream = arrowFlight.streamQuery(sql, {
       schema: options?.schema,
       stream: true,
       resumeWatermark: options?.resumeWatermark
-    }) as unknown as Stream.Stream<
-      QueryResult<ReadonlyArray<Record<string, unknown>>>,
-      ArrowFlightError
-    >
+    })
 
     const initialState: ProtocolStreamState = {
       previous: [],
@@ -217,7 +205,7 @@ const make = Effect.gen(function*() {
         Effect.fnUntraced(
           function*(
             state: ProtocolStreamState,
-            queryResult: QueryResult<ReadonlyArray<Record<string, unknown>>>
+            queryResult: QueryResult<Record<string, unknown>>
           ): Effect.fn.Return<
             readonly [ProtocolStreamState, ProtocolMessage],
             ProtocolStreamError
@@ -227,33 +215,9 @@ const make = Effect.gen(function*() {
             const incoming = metadata.ranges
 
             // Validate the incoming batch
-            if (state.initialized) {
-              yield* validateAll(state.previous, incoming).pipe(
-                Effect.mapError((error) => new ProtocolValidationError({ cause: error }))
-              )
-            } else {
-              // Validate prevHash for first batch
-              for (const range of incoming) {
-                const isGenesis = range.numbers.start === 0
-                if (isGenesis) {
-                  if (range.prevHash !== undefined && range.prevHash !== ZERO_HASH) {
-                    return yield* Effect.fail(
-                      new ProtocolValidationError({
-                        cause: { _tag: "InvalidPrevHashError", network: range.network }
-                      })
-                    )
-                  }
-                } else {
-                  if (range.prevHash === undefined || range.prevHash === ZERO_HASH) {
-                    return yield* Effect.fail(
-                      new ProtocolValidationError({
-                        cause: { _tag: "MissingPrevHashError", network: range.network, block: range.numbers.start }
-                      })
-                    )
-                  }
-                }
-              }
-            }
+            yield* validateAll(state.previous, incoming).pipe(
+              Effect.mapError((error) => new ProtocolValidationError({ cause: error }))
+            )
 
             // Detect reorgs
             const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
@@ -266,7 +230,7 @@ const make = Effect.gen(function*() {
             } else if (metadata.rangesComplete && batchData.length === 0) {
               message = protocolWatermark(incoming)
             } else {
-              message = protocolData(batchData as unknown as ReadonlyArray<Record<string, unknown>>, incoming)
+              message = protocolData(batchData, incoming)
             }
 
             const newState: ProtocolStreamState = {
@@ -282,7 +246,9 @@ const make = Effect.gen(function*() {
     )
   }
 
-  return { stream } satisfies ProtocolStreamService
+  return ProtocolStream.of({
+    stream
+  })
 })
 
 // =============================================================================

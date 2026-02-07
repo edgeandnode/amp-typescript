@@ -3,7 +3,7 @@
  *
  * @module
  */
-import type { BlockNumber, BlockRange, Network } from "@edgeandnode/amp/models"
+import type { BlockNumber, BlockRange, Network } from "@edgeandnode/amp/core"
 import type { ProtocolMessage } from "@edgeandnode/amp/protocol-stream"
 import { InMemoryStateStore, StateStore, type TransactionId } from "@edgeandnode/amp/transactional-stream"
 import { makeStateActor } from "@edgeandnode/amp/transactional-stream/state-actor"

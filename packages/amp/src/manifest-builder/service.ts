@@ -5,7 +5,7 @@ import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 import * as AdminApi from "../admin/service.ts"
-import * as Models from "../models.ts"
+import * as Models from "../core/domain.ts"
 
 export const ManifestBuildResult = Schema.Struct({
   metadata: Models.DatasetMetadata,

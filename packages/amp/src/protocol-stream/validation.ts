@@ -13,7 +13,7 @@
  * @module
  */
 import * as Effect from "effect/Effect"
-import type { BlockNumber, BlockRange } from "../models.ts"
+import type { BlockNumber, BlockRange } from "../core/domain.ts"
 import {
   DuplicateNetworkError,
   GapError,
@@ -124,7 +124,7 @@ export const validateNetworks = Effect.fnUntraced(
 /**
  * Checks if two block ranges are equal.
  */
-const blockRangeEquals = (a: BlockRange, b: BlockRange): boolean =>
+export const blockRangeEquals = (a: BlockRange, b: BlockRange): boolean =>
   a.network === b.network &&
   a.numbers.start === b.numbers.start &&
   a.numbers.end === b.numbers.end &&

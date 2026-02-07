@@ -9,9 +9,21 @@
  *
  * @module
  */
-import type { BlockRange } from "../models.ts"
+import type { BlockRange } from "../core/domain.ts"
 import type { InvalidationRange } from "../protocol-stream/messages.ts"
 import type { TransactionId } from "./types.ts"
+
+// =============================================================================
+// Types
+// =============================================================================
+
+/**
+ * Pending commit waiting for user to call commit handle.
+ */
+export interface PendingCommit {
+  readonly ranges: ReadonlyArray<BlockRange>
+  readonly prune: TransactionId | undefined
+}
 
 // =============================================================================
 // Recovery Point Algorithm
@@ -230,9 +242,7 @@ export const checkPartialReorg = (
  * @returns Compressed commit with combined inserts and maximum prune point
  */
 export const compressCommits = (
-  pendingCommits: ReadonlyArray<
-    readonly [TransactionId, { readonly ranges: ReadonlyArray<BlockRange>; readonly prune: TransactionId | undefined }]
-  >
+  pendingCommits: ReadonlyArray<readonly [TransactionId, PendingCommit]>
 ): { insert: Array<readonly [TransactionId, ReadonlyArray<BlockRange>]>; prune: TransactionId | undefined } => {
   const insert: Array<readonly [TransactionId, ReadonlyArray<BlockRange>]> = []
   let maxPrune: TransactionId | undefined = undefined

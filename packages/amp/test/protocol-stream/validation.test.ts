@@ -4,7 +4,7 @@
  * Tests for the validation functions used by the ProtocolStream to ensure
  * protocol invariants are maintained.
  */
-import type { BlockHash, BlockNumber, BlockRange, Network } from "@edgeandnode/amp/models"
+import type { BlockHash, BlockNumber, BlockRange, Network } from "@edgeandnode/amp/core"
 import {
   DuplicateNetworkError,
   GapError,

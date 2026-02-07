@@ -10,7 +10,7 @@
  * @module
  */
 import * as Schema from "effect/Schema"
-import { BlockNumber, BlockRange, Network } from "../models.ts"
+import { BlockNumber, BlockRange, Network } from "../core/domain.ts"
 
 // =============================================================================
 // Invalidation Range
@@ -49,15 +49,12 @@ export type InvalidationRange = typeof InvalidationRange.Type
  * @param end - The end of the invalidation range (inclusive).
  * @returns An InvalidationRange instance.
  */
-export const makeInvalidationRange = (
-  network: string,
-  start: number,
-  end: number
-): InvalidationRange => ({
-  network: network as typeof Network.Type,
-  start: start as typeof BlockNumber.Type,
-  end: end as typeof BlockNumber.Type
-})
+export const makeInvalidationRange = (network: string, start: number, end: number): InvalidationRange =>
+  InvalidationRange.make({
+    network: Network.make(network),
+    start: BlockNumber.make(start),
+    end: BlockNumber.make(end)
+  })
 
 /**
  * Checks if a block range overlaps with an invalidation range.
@@ -69,15 +66,14 @@ export const makeInvalidationRange = (
  * @param range - The block range to check.
  * @returns True if the ranges overlap, false otherwise.
  */
-export const invalidates = (
-  invalidation: InvalidationRange,
-  range: typeof BlockRange.Type
-): boolean => {
+export const invalidates = (invalidation: InvalidationRange, range: BlockRange): boolean => {
   if (invalidation.network !== range.network) {
     return false
   }
+
   // Check for no overlap: invalidation ends before range starts OR range ends before invalidation starts
   const noOverlap = invalidation.end < range.numbers.start || range.numbers.end < invalidation.start
+
   return !noOverlap
 }
 
@@ -195,12 +191,12 @@ export type ProtocolMessage = typeof ProtocolMessage.Type
  */
 export const data = (
   records: ReadonlyArray<Record<string, unknown>>,
-  ranges: ReadonlyArray<typeof BlockRange.Type>
-): ProtocolMessageData => ({
-  _tag: "Data",
-  data: records as Array<Record<string, unknown>>,
-  ranges: ranges as Array<typeof BlockRange.Type>
-})
+  ranges: ReadonlyArray<BlockRange>
+): ProtocolMessageData =>
+  ProtocolMessageData.make({
+    data: records,
+    ranges: ranges
+  })
 
 /**
  * Creates a Reorg protocol message.
@@ -211,15 +207,15 @@ export const data = (
  * @returns A Reorg protocol message.
  */
 export const reorg = (
-  previous: ReadonlyArray<typeof BlockRange.Type>,
-  incoming: ReadonlyArray<typeof BlockRange.Type>,
+  previous: ReadonlyArray<BlockRange>,
+  incoming: ReadonlyArray<BlockRange>,
   invalidation: ReadonlyArray<InvalidationRange>
-): ProtocolMessageReorg => ({
-  _tag: "Reorg",
-  previous: previous as Array<typeof BlockRange.Type>,
-  incoming: incoming as Array<typeof BlockRange.Type>,
-  invalidation: invalidation as Array<InvalidationRange>
-})
+): ProtocolMessageReorg =>
+  ProtocolMessageReorg.make({
+    previous: previous,
+    incoming: incoming,
+    invalidation: invalidation
+  })
 
 /**
  * Creates a Watermark protocol message.
@@ -228,8 +224,5 @@ export const reorg = (
  * @returns A Watermark protocol message.
  */
 export const watermark = (
-  ranges: ReadonlyArray<typeof BlockRange.Type>
-): ProtocolMessageWatermark => ({
-  _tag: "Watermark",
-  ranges: ranges as Array<typeof BlockRange.Type>
-})
+  ranges: ReadonlyArray<BlockRange>
+): ProtocolMessageWatermark => ProtocolMessageWatermark.make({ ranges: ranges })
