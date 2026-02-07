@@ -16,11 +16,11 @@ Always import Effect modules as namespaces from subpaths:
 ```typescript
 // Good
 import * as Effect from "effect/Effect"
-import * as Stream from "effect/Stream"
 import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
 
 // Bad — never import from the barrel
-import { Effect, Stream, Schema } from "effect"
+import { Effect, Schema, Stream } from "effect"
 ```
 
 ## Services
