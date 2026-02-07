@@ -42,33 +42,28 @@ packages/amp/test/transactional-stream/
 // Types
 // =============================================================================
 export {
-  TransactionId,
   TransactionEvent,
   TransactionEventData,
   TransactionEventUndo,
   TransactionEventWatermark,
-  UndoCause,
-  TransactionIdRange
+  TransactionId,
+  TransactionIdRange,
+  UndoCause
 } from "./types.ts"
 
 // =============================================================================
 // Errors
 // =============================================================================
-export {
-  StateStoreError,
-  UnrecoverableReorgError,
-  PartialReorgError,
-  type TransactionalStreamError
-} from "./errors.ts"
+export { PartialReorgError, StateStoreError, type TransactionalStreamError, UnrecoverableReorgError } from "./errors.ts"
 
 // =============================================================================
 // StateStore Service
 // =============================================================================
 export {
-  StateStore,           // Context.Tag for DI
-  type StateSnapshot,
   type Commit,
-  emptySnapshot
+  emptySnapshot,
+  type StateSnapshot,
+  StateStore // Context.Tag for DI
 } from "./state-store.ts"
 
 // =============================================================================
@@ -85,8 +80,8 @@ export { type CommitHandle } from "./commit-handle.ts"
 // TransactionalStream Service
 // =============================================================================
 export {
-  TransactionalStream,  // Context.Tag for DI
-  layer,                // Layer.Layer<TransactionalStream, never, ArrowFlight | StateStore>
+  layer, // Layer.Layer<TransactionalStream, never, ArrowFlight | StateStore>
+  TransactionalStream, // Context.Tag for DI
   type TransactionalStreamOptions
 } from "./stream.ts"
 ```
@@ -95,11 +90,11 @@ export {
 
 ```typescript
 import {
-  TransactionalStream,
+  type CommitHandle,
   InMemoryStateStore,
   StateStore,
-  type TransactionEvent,
-  type CommitHandle
+  TransactionalStream,
+  type TransactionEvent
 } from "@edgeandnode/amp/transactional-stream"
 ```
 
@@ -244,11 +239,11 @@ export const emptySnapshot: StateSnapshot = {
 
 Reference implementation using Effect Ref. Not crash-safe but suitable for development, testing, and ephemeral use cases.
 
-```typescript
+````typescript
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
-import { StateStore, type StateSnapshot, type Commit, emptySnapshot } from "./state-store.ts"
+import { type Commit, emptySnapshot, type StateSnapshot, StateStore } from "./state-store.ts"
 
 /**
  * Create InMemoryStateStore Layer.
@@ -269,8 +264,7 @@ import { StateStore, type StateSnapshot, type Commit, emptySnapshot } from "./st
 const make = Effect.gen(function*() {
   const stateRef = yield* Ref.make<StateSnapshot>(emptySnapshot)
 
-  const advance = (next: TransactionId) =>
-    Ref.update(stateRef, (state) => ({ ...state, next }))
+  const advance = (next: TransactionId) => Ref.update(stateRef, (state) => ({ ...state, next }))
 
   const commit = (commit: Commit) =>
     Ref.update(stateRef, (state) => {
@@ -318,7 +312,7 @@ export const layerWithState = (
       // ... same implementation as above
     })
   )
-```
+````
 
 ### Future Store Implementations
 
@@ -332,8 +326,7 @@ export const layer: Layer.Layer<StateStore> = Layer.effect(StateStore, make)
 export const layer: Layer.Layer<StateStore> = Layer.effect(StateStore, make)
 
 // packages/amp-store-postgres/src/index.ts
-export const layer: Layer.Layer<StateStore, never, PostgresClient> =
-  Layer.effect(StateStore, make)
+export const layer: Layer.Layer<StateStore, never, PostgresClient> = Layer.effect(StateStore, make)
 ```
 
 ## Key Algorithms
@@ -348,12 +341,12 @@ export const findRecoveryPoint = (
   invalidation: ReadonlyArray<InvalidationRange>
 ): readonly [TransactionId, ReadonlyArray<BlockRange>] | undefined => {
   // Build map: network -> first invalid block
-  const points = new Map(invalidation.map(inv => [inv.network, inv.start]))
+  const points = new Map(invalidation.map((inv) => [inv.network, inv.start]))
 
   // Walk backwards (newest to oldest)
   for (let i = buffer.length - 1; i >= 0; i--) {
     const [id, ranges] = buffer[i]!
-    const affected = ranges.some(range => {
+    const affected = ranges.some((range) => {
       const point = points.get(range.network)
       return point !== undefined && range.numbers.start >= point
     })
@@ -375,14 +368,12 @@ export const findPruningPoint = (
   if (buffer.length === 0) return undefined
 
   const [, latestRanges] = buffer[buffer.length - 1]!
-  const cutoffs = new Map(latestRanges.map(r =>
-    [r.network, Math.max(0, r.numbers.start - retention)]
-  ))
+  const cutoffs = new Map(latestRanges.map((r) => [r.network, Math.max(0, r.numbers.start - retention)]))
 
   let last: TransactionId | undefined
   for (let i = 0; i < buffer.length - 1; i++) {
     const [id, ranges] = buffer[i]!
-    const outside = ranges.every(r => r.numbers.end < cutoffs.get(r.network)!)
+    const outside = ranges.every((r) => r.numbers.end < cutoffs.get(r.network)!)
     if (outside) last = id
     else break
   }
@@ -402,9 +393,9 @@ import * as Ref from "effect/Ref"
  * The store is the source of truth; this is a working cache.
  */
 interface StateContainer {
-  readonly store: StateStore        // From context
-  readonly retention: number        // Configured retention window
-  next: TransactionId               // Next ID to assign
+  readonly store: StateStore // From context
+  readonly retention: number // Configured retention window
+  next: TransactionId // Next ID to assign
   buffer: Array<readonly [TransactionId, ReadonlyArray<BlockRange>]>
   uncommitted: Array<readonly [TransactionId, PendingCommit]>
 }
@@ -528,8 +519,10 @@ export class TransactionalStream extends Context.Tag("Amp/TransactionalStream")<
  * Layer providing TransactionalStream.
  * Requires ArrowFlight and StateStore in context.
  */
-export const layer: Layer.Layer<TransactionalStream, never, ArrowFlight | StateStore> =
-  Layer.effect(TransactionalStream, make)
+export const layer: Layer.Layer<TransactionalStream, never, ArrowFlight | StateStore> = Layer.effect(
+  TransactionalStream,
+  make
+)
 ```
 
 **streamTransactional() Logic:**
@@ -686,13 +679,13 @@ const manualProgram = Effect.gen(function*() {
 
 ## Critical Files to Modify/Reference
 
-| File | Purpose |
-|------|---------|
-| `packages/amp/src/arrow-flight.ts` | Pattern for Layer.effect, contains streamProtocol to wrap |
-| `packages/amp/src/protocol-stream/messages.ts` | ProtocolMessage, InvalidationRange to consume |
-| `packages/amp/src/protocol-stream/errors.ts` | ProtocolStreamError to include in union |
-| `packages/amp/src/models.ts` | BlockRange type |
-| `.repos/amp/crates/clients/flight/src/transactional.rs` | Rust source to port |
+| File                                                    | Purpose                                                   |
+| ------------------------------------------------------- | --------------------------------------------------------- |
+| `packages/amp/src/arrow-flight.ts`                      | Pattern for Layer.effect, contains streamProtocol to wrap |
+| `packages/amp/src/protocol-stream/messages.ts`          | ProtocolMessage, InvalidationRange to consume             |
+| `packages/amp/src/protocol-stream/errors.ts`            | ProtocolStreamError to include in union                   |
+| `packages/amp/src/models.ts`                            | BlockRange type                                           |
+| `.repos/amp/crates/clients/flight/src/transactional.rs` | Rust source to port                                       |
 
 ## Verification
 
