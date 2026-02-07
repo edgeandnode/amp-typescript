@@ -29,7 +29,6 @@ src/
 ├── auth/                        # OAuth2 auth (device flow, token refresh, caching)
 ├── admin/                       # Admin API (datasets, jobs, workers, providers)
 ├── registry/                    # Registry API (dataset discovery)
-├── manifest-builder/            # Dataset manifest construction
 ├── protobuf/                    # Generated protobuf (Flight, FlightSql)
 └── internal/                    # Private: Arrow IPC parsing, PKCE
 ```
