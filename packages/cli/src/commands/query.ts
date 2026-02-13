@@ -1,12 +1,13 @@
 import * as ArrowFlight from "@edgeandnode/amp/arrow-flight"
+import * as NodeArrowFlight from "@edgeandnode/amp/arrow-flight/node"
 import * as Args from "@effect/cli/Args"
 import * as Command from "@effect/cli/Command"
 import * as Options from "@effect/cli/Options"
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import type * as Redacted from "effect/Redacted"
-import * as ArrowFlightAuth from "../services/arrow-flight.ts"
 
 type ResultFormat = "json" | "jsonl" | "pretty" | "table"
 const ResultFormats: ReadonlyArray<ResultFormat> = ["json", "jsonl", "pretty", "table"]
@@ -72,9 +73,16 @@ export const QueryCommand = Command.make("query", { format, limit, query, token 
   Command.withDescription("Execute a SQL query with Amp"),
   Command.withHandler(queryCommandHandler),
   Command.provide(({ token }) => {
-    return Option.match(token, {
-      onSome: (token) => ArrowFlightAuth.layerToken(token),
-      onNone: () => ArrowFlight.layerInterceptorBearerAuth
-    })
+    const layerInterceptorAuth = Option
+      .match(token, {
+        onSome: (token) => ArrowFlight.layerInterceptorToken(token),
+        onNone: () => ArrowFlight.layerInterceptorBearerAuth
+      })
+    return ArrowFlight.layer.pipe(
+      Layer.provide(NodeArrowFlight.layerTransportGrpc({
+        baseUrl: "http://localhost:1602"
+      })),
+      Layer.provide(layerInterceptorAuth)
+    )
   })
 )
