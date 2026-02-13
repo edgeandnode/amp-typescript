@@ -10,13 +10,13 @@ The CDC stream wraps a `TransactionalStream` and adds a `BatchStore` for persist
 
 ### What CdcStream adds on top of TransactionalStream
 
-| Concern | TransactionalStream | CdcStream |
-|---------|---------------------|-----------|
-| New data | `Data` event with records | `Insert` event with records |
-| Rollback | `Undo` event with TX ID range | `Delete` event with original batch data |
-| Watermarks | Exposed to consumer | Handled internally (pruning only) |
-| Batch persistence | None | `BatchStore` stores batches for replay |
-| Delivery semantics | Exactly-once (manual commit) | At-least-once (manual commit) |
+| Concern            | TransactionalStream           | CdcStream                               |
+| ------------------ | ----------------------------- | --------------------------------------- |
+| New data           | `Data` event with records     | `Insert` event with records             |
+| Rollback           | `Undo` event with TX ID range | `Delete` event with original batch data |
+| Watermarks         | Exposed to consumer           | Handled internally (pruning only)       |
+| Batch persistence  | None                          | `BatchStore` stores batches for replay  |
+| Delivery semantics | Exactly-once (manual commit)  | At-least-once (manual commit)           |
 
 ## Rust Source Reference
 
@@ -49,30 +49,19 @@ packages/amp/test/cdc-stream/
 // Events
 // =============================================================================
 
-export {
-  CdcEvent,
-  type CdcEventDelete,
-  type CdcEventInsert,
-  type DeleteBatchIterator
-} from "./cdc-stream/types.ts"
+export { CdcEvent, type CdcEventDelete, type CdcEventInsert, type DeleteBatchIterator } from "./cdc-stream/types.ts"
 
 // =============================================================================
 // Errors
 // =============================================================================
 
-export {
-  BatchStoreError,
-  type CdcStreamError
-} from "./cdc-stream/errors.ts"
+export { BatchStoreError, type CdcStreamError } from "./cdc-stream/errors.ts"
 
 // =============================================================================
 // BatchStore Service
 // =============================================================================
 
-export {
-  BatchStore,
-  type BatchStoreService
-} from "./cdc-stream/batch-store.ts"
+export { BatchStore, type BatchStoreService } from "./cdc-stream/batch-store.ts"
 
 // =============================================================================
 // InMemoryBatchStore Layer
@@ -84,23 +73,13 @@ export * as InMemoryBatchStore from "./cdc-stream/memory-batch-store.ts"
 // CdcStream Service
 // =============================================================================
 
-export {
-  CdcStream,
-  type CdcStreamOptions,
-  type CdcStreamService,
-  layer
-} from "./cdc-stream/stream.ts"
+export { CdcStream, type CdcStreamOptions, type CdcStreamService, layer } from "./cdc-stream/stream.ts"
 ```
 
 **Usage from consumer code:**
 
 ```typescript
-import {
-  BatchStore,
-  CdcStream,
-  type CdcEvent,
-  InMemoryBatchStore
-} from "@edgeandnode/amp/cdc-stream"
+import { BatchStore, type CdcEvent, CdcStream, InMemoryBatchStore } from "@edgeandnode/amp/cdc-stream"
 ```
 
 ## Type Definitions
@@ -110,8 +89,8 @@ import {
 ```typescript
 import type * as Effect from "effect/Effect"
 import type { BlockRange } from "../core/domain.ts"
-import type { BatchStoreError } from "./errors.ts"
 import type { TransactionId } from "../transactional-stream/types.ts"
+import type { BatchStoreError } from "./errors.ts"
 
 /**
  * Iterator over delete batches that loads them lazily from the BatchStore.
@@ -194,8 +173,8 @@ Mirrors the Rust `BatchStore` trait. Provides persistence for batch content so t
 ```typescript
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
-import type { BatchStoreError } from "./errors.ts"
 import type { TransactionId, TransactionIdRange } from "../transactional-stream/types.ts"
+import type { BatchStoreError } from "./errors.ts"
 
 /**
  * BatchStore service interface — pluggable persistence for batch content.
@@ -501,9 +480,9 @@ CdcStream → TransactionalStream → ProtocolStream → ArrowFlight → Transpo
 
 ```typescript
 import { ArrowFlight, Transport } from "@edgeandnode/amp"
+import { CdcStream, InMemoryBatchStore } from "@edgeandnode/amp/cdc-stream"
 import { ProtocolStream } from "@edgeandnode/amp/protocol-stream"
 import { InMemoryStateStore, TransactionalStream } from "@edgeandnode/amp/transactional-stream"
-import { CdcStream, InMemoryBatchStore } from "@edgeandnode/amp/cdc-stream"
 
 // Development layer
 const DevLayer = CdcStream.layer.pipe(
@@ -582,21 +561,22 @@ These tests require mocking or providing a `TransactionalStream` that emits cont
 
 ## Critical Files to Reference
 
-| File | Purpose |
-|------|---------|
-| `packages/amp/src/transactional-stream/stream.ts` | TransactionalStream to wrap |
-| `packages/amp/src/transactional-stream/types.ts` | TransactionEvent, TransactionId to consume |
-| `packages/amp/src/transactional-stream/commit-handle.ts` | CommitHandle to pass through |
-| `packages/amp/src/transactional-stream/errors.ts` | TransactionalStreamError to include in union |
-| `.repos/amp/crates/clients/flight/src/cdc.rs` | Rust source to port |
-| `.repos/amp/crates/clients/flight/src/store/mod.rs` | Rust BatchStore trait |
-| `.repos/amp/crates/clients/flight/src/store/memory.rs` | Rust InMemoryBatchStore |
+| File                                                     | Purpose                                      |
+| -------------------------------------------------------- | -------------------------------------------- |
+| `packages/amp/src/transactional-stream/stream.ts`        | TransactionalStream to wrap                  |
+| `packages/amp/src/transactional-stream/types.ts`         | TransactionEvent, TransactionId to consume   |
+| `packages/amp/src/transactional-stream/commit-handle.ts` | CommitHandle to pass through                 |
+| `packages/amp/src/transactional-stream/errors.ts`        | TransactionalStreamError to include in union |
+| `.repos/amp/crates/clients/flight/src/cdc.rs`            | Rust source to port                          |
+| `.repos/amp/crates/clients/flight/src/store/mod.rs`      | Rust BatchStore trait                        |
+| `.repos/amp/crates/clients/flight/src/store/memory.rs`   | Rust InMemoryBatchStore                      |
 
 ## Design Decisions
 
 ### JSON records vs Arrow IPC for BatchStore
 
 The Rust SDK stores `RecordBatch` (Arrow columnar) and serializes via Arrow IPC. The TypeScript SDK already decodes batches to JSON records (`ReadonlyArray<Record<string, unknown>>`) in the ArrowFlight service before they reach TransactionalStream. Storing decoded JSON avoids:
+
 - Re-serialization overhead
 - Dependency on Arrow IPC writer (not currently in the TS SDK)
 - Schema management for deserialization
