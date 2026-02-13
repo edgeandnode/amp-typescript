@@ -3,12 +3,8 @@
  *
  * @module
  */
-import {
-  BatchStore,
-  InMemoryBatchStore,
-  type TransactionId,
-  type TransactionIdRange
-} from "@edgeandnode/amp/cdc-stream"
+import { BatchStore, InMemoryBatchStore } from "@edgeandnode/amp/cdc-stream"
+import type { TransactionId, TransactionIdRange } from "@edgeandnode/amp/transactional-stream"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 
