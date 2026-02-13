@@ -12,7 +12,7 @@
 // Transport
 // =============================================================================
 
-export { Interceptors, layerInterceptorBearerAuth, Transport } from "./arrow-flight/transport.ts"
+export { Interceptors, layerInterceptorBearerAuth, layerInterceptorToken, Transport } from "./arrow-flight/transport.ts"
 
 // =============================================================================
 // Errors

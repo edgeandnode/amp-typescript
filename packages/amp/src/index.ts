@@ -21,6 +21,11 @@ export * as AuthErrors from "./auth/error.ts"
 export * as AdminApi from "./admin/api.ts"
 
 /**
+ * Domain models for the Amp SDK.
+ */
+export * as Domain from "./core/domain.ts"
+
+/**
  * Operations for interacting with the Amp registry API.
  */
 export * as RegistryApi from "./registry/api.ts"
@@ -29,3 +34,14 @@ export * as RegistryApi from "./registry/api.ts"
  * Protocol stream service with reorg detection.
  */
 export * as ProtocolStream from "./protocol-stream.ts"
+
+/**
+ * CDC (Change Data Capture) stream service with Insert/Delete events and
+ * at-least-once delivery.
+ */
+export * as CdcStream from "./cdc-stream.ts"
+
+/**
+ * Transactional stream service with exactly-once semantics for data processing.
+ */
+export * as TransactionalStream from "./transactional-stream.ts"

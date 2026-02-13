@@ -71,5 +71,10 @@ const queryCommandHandler = Effect.fnUntraced(function*(params: {
 export const QueryCommand = Command.make("query", { format, limit, query, token }).pipe(
   Command.withDescription("Execute a SQL query with Amp"),
   Command.withHandler(queryCommandHandler),
-  Command.provide(({ token }) => ArrowFlightAuth.layerToken(token))
+  Command.provide(({ token }) => {
+    return Option.match(token, {
+      onSome: (token) => ArrowFlightAuth.layerToken(token),
+      onNone: () => ArrowFlight.layerInterceptorBearerAuth
+    })
+  })
 )

@@ -42,6 +42,25 @@ export const AuthInfoContextKey = createContextKey<AuthInfo | undefined>(
 
 /**
  * A layer which will add an interceptor to the configured set of `Interceptors`
+ * which uses the specified `token` for bearer token authentication.
+ */
+export const layerInterceptorToken = (token: Redacted.Redacted<string>) =>
+  Layer.effectContext(Effect.gen(function*() {
+    const interceptors = yield* Interceptors
+
+    const interceptor: Interceptor = (next) => (request) => {
+      const accessToken = Redacted.value(token)
+
+      request.header.append("Authorization", `Bearer ${accessToken}`)
+
+      return next(request)
+    }
+
+    return Context.make(Interceptors, Arr.append(interceptors, interceptor))
+  }))
+
+/**
+ * A layer which will add an interceptor to the configured set of `Interceptors`
  * which attempts to read authentication information from the Connect context
  * values.
  *
