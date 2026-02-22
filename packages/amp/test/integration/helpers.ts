@@ -1,7 +1,6 @@
 import * as AdminService from "@edgeandnode/amp/admin/service"
 import type * as Models from "@edgeandnode/amp/core"
 import * as Effect from "effect/Effect"
-import * as Schedule from "effect/Schedule"
 
 /**
  * Generate a unique dataset name for test isolation.
@@ -14,32 +13,34 @@ const TERMINAL_STATUSES = new Set<string>(["COMPLETED", "STOPPED", "FAILED", "UN
 
 /**
  * Poll job status until it reaches a terminal state.
- * Retries up to 60 times with 2-second spacing (120s total).
+ * Polls up to 15 times with 1-second spacing (15s total).
  * Returns the final `JobInfo`.
  */
 export const waitForJob = Effect.fn("waitForJob")(
   function*(jobId: number) {
     const admin = yield* AdminService.AdminApi
 
-    return yield* Effect.retry(
-      admin.getJobById(jobId).pipe(
-        Effect.flatMap((job) =>
-          TERMINAL_STATUSES.has(job.status)
-            ? Effect.succeed(job)
-            : Effect.fail("job not terminal yet" as const)
-        )
-      ),
-      Schedule.intersect(
-        Schedule.recurs(60),
-        Schedule.spaced("2 seconds")
-      )
-    )
+    for (let attempt = 1; attempt <= 15; attempt++) {
+      if (attempt > 1) {
+        yield* Effect.sleep("1 second")
+      }
+      const job = yield* admin.getJobById(jobId)
+      if (TERMINAL_STATUSES.has(job.status)) {
+        return job
+      }
+    }
+
+    return yield* Effect.die(new Error(`Job ${jobId} did not reach terminal state after 15 attempts`))
   }
 )
 
 /**
  * Poll sync progress until at least one table has blocks.
- * Retries up to 60 times with 2-second spacing (120s total).
+ * Polls up to 60 times with 2-second spacing (120s total).
+ *
+ * Resilient to transient errors — the sync progress endpoint may not
+ * be available immediately after job completion (the SDK converts some
+ * API errors to defects via `Effect.die`).
  */
 export const waitForSync = Effect.fn("waitForSync")(
   function*(
@@ -49,18 +50,19 @@ export const waitForSync = Effect.fn("waitForSync")(
   ) {
     const admin = yield* AdminService.AdminApi
 
-    yield* Effect.retry(
-      admin.getDatasetSyncProgress(namespace, name, revision).pipe(
-        Effect.flatMap((progress) =>
-          progress.tables.some((t) => t.currentBlock !== undefined && t.currentBlock > 0)
-            ? Effect.void
-            : Effect.fail("not synced yet" as const)
-        )
-      ),
-      Schedule.intersect(
-        Schedule.recurs(60),
-        Schedule.spaced("2 seconds")
+    for (let attempt = 1; attempt <= 60; attempt++) {
+      if (attempt > 1) {
+        yield* Effect.sleep("2 seconds")
+      }
+      const synced = yield* admin.getDatasetSyncProgress(namespace, name, revision).pipe(
+        Effect.map((progress) => progress.tables.some((t) => t.currentBlock !== undefined && t.currentBlock > 0)),
+        Effect.catchAllCause(() => Effect.succeed(false))
       )
-    )
+      if (synced) {
+        return
+      }
+    }
+
+    return yield* Effect.die(new Error("Sync progress did not show blocks after 60 attempts"))
   }
 )

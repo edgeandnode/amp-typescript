@@ -23,7 +23,7 @@ services:
 
   anvil:
     image: ghcr.io/foundry-rs/foundry
-    entrypoint: ["anvil", "--host", "0.0.0.0"]
+    entrypoint: ["anvil", "--host", "0.0.0.0", "--block-time", "1"]
     ports:
       - 8545:8545
 

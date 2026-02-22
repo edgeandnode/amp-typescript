@@ -5,7 +5,7 @@ const config: ViteUserConfig = {
   test: {
     include: ["test/integration/**/*.test.ts"],
     testTimeout: 60_000,
-    hookTimeout: 120_000,
+    hookTimeout: 180_000,
     sequence: {
       concurrent: false
     }
