@@ -1,7 +1,7 @@
 import { AdminApi } from "@edgeandnode/amp/admin/service"
 import { ArrowFlight } from "@edgeandnode/amp/arrow-flight"
 import * as Models from "@edgeandnode/amp/core"
-import { describe, expect, it } from "@effect/vitest"
+import { describe, expect, layer } from "@effect/vitest"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -88,7 +88,7 @@ const collectRows = <A>(batches: ReadonlyArray<{ readonly data: ReadonlyArray<A>
 // Tests
 // =============================================================================
 
-it.layer(FullIntegrationLayer, {
+layer(FullIntegrationLayer, {
   timeout: "3 minutes",
   excludeTestServices: true
 })("Integration", (it) => {

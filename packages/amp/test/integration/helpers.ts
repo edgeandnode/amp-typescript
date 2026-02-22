@@ -1,12 +1,13 @@
 import * as AdminService from "@edgeandnode/amp/admin/service"
-import type * as Models from "@edgeandnode/amp/core"
+import * as Models from "@edgeandnode/amp/core"
 import * as Effect from "effect/Effect"
 
 /**
  * Generate a unique dataset name for test isolation.
  * Each test group gets its own name so tests don't collide.
  */
-export const uniqueDatasetName = (prefix: string): Models.DatasetName => `${prefix}_${Date.now()}` as Models.DatasetName
+export const uniqueDatasetName = (prefix: string): Models.DatasetName =>
+  Models.DatasetName.make(`${prefix}_${Date.now()}`)
 
 /** Terminal job statuses — polling stops when the job reaches one of these. */
 const TERMINAL_STATUSES = new Set<string>(["COMPLETED", "STOPPED", "FAILED", "UNKNOWN"])
@@ -16,23 +17,25 @@ const TERMINAL_STATUSES = new Set<string>(["COMPLETED", "STOPPED", "FAILED", "UN
  * Polls up to 15 times with 1-second spacing (15s total).
  * Returns the final `JobInfo`.
  */
-export const waitForJob = Effect.fn("waitForJob")(
-  function*(jobId: number) {
-    const admin = yield* AdminService.AdminApi
+export const waitForJob = Effect.fn(function*(jobId: number) {
+  const admin = yield* AdminService.AdminApi
 
-    for (let attempt = 1; attempt <= 15; attempt++) {
-      if (attempt > 1) {
-        yield* Effect.sleep("1 second")
-      }
-      const job = yield* admin.getJobById(jobId)
-      if (TERMINAL_STATUSES.has(job.status)) {
-        return job
-      }
+  for (let attempt = 1; attempt <= 15; attempt++) {
+    if (attempt > 1) {
+      yield* Effect.sleep("1 second")
     }
-
-    return yield* Effect.die(new Error(`Job ${jobId} did not reach terminal state after 15 attempts`))
+    const job = yield* admin.getJobById(jobId)
+    if (TERMINAL_STATUSES.has(job.status)) {
+      return job
+    }
   }
-)
+
+  return yield* Effect.die(
+    new Error(
+      `Job ${jobId} did not reach terminal state after 15 attempts`
+    )
+  )
+})
 
 /**
  * Poll sync progress until at least one table has blocks.
@@ -42,7 +45,7 @@ export const waitForJob = Effect.fn("waitForJob")(
  * be available immediately after job completion (the SDK converts some
  * API errors to defects via `Effect.die`).
  */
-export const waitForSync = Effect.fn("waitForSync")(
+export const waitForSync = Effect.fn(
   function*(
     namespace: Models.DatasetNamespace,
     name: Models.DatasetName,
@@ -63,6 +66,10 @@ export const waitForSync = Effect.fn("waitForSync")(
       }
     }
 
-    return yield* Effect.die(new Error("Sync progress did not show blocks after 60 attempts"))
+    return yield* Effect.die(
+      new Error(
+        "Sync progress did not show blocks after 60 attempts"
+      )
+    )
   }
 )
