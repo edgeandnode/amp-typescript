@@ -1,0 +1,220 @@
+/**
+ * Anvil evm-rpc manifest for integration tests.
+ *
+ * Adapted from the canonical `.repos/amp/tests/config/manifests/eth_rpc.json`,
+ * with network changed to "anvil" and start_block set to 0.
+ *
+ * NOTE: This uses the TypeScript property names (camelCase) as the SDK's
+ * `DatasetEvmRpc` schema has `fromKey` transforms that handle the JSON
+ * wire format (snake_case).
+ */
+import type * as Models from "@edgeandnode/amp/core"
+
+const blocksFields: Array<Models.ArrowField> = [
+  { name: "_block_num", type: "UInt64", nullable: false },
+  { name: "block_num", type: "UInt64", nullable: false },
+  { name: "timestamp", type: { Timestamp: ["Nanosecond", "+00:00"] }, nullable: false },
+  { name: "hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "parent_hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "ommers_hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "miner", type: { FixedSizeBinary: 20 }, nullable: false },
+  { name: "state_root", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "transactions_root", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "receipt_root", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "logs_bloom", type: "Binary", nullable: false },
+  { name: "difficulty", type: { Decimal128: [38, 0] }, nullable: false },
+  { name: "total_difficulty", type: { Decimal128: [38, 0] }, nullable: true },
+  { name: "gas_limit", type: "UInt64", nullable: false },
+  { name: "gas_used", type: "UInt64", nullable: false },
+  { name: "extra_data", type: "Binary", nullable: false },
+  { name: "mix_hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "nonce", type: "UInt64", nullable: false },
+  { name: "base_fee_per_gas", type: { Decimal128: [38, 0] }, nullable: true },
+  { name: "withdrawals_root", type: { FixedSizeBinary: 32 }, nullable: true },
+  { name: "blob_gas_used", type: "UInt64", nullable: true },
+  { name: "excess_blob_gas", type: "UInt64", nullable: true },
+  { name: "parent_beacon_root", type: { FixedSizeBinary: 32 }, nullable: true },
+  { name: "requests_hash", type: { FixedSizeBinary: 32 }, nullable: true }
+]
+
+const transactionsFields: Array<Models.ArrowField> = [
+  { name: "_block_num", type: "UInt64", nullable: false },
+  { name: "block_hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "block_num", type: "UInt64", nullable: false },
+  { name: "timestamp", type: { Timestamp: ["Nanosecond", "+00:00"] }, nullable: false },
+  { name: "tx_index", type: "UInt32", nullable: false },
+  { name: "tx_hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "to", type: { FixedSizeBinary: 20 }, nullable: true },
+  { name: "nonce", type: "UInt64", nullable: false },
+  { name: "gas_price", type: { Decimal128: [38, 0] }, nullable: true },
+  { name: "gas_limit", type: "UInt64", nullable: false },
+  { name: "value", type: "Utf8", nullable: false },
+  { name: "input", type: "Binary", nullable: false },
+  { name: "r", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "s", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "v_parity", type: "Boolean", nullable: false },
+  { name: "chain_id", type: "UInt64", nullable: true },
+  { name: "gas_used", type: "UInt64", nullable: false },
+  { name: "type", type: "Int32", nullable: false },
+  { name: "max_fee_per_gas", type: { Decimal128: [38, 0] }, nullable: true },
+  { name: "max_priority_fee_per_gas", type: { Decimal128: [38, 0] }, nullable: true },
+  { name: "max_fee_per_blob_gas", type: { Decimal128: [38, 0] }, nullable: true },
+  { name: "from", type: { FixedSizeBinary: 20 }, nullable: false },
+  { name: "status", type: "Boolean", nullable: false },
+  { name: "state_root", type: { FixedSizeBinary: 32 }, nullable: true },
+  {
+    name: "access_list",
+    type: {
+      List: {
+        name: "item",
+        nullable: false,
+        data_type: {
+          Struct: [
+            {
+              name: "address",
+              nullable: false,
+              data_type: { FixedSizeBinary: 20 },
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            },
+            {
+              name: "storage_keys",
+              nullable: false,
+              data_type: {
+                List: {
+                  name: "item",
+                  nullable: false,
+                  data_type: { FixedSizeBinary: 32 },
+                  dict_id: 0,
+                  dict_is_ordered: false,
+                  metadata: {}
+                }
+              },
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            }
+          ]
+        },
+        dict_id: 0,
+        dict_is_ordered: false,
+        metadata: {}
+      }
+    },
+    nullable: true
+  },
+  {
+    name: "blob_versioned_hashes",
+    type: {
+      List: {
+        name: "item",
+        nullable: false,
+        data_type: { FixedSizeBinary: 32 },
+        dict_id: 0,
+        dict_is_ordered: false,
+        metadata: {}
+      }
+    },
+    nullable: true
+  },
+  {
+    name: "authorization_list",
+    type: {
+      List: {
+        name: "item",
+        nullable: false,
+        data_type: {
+          Struct: [
+            {
+              name: "chain_id",
+              nullable: false,
+              data_type: "UInt64",
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            },
+            {
+              name: "address",
+              nullable: false,
+              data_type: { FixedSizeBinary: 20 },
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            },
+            {
+              name: "nonce",
+              nullable: false,
+              data_type: "UInt64",
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            },
+            {
+              name: "y_parity",
+              nullable: false,
+              data_type: "Boolean",
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            },
+            {
+              name: "r",
+              nullable: false,
+              data_type: { FixedSizeBinary: 32 },
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            },
+            {
+              name: "s",
+              nullable: false,
+              data_type: { FixedSizeBinary: 32 },
+              dict_id: 0,
+              dict_is_ordered: false,
+              metadata: {}
+            }
+          ]
+        },
+        dict_id: 0,
+        dict_is_ordered: false,
+        metadata: {}
+      }
+    },
+    nullable: true
+  }
+]
+
+const logsFields: Array<Models.ArrowField> = [
+  { name: "_block_num", type: "UInt64", nullable: false },
+  { name: "block_hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "block_num", type: "UInt64", nullable: false },
+  { name: "timestamp", type: { Timestamp: ["Nanosecond", "+00:00"] }, nullable: false },
+  { name: "tx_hash", type: { FixedSizeBinary: 32 }, nullable: false },
+  { name: "tx_index", type: "UInt32", nullable: false },
+  { name: "log_index", type: "UInt32", nullable: false },
+  { name: "address", type: { FixedSizeBinary: 20 }, nullable: false },
+  { name: "topic0", type: { FixedSizeBinary: 32 }, nullable: true },
+  { name: "topic1", type: { FixedSizeBinary: 32 }, nullable: true },
+  { name: "topic2", type: { FixedSizeBinary: 32 }, nullable: true },
+  { name: "topic3", type: { FixedSizeBinary: 32 }, nullable: true },
+  { name: "data", type: "Binary", nullable: false }
+]
+
+const network = "anvil" as Models.Network
+
+/**
+ * Anvil evm-rpc manifest — typed as `DatasetManifest` for direct use with
+ * `AdminApi.registerDataset`.
+ */
+export const anvilManifest: Models.DatasetManifest = {
+  kind: "evm-rpc",
+  network,
+  startBlock: 0,
+  finalizedBlocksOnly: false,
+  tables: {
+    blocks: { schema: { arrow: { fields: blocksFields } }, network },
+    transactions: { schema: { arrow: { fields: transactionsFields } }, network },
+    logs: { schema: { arrow: { fields: logsFields } }, network }
+  }
+}
