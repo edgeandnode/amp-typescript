@@ -8,21 +8,13 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { DockerComposeEnvironment, Wait } from "testcontainers"
 
-// =============================================================================
-// Configuration
-// =============================================================================
-
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../../../..")
 const PROJECT_NAME = "amp-integration-tests"
 
 const AMP_ADMIN_URL = "http://localhost:1610"
 const AMP_FLIGHT_URL = "http://localhost:1602"
 
-// =============================================================================
-// Container Layer
-// =============================================================================
-
-const DockerComposeLive = Layer.scopedDiscard(
+const DockerComposeLayer = Layer.scopedDiscard(
   Effect.acquireRelease(
     Effect.promise(async () => {
       fs.mkdirSync(path.join(PROJECT_ROOT, "infra/amp/data"), { recursive: true })
@@ -39,15 +31,11 @@ const DockerComposeLive = Layer.scopedDiscard(
   )
 )
 
-// =============================================================================
-// Service Layers
-// =============================================================================
-
 /**
  * AdminApi layer — HTTP client talking to real Amp admin API.
  * No auth layer — Amp runs in dev mode.
  */
-const AdminApiLive = AdminService.layer({ url: AMP_ADMIN_URL }).pipe(
+const AdminApiLayer = AdminService.layer({ url: AMP_ADMIN_URL }).pipe(
   Layer.provide(NodeHttpClient.layerUndici)
 )
 
@@ -55,21 +43,10 @@ const AdminApiLive = AdminService.layer({ url: AMP_ADMIN_URL }).pipe(
  * ArrowFlight layer — gRPC client talking to real Amp Arrow Flight server.
  * No auth layer — Amp runs in dev mode.
  */
-const ArrowFlightLive = ArrowFlight.layer.pipe(
+const ArrowFlightLayer = ArrowFlight.layer.pipe(
   Layer.provide(ArrowFlightNode.layerTransportGrpc({ baseUrl: AMP_FLIGHT_URL }))
 )
 
-// =============================================================================
-// Composed Test Layer
-// =============================================================================
-
-/**
- * The complete integration test layer.
- *
- * `Layer.provideMerge(DockerComposeLive)` ensures containers start before
- * service layers connect. Since `DockerComposeLive` outputs `never`, the
- * final output is `AdminApi | ArrowFlight`.
- */
-export const IntegrationLive = Layer.mergeAll(AdminApiLive, ArrowFlightLive).pipe(
-  Layer.provideMerge(DockerComposeLive)
+export const IntegrationLayer = Layer.mergeAll(AdminApiLayer, ArrowFlightLayer).pipe(
+  Layer.provideMerge(DockerComposeLayer)
 )
