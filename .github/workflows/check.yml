@@ -103,3 +103,22 @@ jobs:
           node-version: 24.10.0
       - name: Check for circular dependencies
         run: pnpm circular
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'integration')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-version: 24.10.0
+      - name: Run integration tests
+        run: pnpm test:integration
+      - name: Collect container logs on failure
+        if: failure()
+        run: docker compose -p amp-integration-tests logs --tail 200 2>/dev/null || true

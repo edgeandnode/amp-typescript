@@ -54,7 +54,7 @@ services:
   # Amp is a data engineering layer for Ethereum.
   # https://github.com/edgeandnode/amp
   amp:
-    image: ghcr.io/edgeandnode/amp:latest
+    image: ghcr.io/edgeandnode/amp:canary
     command: ["--config", "/var/lib/amp/config.toml", "dev"]
     depends_on:
       - postgres
