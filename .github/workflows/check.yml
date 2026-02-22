@@ -110,7 +110,6 @@ jobs:
     permissions:
       contents: read
     timeout-minutes: 15
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'integration')
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
