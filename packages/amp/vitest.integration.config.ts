@@ -3,7 +3,12 @@ import shared from "../../vitest.shared.ts"
 
 const config: ViteUserConfig = {
   test: {
-    exclude: ["test/integration/**"]
+    include: ["test/integration/**/*.test.ts"],
+    testTimeout: 60_000,
+    hookTimeout: 180_000,
+    sequence: {
+      concurrent: false
+    }
   }
 }
 

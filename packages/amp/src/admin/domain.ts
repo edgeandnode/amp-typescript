@@ -60,7 +60,27 @@ export class GetDatasetVersionResponse extends Schema.Class<GetDatasetVersionRes
 export class GetDatasetVersionsResponse extends Schema.Class<GetDatasetVersionsResponse>(
   "Amp/AdminApi/GetDatasetVersionsResponse"
 )({
-  versions: Schema.Array(Models.DatasetVersion)
+  namespace: Models.DatasetNamespace,
+  name: Models.DatasetName,
+  versions: Schema.Array(Schema.Struct({
+    version: Models.DatasetVersion,
+    manifestHash: Models.DatasetHash.pipe(
+      Schema.propertySignature,
+      Schema.fromKey("manifest_hash")
+    ),
+    createdAt: Schema.DateTimeUtc.pipe(
+      Schema.propertySignature,
+      Schema.fromKey("created_at")
+    ),
+    updatedAt: Schema.DateTimeUtc.pipe(
+      Schema.propertySignature,
+      Schema.fromKey("updated_at")
+    )
+  })),
+  specialTags: Schema.Struct({
+    dev: Schema.optional(Schema.Union(Models.DatasetVersion, Models.DatasetHash)),
+    latest: Schema.optional(Schema.Union(Models.DatasetVersion, Models.DatasetHash))
+  }).pipe(Schema.propertySignature, Schema.fromKey("special_tags"))
 }, { identifier: "GetDatasetVersionsResponse" }) {}
 
 /**
