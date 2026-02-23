@@ -1,12 +1,5 @@
 /**
  * Anvil evm-rpc manifest for integration tests.
- *
- * Adapted from the canonical `.repos/amp/tests/config/manifests/eth_rpc.json`,
- * with network changed to "anvil" and start_block set to 0.
- *
- * NOTE: This uses the TypeScript property names (camelCase) as the SDK's
- * `DatasetEvmRpc` schema has `fromKey` transforms that handle the JSON
- * wire format (snake_case).
  */
 import type * as Models from "@edgeandnode/amp/core"
 
