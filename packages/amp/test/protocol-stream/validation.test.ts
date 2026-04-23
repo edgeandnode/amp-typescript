@@ -6,14 +6,7 @@
  */
 import type { BlockHash, BlockNumber, BlockRange, Network } from "@edgeandnode/amp/core"
 import {
-  DuplicateNetworkError,
   GapError,
-  HashMismatchOnConsecutiveBlocksError,
-  InvalidPrevHashError,
-  InvalidReorgError,
-  MissingPrevHashError,
-  NetworkCountChangedError,
-  UnexpectedNetworkError,
   validateAll,
   validateConsecutiveness,
   validateNetworks,
@@ -21,7 +14,6 @@ import {
 } from "@edgeandnode/amp/protocol-stream"
 import { describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import * as Result from "effect/Result"
 
 // =============================================================================
 // Test Helpers
