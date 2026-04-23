@@ -123,10 +123,10 @@ export interface StateStoreService {
  * })
  * ```
  */
-export class StateStore extends Context.Tag("Amp/TransactionalStream/StateStore")<
+export class StateStore extends Context.Service<
   StateStore,
   StateStoreService
->() {}
+>()("Amp/TransactionalStream/StateStore") {}
 
 // =============================================================================
 // Helpers

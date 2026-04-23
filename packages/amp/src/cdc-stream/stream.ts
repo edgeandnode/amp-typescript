@@ -9,6 +9,8 @@
  */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
+import * as Filter from "effect/Filter"
+import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Stream from "effect/Stream"
@@ -55,10 +57,9 @@ export interface CdcStreamService {
 // Context.Tag
 // =============================================================================
 
-export class CdcStream extends Context.Tag("Amp/CdcStream")<
-  CdcStream,
-  CdcStreamService
->() {}
+export class CdcStream extends Context.Service<CdcStream, CdcStreamService>()(
+  "Amp/CdcStream"
+) {}
 
 // =============================================================================
 // DeleteBatchIterator
@@ -80,6 +81,7 @@ const makeDeleteBatchIterator = (
         readonly [TransactionId, ReadonlyArray<Record<string, unknown>>] | undefined,
         BatchStoreError
       > => {
+        // @effect-diagnostics-next-line effectSucceedWithVoid:off
         if (cursor >= ids.length) return Effect.succeed(undefined)
         const id = ids[cursor]!
         cursor++
@@ -148,7 +150,7 @@ const make = Effect.gen(function*() {
               if (Option.isSome(event.prune)) {
                 // Best-effort pruning
                 yield* batchStore.prune(event.prune.value).pipe(
-                  Effect.catchAll((error) =>
+                  Effect.catch((error) =>
                     Effect.logWarning("Batch pruning failed (will retry on next watermark)", error)
                   )
                 )
@@ -161,7 +163,7 @@ const make = Effect.gen(function*() {
           }
         })
       ),
-      Stream.filterMap((x) => x),
+      Stream.filterMap(Filter.fromPredicateOption(identity)),
       Stream.withSpan("CdcStream.streamCdc")
     )
   }

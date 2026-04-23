@@ -5,7 +5,7 @@
  */
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { BlockRange } from "../core/domain.ts"
+import { BlockRange, NonNegativeInt } from "../core/domain.ts"
 import { InvalidationRange } from "../protocol-stream/messages.ts"
 
 // =============================================================================
@@ -16,9 +16,9 @@ import { InvalidationRange } from "../protocol-stream/messages.ts"
  * Transaction ID - monotonically increasing identifier for each event.
  * Guaranteed to be unique and never reused, even across crashes.
  */
-export const TransactionId = Schema.NonNegativeInt.pipe(
+export const TransactionId = NonNegativeInt.pipe(
   Schema.brand("Amp/TransactionalStream/TransactionId")
-).annotations({
+).annotate({
   identifier: "TransactionId",
   description: "Monotonically increasing transaction identifier"
 })
@@ -34,7 +34,7 @@ export type TransactionId = typeof TransactionId.Type
 export const TransactionIdRange = Schema.Struct({
   start: TransactionId,
   end: TransactionId
-}).annotations({
+}).annotate({
   identifier: "TransactionIdRange",
   description: "Inclusive range of transaction IDs"
 })
@@ -49,19 +49,19 @@ export type TransactionIdRange = typeof TransactionIdRange.Type
  */
 export const UndoCauseReorg = Schema.TaggedStruct("Reorg", {
   invalidation: Schema.Array(InvalidationRange)
-}).annotations({
+}).annotate({
   identifier: "UndoCause.Reorg",
   description: "Undo caused by blockchain reorganization"
 })
 export type UndoCauseReorg = typeof UndoCauseReorg.Type
 
-export const UndoCauseRewind = Schema.TaggedStruct("Rewind", {}).annotations({
+export const UndoCauseRewind = Schema.TaggedStruct("Rewind", {}).annotate({
   identifier: "UndoCause.Rewind",
   description: "Undo caused by rewind on restart (uncommitted transactions)"
 })
 export type UndoCauseRewind = typeof UndoCauseRewind.Type
 
-export const UndoCause = Schema.Union(UndoCauseReorg, UndoCauseRewind).annotations({
+export const UndoCause = Schema.Union([UndoCauseReorg, UndoCauseRewind]).annotate({
   identifier: "UndoCause",
   description: "Cause of an Undo event"
 })
@@ -78,15 +78,10 @@ export const TransactionEventData = Schema.TaggedStruct("Data", {
   /** Transaction ID of this event */
   id: TransactionId,
   /** Decoded record batch data */
-  data: Schema.Array(
-    Schema.Record({
-      key: Schema.String,
-      value: Schema.Unknown
-    })
-  ),
+  data: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)),
   /** Block ranges covered by this data */
   ranges: Schema.Array(BlockRange)
-}).annotations({
+}).annotate({
   identifier: "TransactionEvent.Data",
   description: "New data to process"
 })
@@ -102,7 +97,7 @@ export const TransactionEventUndo = Schema.TaggedStruct("Undo", {
   cause: UndoCause,
   /** Range of transaction IDs to invalidate (inclusive) */
   invalidate: TransactionIdRange
-}).annotations({
+}).annotate({
   identifier: "TransactionEvent.Undo",
   description: "Undo/rollback previously processed data"
 })
@@ -118,7 +113,7 @@ export const TransactionEventWatermark = Schema.TaggedStruct("Watermark", {
   ranges: Schema.Array(BlockRange),
   /** Last transaction ID pruned at this watermark, if any */
   prune: Schema.OptionFromNullOr(TransactionId)
-}).annotations({
+}).annotate({
   identifier: "TransactionEvent.Watermark",
   description: "Watermark confirming block ranges are complete"
 })
@@ -127,11 +122,11 @@ export type TransactionEventWatermark = typeof TransactionEventWatermark.Type
 /**
  * Union of all transaction event types.
  */
-export const TransactionEvent = Schema.Union(
+export const TransactionEvent = Schema.Union([
   TransactionEventData,
   TransactionEventUndo,
   TransactionEventWatermark
-).annotations({
+]).annotate({
   identifier: "TransactionEvent",
   description: "Event emitted by the transactional stream"
 })
@@ -180,7 +175,7 @@ export const watermarkEvent = (
   _tag: "Watermark",
   id,
   ranges: ranges as Array<typeof BlockRange.Type>,
-  prune: Option.fromNullable(prune)
+  prune: Option.fromNullishOr(prune)
 })
 
 /**

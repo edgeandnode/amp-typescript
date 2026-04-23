@@ -3,3 +3,10 @@ packages:
   - scripts
   - packages/*
   - packages/tools/*
+
+catalog:
+  "@effect/language-service": ^0.85.1
+  "@effect/platform-node": ^4.0.0-beta.56
+  "@effect/vitest": ^4.0.0-beta.56
+  "effect": ^4.0.0-beta.56
+  "viem": ^2.46.1

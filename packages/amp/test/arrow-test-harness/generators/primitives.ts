@@ -196,8 +196,12 @@ export const floatGenerator: Types.DataGenerator = {
           values.push(null)
         } else if (includeSpecial && (yield* Rand.nextBoolWithProbability(specialRate))) {
           // Generate a precision-appropriate special float value
-          const idx = yield* Random.nextIntBetween(0, specialFloats.length)
-          values.push(specialFloats[idx])
+          const idx = yield* Random.nextIntBetween(0, specialFloats.length - 1)
+          const value = specialFloats[idx]
+          if (value === undefined) {
+            throw new Error(`Invalid special float index ${idx} for precision ${type.precision}`)
+          }
+          values.push(value)
         } else {
           // Generate a normal float in the valid range for this precision
           values.push(yield* Rand.nextFloat(range.min, range.max))

@@ -85,7 +85,7 @@ export const pkceChallenge = Effect.fnUntraced(function*(length?: number) {
   }
 
   if (length < 43 || length > 128) {
-    return yield* Effect.dieMessage(
+    return yield* Effect.die(
       `Expected a length between 43 and 128. Received ${length}.`
     )
   }

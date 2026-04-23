@@ -18,36 +18,57 @@
  * }
  * ```
  */
-import * as HttpApiSchema from "@effect/platform/HttpApiSchema"
 import * as Schema from "effect/Schema"
 
-/**
- * Machine-readable error code in SCREAMING_SNAKE_CASE format
- *
- * Error codes are stable across API versions and should be used
- * for programmatic error handling. Examples: `INVALID_SELECTOR`,
- * `DATASET_NOT_FOUND`, `METADATA_DB_ERROR`
- */
-const ErrorCode = <Code extends string>(
-  code: Code
-): Schema.PropertySignature<":", Code, "error_code", ":", Code> =>
-  Schema.Literal(code).pipe(
-    Schema.propertySignature,
-    Schema.fromKey("error_code")
-  )
-
-const BaseErrorFields = {
-  /**
-   * Human-readable error message
-   *
-   * Messages provide detailed context about the error but may change
-   * over time. Use `error_code` for programmatic decisions.
-   */
-  message: Schema.String.pipe(
-    Schema.propertySignature,
-    Schema.fromKey("error_message")
-  )
-}
+export const makeError = <
+  const Code extends string,
+  const Tag extends string,
+  const Fields extends Schema.Struct.Fields = {}
+>(code: Code, tag: Tag, fields?: Fields): Schema.encodeKeys<
+  Schema.Struct<
+    Fields & {
+      readonly _tag: Schema.withDecodingDefaultKey<Schema.tag<Tag>>
+      /**
+       * Machine-readable error code in SCREAMING_SNAKE_CASE format
+       *
+       * Error codes are stable across API versions and should be used
+       * for programmatic error handling. Examples: `INVALID_SELECTOR`,
+       * `DATASET_NOT_FOUND`, `METADATA_DB_ERROR`
+       */
+      readonly code: Schema.withConstructorDefault<Schema.Literal<Code>>
+      /**
+       * Human-readable error message
+       *
+       * Messages provide detailed context about the error but may change
+       * over time. Use `error_code` for programmatic decisions.
+       */
+      readonly message: Schema.String
+    }
+  >,
+  { readonly code: "error_code"; readonly message: "error_message" }
+> =>
+  Schema.Struct({
+    ...fields,
+    _tag: Schema.tagDefaultOmit(tag),
+    /**
+     * Machine-readable error code in SCREAMING_SNAKE_CASE format
+     *
+     * Error codes are stable across API versions and should be used
+     * for programmatic error handling. Examples: `INVALID_SELECTOR`,
+     * `DATASET_NOT_FOUND`, `METADATA_DB_ERROR`
+     */
+    code: Schema.Literal(code),
+    /**
+     * Human-readable error message
+     *
+     * Messages provide detailed context about the error but may change
+     * over time. Use `error_code` for programmatic decisions.
+     */
+    message: Schema.String
+  }).pipe(Schema.encodeKeys({
+    code: "error_code",
+    message: "error_message"
+  })) as any
 
 // =============================================================================
 // Dataset Errors
@@ -60,12 +81,12 @@ const BaseErrorFields = {
  * - SQL query contains a catalog-qualified table reference (catalog.schema.table)
  * - Only dataset-qualified tables are supported (dataset.table)
  */
-export class CatalogQualifiedTableError extends Schema.Class<CatalogQualifiedTableError>(
-  "Amp/AdminApi/CatalogQualifiedTableError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("CATALOG_QUALIFIED_TABLE")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const CatalogQualifiedTableError = makeError(
+  "CATALOG_QUALIFIED_TABLE",
+  "CatalogQualifiedTableError"
+).annotate({ httpApiStatus: 400 })
+
+export type CatalogQualifiedTableError = typeof CatalogQualifiedTableError.Type
 
 /**
  * CatalogQualifiedFunction - Function reference includes a catalog qualifier.
@@ -74,12 +95,12 @@ export class CatalogQualifiedTableError extends Schema.Class<CatalogQualifiedTab
  * - SQL query contains a catalog-qualified function reference (catalog.schema.function)
  * - Only dataset-qualified functions are supported (dataset.function)
  */
-export class CatalogQualifiedFunctionError extends Schema.Class<CatalogQualifiedFunctionError>(
-  "Amp/AdminApi/CatalogQualifiedFunctionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("CATALOG_QUALIFIED_FUNCTION")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const CatalogQualifiedFunctionError = makeError(
+  "CATALOG_QUALIFIED_FUNCTION",
+  "CatalogQualifiedFunctionError"
+).annotate({ httpApiStatus: 400 })
+
+export type CatalogQualifiedFunctionError = typeof CatalogQualifiedFunctionError.Type
 
 /**
  * DatasetNotFound - The requested dataset does not exist.
@@ -89,12 +110,12 @@ export class CatalogQualifiedFunctionError extends Schema.Class<CatalogQualified
  * - Dataset has been deleted
  * - Dataset not yet registered
  */
-export class DatasetNotFoundError extends Schema.Class<DatasetNotFoundError>(
-  "Amp/AdminApi/DatasetNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DATASET_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const DatasetNotFoundError = makeError(
+  "DATASET_NOT_FOUND",
+  "DatasetNotFoundError"
+).annotate({ httpApiStatus: 404 })
+
+export type DatasetNotFoundError = typeof DatasetNotFoundError.Type
 
 /**
  * DatasetStoreError - Failure in dataset storage operations.
@@ -105,12 +126,12 @@ export class DatasetNotFoundError extends Schema.Class<DatasetNotFoundError>(
  * - Unsupported dataset kind
  * - Dataset name validation failures
  */
-export class DatasetStoreError extends Schema.Class<DatasetStoreError>(
-  "Amp/AdminApi/DatasetStoreError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DATASET_STORE_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const DatasetStoreError = makeError(
+  "DATASET_STORE_ERROR",
+  "DatasetStoreError"
+).annotate({ httpApiStatus: 500 })
+
+export type DatasetStoreError = typeof DatasetStoreError.Type
 
 /**
  * DependencyAliasNotFound - Dependency alias not found in dependencies map.
@@ -119,12 +140,12 @@ export class DatasetStoreError extends Schema.Class<DatasetStoreError>(
  * - Table reference uses an alias not provided in dependencies
  * - Function reference uses an alias not provided in dependencies
  */
-export class DependencyAliasNotFoundError extends Schema.Class<DependencyAliasNotFoundError>(
-  "Amp/AdminApi/DependencyAliasNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DEPENDENCY_ALIAS_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const DependencyAliasNotFoundError = makeError(
+  "DEPENDENCY_ALIAS_NOT_FOUND",
+  "DependencyAliasNotFoundError"
+).annotate({ httpApiStatus: 400 })
+
+export type DependencyAliasNotFoundError = typeof DependencyAliasNotFoundError.Type
 
 /**
  * DependencyNotFound - Dependency not found in dataset store.
@@ -133,12 +154,12 @@ export class DependencyAliasNotFoundError extends Schema.Class<DependencyAliasNo
  * - Referenced dependency does not exist in dataset store
  * - Specified version or hash cannot be found
  */
-export class DependencyNotFoundError extends Schema.Class<DependencyNotFoundError>(
-  "Amp/AdminApi/DependencyNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DEPENDENCY_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const DependencyNotFoundError = makeError(
+  "DEPENDENCY_NOT_FOUND",
+  "DependencyNotFoundError"
+).annotate({ httpApiStatus: 404 })
+
+export type DependencyNotFoundError = typeof DependencyNotFoundError.Type
 
 /**
  * DependencyResolution - Failed to resolve dependency.
@@ -146,12 +167,12 @@ export class DependencyNotFoundError extends Schema.Class<DependencyNotFoundErro
  * Causes:
  * - Database query fails during resolution
  */
-export class DependencyResolutionError extends Schema.Class<DependencyResolutionError>(
-  "Amp/AdminApi/DependencyResolutionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DEPENDENCY_RESOLUTION")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const DependencyResolutionError = makeError(
+  "DEPENDENCY_RESOLUTION",
+  "DependencyResolutionError"
+).annotate({ httpApiStatus: 500 })
+
+export type DependencyResolutionError = typeof DependencyResolutionError.Type
 
 /**
  * EmptyTablesAndFunctions - No tables or functions provided.
@@ -159,12 +180,12 @@ export class DependencyResolutionError extends Schema.Class<DependencyResolution
  * Causes:
  * - At least one table or function is required for schema analysis
  */
-export class EmptyTablesAndFunctionsError extends Schema.Class<EmptyTablesAndFunctionsError>(
-  "Amp/AdminApi/EmptyTablesAndFunctionsError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("EMPTY_TABLES_AND_FUNCTIONS")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const EmptyTablesAndFunctionsError = makeError(
+  "EMPTY_TABLES_AND_FUNCTIONS",
+  "EmptyTablesAndFunctionsError"
+).annotate({ httpApiStatus: 400 })
+
+export type EmptyTablesAndFunctionsError = typeof EmptyTablesAndFunctionsError.Type
 
 /**
  * EthCallNotAvailable - eth_call function not available for dataset.
@@ -173,12 +194,12 @@ export class EmptyTablesAndFunctionsError extends Schema.Class<EmptyTablesAndFun
  * - eth_call function is referenced in SQL but dataset doesn't support it
  * - Dataset is not an EVM RPC dataset
  */
-export class EthCallNotAvailableError extends Schema.Class<EthCallNotAvailableError>(
-  "Amp/AdminApi/EthCallNotAvailableError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("ETH_CALL_NOT_AVAILABLE")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const EthCallNotAvailableError = makeError(
+  "ETH_CALL_NOT_AVAILABLE",
+  "EthCallNotAvailableError"
+).annotate({ httpApiStatus: 404 })
+
+export type EthCallNotAvailableError = typeof EthCallNotAvailableError.Type
 
 /**
  * EthCallUdfCreationError - Failed to create ETH call UDF.
@@ -187,12 +208,12 @@ export class EthCallNotAvailableError extends Schema.Class<EthCallNotAvailableEr
  * - Invalid provider configuration for dataset
  * - Provider connection issues
  */
-export class EthCallUdfCreationError extends Schema.Class<EthCallUdfCreationError>(
-  "Amp/AdminApi/EthCallUdfCreationError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("ETH_CALL_UDF_CREATION_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const EthCallUdfCreationError = makeError(
+  "ETH_CALL_UDF_CREATION_ERROR",
+  "EthCallUdfCreationError"
+).annotate({ httpApiStatus: 500 })
+
+export type EthCallUdfCreationError = typeof EthCallUdfCreationError.Type
 
 /**
  * FunctionNotFoundInDataset - Function not found in referenced dataset.
@@ -201,12 +222,12 @@ export class EthCallUdfCreationError extends Schema.Class<EthCallUdfCreationErro
  * - SQL query references a function that doesn't exist in the dataset
  * - Function name is misspelled
  */
-export class FunctionNotFoundInDatasetError extends Schema.Class<FunctionNotFoundInDatasetError>(
-  "Amp/AdminApi/FunctionNotFoundInDatasetError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("FUNCTION_NOT_FOUND_IN_DATASET")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const FunctionNotFoundInDatasetError = makeError(
+  "FUNCTION_NOT_FOUND_IN_DATASET",
+  "FunctionNotFoundInDatasetError"
+).annotate({ httpApiStatus: 404 })
+
+export type FunctionNotFoundInDatasetError = typeof FunctionNotFoundInDatasetError.Type
 
 /**
  * FunctionReferenceResolution - Failed to resolve function references from SQL.
@@ -214,12 +235,12 @@ export class FunctionNotFoundInDatasetError extends Schema.Class<FunctionNotFoun
  * Causes:
  * - Unsupported DML statements encountered
  */
-export class FunctionReferenceResolutionError extends Schema.Class<FunctionReferenceResolutionError>(
-  "Amp/AdminApi/FunctionReferenceResolutionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("FUNCTION_REFERENCE_RESOLUTION")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const FunctionReferenceResolutionError = makeError(
+  "FUNCTION_REFERENCE_RESOLUTION",
+  "FunctionReferenceResolutionError"
+).annotate({ httpApiStatus: 500 })
+
+export type FunctionReferenceResolutionError = typeof FunctionReferenceResolutionError.Type
 
 /**
  * GetDatasetError - Failed to retrieve dataset from store.
@@ -229,22 +250,22 @@ export class FunctionReferenceResolutionError extends Schema.Class<FunctionRefer
  * - Unsupported dataset kind
  * - Storage backend errors when reading dataset
  */
-export class GetDatasetError extends Schema.Class<GetDatasetError>(
-  "Amp/AdminApi/GetDatasetError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("GET_DATASET_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const GetDatasetError = makeError(
+  "GET_DATASET_ERROR",
+  "GetDatasetError"
+).annotate({ httpApiStatus: 500 })
+
+export type GetDatasetError = typeof GetDatasetError.Type
 
 /**
  * GetManifestPathError - Failed to query manifest path from metadata database.
  */
-export class GetManifestPathError extends Schema.Class<GetManifestPathError>(
-  "Amp/AdminApi/GetManifestPathError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("GET_MANIFEST_PATH_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const GetManifestPathError = makeError(
+  "GET_MANIFEST_PATH_ERROR",
+  "GetManifestPathError"
+).annotate({ httpApiStatus: 500 })
+
+export type GetManifestPathError = typeof GetManifestPathError.Type
 
 /**
  * GetSyncProgressError - Failed to retrieve the dataset sync progress
@@ -252,12 +273,12 @@ export class GetManifestPathError extends Schema.Class<GetManifestPathError>(
  * Causes:
  * - Unable to resolve the dataset synchronization progress server side
  */
-export class GetSyncProgressError extends Schema.Class<GetSyncProgressError>(
-  "Amp/AdminApi/GetSyncProgressError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("GET_SYNC_PROGRESS_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const GetSyncProgressError = makeError(
+  "GET_SYNC_PROGRESS_ERROR",
+  "GetSyncProgressError"
+).annotate({ httpApiStatus: 500 })
+
+export type GetSyncProgressError = typeof GetSyncProgressError.Type
 
 // =============================================================================
 // Job Errors
@@ -270,12 +291,12 @@ export class GetSyncProgressError extends Schema.Class<GetSyncProgressError>(
  * - Job ID contains invalid characters
  * - Job ID format does not match expected pattern
  */
-export class InvalidJobIdError extends Schema.Class<InvalidJobIdError>(
-  "Amp/AdminApi/InvalidJobIdError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_JOB_ID")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidJobIdError = makeError(
+  "INVALID_JOB_ID",
+  "InvalidJobIdError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidJobIdError = typeof InvalidJobIdError.Type
 
 /**
  * JobNotFound - The requested job does not exist.
@@ -284,72 +305,72 @@ export class InvalidJobIdError extends Schema.Class<InvalidJobIdError>(
  * - Job ID does not exist in the system
  * - Job has been deleted
  */
-export class JobNotFoundError extends Schema.Class<JobNotFoundError>(
-  "Amp/AdminApi/JobNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("JOB_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const JobNotFoundError = makeError(
+  "JOB_NOT_FOUND",
+  "JobNotFoundError"
+).annotate({ httpApiStatus: 404 })
+
+export type JobNotFoundError = typeof JobNotFoundError.Type
 
 /**
  * JobConflict - Job exists but cannot be deleted (not in terminal state).
  */
-export class JobConflictError extends Schema.Class<JobConflictError>(
-  "Amp/AdminApi/JobConflictError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("JOB_CONFLICT")
-}, HttpApiSchema.annotations({ status: 409 })) {}
+export const JobConflictError = makeError(
+  "JOB_CONFLICT",
+  "JobConflictError"
+).annotate({ httpApiStatus: 409 })
+
+export type JobConflictError = typeof JobConflictError.Type
 
 /**
  * GetJobError - Failed to retrieve job from scheduler.
  */
-export class GetJobError extends Schema.Class<GetJobError>(
-  "Amp/AdminApi/GetJobError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("GET_JOB_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const GetJobError = makeError(
+  "GET_JOB_ERROR",
+  "GetJobError"
+).annotate({ httpApiStatus: 500 })
+
+export type GetJobError = typeof GetJobError.Type
 
 /**
  * DeleteJobError - Failed to delete job from scheduler.
  */
-export class DeleteJobError extends Schema.Class<DeleteJobError>(
-  "Amp/AdminApi/DeleteJobError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DELETE_JOB_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const DeleteJobError = makeError(
+  "DELETE_JOB_ERROR",
+  "DeleteJobError"
+).annotate({ httpApiStatus: 500 })
+
+export type DeleteJobError = typeof DeleteJobError.Type
 
 /**
  * StopJobError - Database error during stop operation.
  */
-export class StopJobError extends Schema.Class<StopJobError>(
-  "Amp/AdminApi/StopJobError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("STOP_JOB_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const StopJobError = makeError(
+  "STOP_JOB_ERROR",
+  "StopJobError"
+).annotate({ httpApiStatus: 500 })
+
+export type StopJobError = typeof StopJobError.Type
 
 /**
  * ListJobsError - Failed to list jobs from scheduler.
  */
-export class ListJobsError extends Schema.Class<ListJobsError>(
-  "Amp/AdminApi/ListJobsError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LIST_JOBS_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ListJobsError = makeError(
+  "LIST_JOBS_ERROR",
+  "ListJobsError"
+).annotate({ httpApiStatus: 500 })
+
+export type ListJobsError = typeof ListJobsError.Type
 
 /**
  * UnexpectedStateConflict - Internal state machine error.
  */
-export class UnexpectedStateConflictError extends Schema.Class<UnexpectedStateConflictError>(
-  "Amp/AdminApi/UnexpectedStateConflictError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("UNEXPECTED_STATE_CONFLICT")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const UnexpectedStateConflictError = makeError(
+  "UNEXPECTED_STATE_CONFLICT",
+  "UnexpectedStateConflictError"
+).annotate({ httpApiStatus: 500 })
+
+export type UnexpectedStateConflictError = typeof UnexpectedStateConflictError.Type
 
 // =============================================================================
 // Manifest Errors
@@ -363,42 +384,42 @@ export class UnexpectedStateConflictError extends Schema.Class<UnexpectedStateCo
  * - Circular dependencies between datasets
  * - Schema validation failures
  */
-export class InvalidManifestError extends Schema.Class<InvalidManifestError>(
-  "Amp/AdminApi/InvalidManifestError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_MANIFEST")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidManifestError = makeError(
+  "INVALID_MANIFEST",
+  "InvalidManifestError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidManifestError = typeof InvalidManifestError.Type
 
 /**
  * ManifestLinkingError - Failed to link manifest to dataset.
  */
-export class ManifestLinkingError extends Schema.Class<ManifestLinkingError>(
-  "Amp/AdminApi/ManifestLinkingError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_LINKING_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ManifestLinkingError = makeError(
+  "MANIFEST_LINKING_ERROR",
+  "ManifestLinkingError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestLinkingError = typeof ManifestLinkingError.Type
 
 /**
  * ManifestNotFound - Manifest with the provided hash not found.
  */
-export class ManifestNotFoundError extends Schema.Class<ManifestNotFoundError>(
-  "Amp/AdminApi/ManifestNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const ManifestNotFoundError = makeError(
+  "MANIFEST_NOT_FOUND",
+  "ManifestNotFoundError"
+).annotate({ httpApiStatus: 404 })
+
+export type ManifestNotFoundError = typeof ManifestNotFoundError.Type
 
 /**
  * ManifestRegistrationError - Failed to register manifest in the system.
  */
-export class ManifestRegistrationError extends Schema.Class<ManifestRegistrationError>(
-  "Amp/AdminApi/ManifestRegistrationError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_REGISTRATION_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ManifestRegistrationError = makeError(
+  "MANIFEST_REGISTRATION_ERROR",
+  "ManifestRegistrationError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestRegistrationError = typeof ManifestRegistrationError.Type
 
 /**
  * ManifestValidationError - Manifest validation error.
@@ -408,42 +429,42 @@ export class ManifestRegistrationError extends Schema.Class<ManifestRegistration
  * - Invalid table references in SQL
  * - Type inference errors
  */
-export class ManifestValidationError extends Schema.Class<ManifestValidationError>(
-  "Amp/AdminApi/ManifestValidationError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_VALIDATION_ERROR")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const ManifestValidationError = makeError(
+  "MANIFEST_VALIDATION_ERROR",
+  "ManifestValidationError"
+).annotate({ httpApiStatus: 400 })
+
+export type ManifestValidationError = typeof ManifestValidationError.Type
 
 /**
  * ManifestStorageError - Failed to write manifest to object store.
  */
-export class ManifestStorageError extends Schema.Class<ManifestStorageError>(
-  "Amp/AdminApi/ManifestStorageError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_STORAGE_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ManifestStorageError = makeError(
+  "MANIFEST_STORAGE_ERROR",
+  "ManifestStorageError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestStorageError = typeof ManifestStorageError.Type
 
 /**
  * ParseManifestError - Failed to parse manifest JSON.
  */
-export class ParseManifestError extends Schema.Class<ParseManifestError>(
-  "Amp/AdminApi/ParseManifestError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("PARSE_MANIFEST_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ParseManifestError = makeError(
+  "PARSE_MANIFEST_ERROR",
+  "ParseManifestError"
+).annotate({ httpApiStatus: 500 })
+
+export type ParseManifestError = typeof ParseManifestError.Type
 
 /**
  * ReadManifestError - Failed to read manifest from object store.
  */
-export class ReadManifestError extends Schema.Class<ReadManifestError>(
-  "Amp/AdminApi/ReadManifestError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("READ_MANIFEST_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ReadManifestError = makeError(
+  "READ_MANIFEST_ERROR",
+  "ReadManifestError"
+).annotate({ httpApiStatus: 500 })
+
+export type ReadManifestError = typeof ReadManifestError.Type
 
 // =============================================================================
 // Request Validation Errors
@@ -452,132 +473,132 @@ export class ReadManifestError extends Schema.Class<ReadManifestError>(
 /**
  * InvalidPath - Invalid path parameters.
  */
-export class InvalidPathError extends Schema.Class<InvalidPathError>(
-  "Amp/AdminApi/InvalidPathError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_PATH")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidPathError = makeError(
+  "INVALID_PATH",
+  "InvalidPathError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidPathError = typeof InvalidPathError.Type
 
 /**
  * InvalidBody - Invalid request body.
  */
-export class InvalidBodyError extends Schema.Class<InvalidBodyError>(
-  "Amp/AdminApi/InvalidBodyError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_BODY")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidBodyError = makeError(
+  "INVALID_BODY",
+  "InvalidBodyError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidBodyError = typeof InvalidBodyError.Type
 
 /**
  * InvalidPathParams - Invalid request path parameters.
  */
-export class InvalidPathParamsError extends Schema.Class<InvalidPathParamsError>(
-  "Amp/AdminApi/InvalidPathParamsError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_PATH_PARAMS")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidPathParamsError = makeError(
+  "INVALID_PATH_PARAMS",
+  "InvalidPathParamsError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidPathParamsError = typeof InvalidPathParamsError.Type
 
 /**
  * InvalidPayloadFormat - Invalid request payload format.
  */
-export class InvalidPayloadFormatError extends Schema.Class<InvalidPayloadFormatError>(
-  "Amp/AdminApi/InvalidPayloadFormatError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_PAYLOAD_FORMAT")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidPayloadFormatError = makeError(
+  "INVALID_PAYLOAD_FORMAT",
+  "InvalidPayloadFormatError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidPayloadFormatError = typeof InvalidPayloadFormatError.Type
 
 /**
  * InvalidQueryParameters - Invalid query parameters.
  */
-export class InvalidQueryParametersError extends Schema.Class<InvalidQueryParametersError>(
-  "Amp/AdminApi/InvalidQueryParametersError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_QUERY_PARAMETERS")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidQueryParametersError = makeError(
+  "INVALID_QUERY_PARAMETERS",
+  "InvalidQueryParametersError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidQueryParametersError = typeof InvalidQueryParametersError.Type
 
 /**
  * InvalidRequest - The request is malformed or contains invalid parameters.
  */
-export class InvalidRequestError extends Schema.Class<InvalidRequestError>(
-  "Amp/AdminApi/InvalidRequestError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_REQUEST")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidRequestError = makeError(
+  "INVALID_REQUEST",
+  "InvalidRequestError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidRequestError = typeof InvalidRequestError.Type
 
 /**
  * InvalidSelector - The provided dataset selector is malformed or invalid.
  */
-export class InvalidSelectorError extends Schema.Class<InvalidSelectorError>(
-  "Amp/AdminApi/InvalidSelectorError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_SELECTOR")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidSelectorError = makeError(
+  "INVALID_SELECTOR",
+  "InvalidSelectorError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidSelectorError = typeof InvalidSelectorError.Type
 
 /**
  * InvalidTableName - Table name does not conform to SQL identifier rules.
  */
-export class InvalidTableNameError extends Schema.Class<InvalidTableNameError>(
-  "Amp/AdminApi/InvalidTableNameError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_TABLE_NAME")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidTableNameError = makeError(
+  "INVALID_TABLE_NAME",
+  "InvalidTableNameError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidTableNameError = typeof InvalidTableNameError.Type
 
 /**
  * InvalidTableSql - SQL syntax error in table definition.
  */
-export class InvalidTableSqlError extends Schema.Class<InvalidTableSqlError>(
-  "Amp/AdminApi/InvalidTableSqlError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_TABLE_SQL")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidTableSqlError = makeError(
+  "INVALID_TABLE_SQL",
+  "InvalidTableSqlError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidTableSqlError = typeof InvalidTableSqlError.Type
 
 /**
  * InvalidDependencyAliasForTableRef - Invalid dependency alias in table reference.
  */
-export class InvalidDependencyAliasForTableRefError extends Schema.Class<InvalidDependencyAliasForTableRefError>(
-  "Amp/AdminApi/InvalidDependencyAliasForTableRefError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_DEPENDENCY_ALIAS_FOR_TABLE_REF")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidDependencyAliasForTableRefError = makeError(
+  "INVALID_DEPENDENCY_ALIAS_FOR_TABLE_REF",
+  "InvalidDependencyAliasForTableRefError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidDependencyAliasForTableRefError = typeof InvalidDependencyAliasForTableRefError.Type
 
 /**
  * InvalidDependencyAliasForFunctionRef - Invalid dependency alias in function reference.
  */
-export class InvalidDependencyAliasForFunctionRefError extends Schema.Class<InvalidDependencyAliasForFunctionRefError>(
-  "Amp/AdminApi/InvalidDependencyAliasForFunctionRefError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_DEPENDENCY_ALIAS_FOR_FUNCTION_REF")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidDependencyAliasForFunctionRefError = makeError(
+  "INVALID_DEPENDENCY_ALIAS_FOR_FUNCTION_REF",
+  "InvalidDependencyAliasForFunctionRefError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidDependencyAliasForFunctionRefError = typeof InvalidDependencyAliasForFunctionRefError.Type
 
 /**
  * LimitTooLarge - The requested limit exceeds the maximum allowed value.
  */
-export class LimitTooLargeError extends Schema.Class<LimitTooLargeError>(
-  "Amp/AdminApi/LimitTooLargeError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LIMIT_TOO_LARGE")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const LimitTooLargeError = makeError(
+  "LIMIT_TOO_LARGE",
+  "LimitTooLargeError"
+).annotate({ httpApiStatus: 400 })
+
+export type LimitTooLargeError = typeof LimitTooLargeError.Type
 
 /**
  * LimitInvalid - The requested limit is invalid (zero).
  */
-export class LimitInvalidError extends Schema.Class<LimitInvalidError>(
-  "Amp/AdminApi/LimitInvalidError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LIMIT_INVALID")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const LimitInvalidError = makeError(
+  "LIMIT_INVALID",
+  "LimitInvalidError"
+).annotate({ httpApiStatus: 400 })
+
+export type LimitInvalidError = typeof LimitInvalidError.Type
 
 // =============================================================================
 // Database Errors
@@ -586,32 +607,32 @@ export class LimitInvalidError extends Schema.Class<LimitInvalidError>(
 /**
  * MetadataDbError - Database operation failure in the metadata PostgreSQL database.
  */
-export class MetadataDbError extends Schema.Class<MetadataDbError>(
-  "Amp/AdminApi/MetadataDbError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("METADATA_DB_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const MetadataDbError = makeError(
+  "METADATA_DB_ERROR",
+  "MetadataDbError"
+).annotate({ httpApiStatus: 500 })
+
+export type MetadataDbError = typeof MetadataDbError.Type
 
 /**
  * PhysicalTableError - Failed to access the physical table metadata.
  */
-export class PhysicalTableError extends Schema.Class<PhysicalTableError>(
-  "Amp/AdminApi/PhysicalTableError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("PHYSICAL_TABLE_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const PhysicalTableError = makeError(
+  "PHYSICAL_TABLE_ERROR",
+  "PhysicalTableError"
+).annotate({ httpApiStatus: 500 })
+
+export type PhysicalTableError = typeof PhysicalTableError.Type
 
 /**
  * ResolveRevisionError - Failed to resolve the dataset revision.
  */
-export class ResolveRevisionError extends Schema.Class<ResolveRevisionError>(
-  "Amp/AdminApi/ResolveRevisionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("RESOLVE_REVISION_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ResolveRevisionError = makeError(
+  "RESOLVE_REVISION_ERROR",
+  "ResolveRevisionError"
+).annotate({ httpApiStatus: 500 })
+
+export type ResolveRevisionError = typeof ResolveRevisionError.Type
 
 // =============================================================================
 // Query/Schema Errors
@@ -624,52 +645,52 @@ export class ResolveRevisionError extends Schema.Class<ResolveRevisionError>(
  * - SQL contains LIMIT, ORDER BY, GROUP BY, DISTINCT, window functions
  * - SQL uses outer joins
  */
-export class NonIncrementalQueryError extends Schema.Class<NonIncrementalQueryError>(
-  "Amp/AdminApi/NonIncrementalQueryError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("NON_INCREMENTAL_QUERY")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const NonIncrementalQueryError = makeError(
+  "NON_INCREMENTAL_QUERY",
+  "NonIncrementalQueryError"
+).annotate({ httpApiStatus: 400 })
+
+export type NonIncrementalQueryError = typeof NonIncrementalQueryError.Type
 
 /**
  * SchemaInference - Failed to infer output schema from query.
  */
-export class SchemaInferenceError extends Schema.Class<SchemaInferenceError>(
-  "Amp/AdminApi/SchemaInferenceError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("SCHEMA_INFERENCE")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const SchemaInferenceError = makeError(
+  "SCHEMA_INFERENCE",
+  "SchemaInferenceError"
+).annotate({ httpApiStatus: 500 })
+
+export type SchemaInferenceError = typeof SchemaInferenceError.Type
 
 /**
  * TableNotFoundInDataset - Table not found in dataset.
  */
-export class TableNotFoundInDatasetError extends Schema.Class<TableNotFoundInDatasetError>(
-  "Amp/AdminApi/TableNotFoundInDatasetError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("TABLE_NOT_FOUND_IN_DATASET")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const TableNotFoundInDatasetError = makeError(
+  "TABLE_NOT_FOUND_IN_DATASET",
+  "TableNotFoundInDatasetError"
+).annotate({ httpApiStatus: 404 })
+
+export type TableNotFoundInDatasetError = typeof TableNotFoundInDatasetError.Type
 
 /**
  * TableReferenceResolution - Failed to extract table references from SQL.
  */
-export class TableReferenceResolutionError extends Schema.Class<TableReferenceResolutionError>(
-  "Amp/AdminApi/TableReferenceResolutionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("TABLE_REFERENCE_RESOLUTION")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const TableReferenceResolutionError = makeError(
+  "TABLE_REFERENCE_RESOLUTION",
+  "TableReferenceResolutionError"
+).annotate({ httpApiStatus: 400 })
+
+export type TableReferenceResolutionError = typeof TableReferenceResolutionError.Type
 
 /**
  * UnqualifiedTable - Table reference is not qualified with a dataset.
  */
-export class UnqualifiedTableError extends Schema.Class<UnqualifiedTableError>(
-  "Amp/AdminApi/UnqualifiedTableError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("UNQUALIFIED_TABLE")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const UnqualifiedTableError = makeError(
+  "UNQUALIFIED_TABLE",
+  "UnqualifiedTableError"
+).annotate({ httpApiStatus: 400 })
+
+export type UnqualifiedTableError = typeof UnqualifiedTableError.Type
 
 // =============================================================================
 // Scheduler/Worker Errors
@@ -678,32 +699,32 @@ export class UnqualifiedTableError extends Schema.Class<UnqualifiedTableError>(
 /**
  * SchedulerError - Indicates a failure in the job scheduling system.
  */
-export class SchedulerError extends Schema.Class<SchedulerError>(
-  "Amp/AdminApi/SchedulerError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("SCHEDULER_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const SchedulerError = makeError(
+  "SCHEDULER_ERROR",
+  "SchedulerError"
+).annotate({ httpApiStatus: 500 })
+
+export type SchedulerError = typeof SchedulerError.Type
 
 /**
  * WorkerNotAvailable - Specified worker not found or inactive.
  */
-export class WorkerNotAvailableError extends Schema.Class<WorkerNotAvailableError>(
-  "Amp/AdminApi/WorkerNotAvailableError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("WORKER_NOT_AVAILABLE")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const WorkerNotAvailableError = makeError(
+  "WORKER_NOT_AVAILABLE",
+  "WorkerNotAvailableError"
+).annotate({ httpApiStatus: 400 })
+
+export type WorkerNotAvailableError = typeof WorkerNotAvailableError.Type
 
 /**
  * SchedulerListWorkersError - Failed to list workers from the scheduler.
  */
-export class SchedulerListWorkersError extends Schema.Class<SchedulerListWorkersError>(
-  "Amp/AdminApi/SchedulerListWorkersError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("SCHEDULER_LIST_WORKERS_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const SchedulerListWorkersError = makeError(
+  "SCHEDULER_LIST_WORKERS_ERROR",
+  "SchedulerListWorkersError"
+).annotate({ httpApiStatus: 500 })
+
+export type SchedulerListWorkersError = typeof SchedulerListWorkersError.Type
 
 // =============================================================================
 // Store Errors
@@ -712,49 +733,49 @@ export class SchedulerListWorkersError extends Schema.Class<SchedulerListWorkers
 /**
  * StoreError - Dataset store operation error.
  */
-export class StoreError extends Schema.Class<StoreError>(
-  "Amp/AdminApi/StoreError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("STORE_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const StoreError = makeError(
+  "STORE_ERROR",
+  "StoreError"
+).annotate({ httpApiStatus: 500 })
+
+export type StoreError = typeof StoreError.Type
 
 /**
  * UnsupportedDatasetKind - Dataset kind is not supported.
  */
-export class UnsupportedDatasetKindError extends Schema.Class<UnsupportedDatasetKindError>(
-  "Amp/AdminApi/UnsupportedDatasetKindError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("UNSUPPORTED_DATASET_KIND")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const UnsupportedDatasetKindError = makeError(
+  "UNSUPPORTED_DATASET_KIND",
+  "UnsupportedDatasetKindError"
+).annotate({ httpApiStatus: 400 })
+
+export type UnsupportedDatasetKindError = typeof UnsupportedDatasetKindError.Type
 
 /**
  * VersionTaggingError - Failed to tag version for the dataset.
  */
-export class VersionTaggingError extends Schema.Class<VersionTaggingError>(
-  "Amp/AdminApi/VersionTaggingError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("VERSION_TAGGING_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const VersionTaggingError = makeError(
+  "VERSION_TAGGING_ERROR",
+  "VersionTaggingError"
+).annotate({ httpApiStatus: 500 })
+
+export type VersionTaggingError = typeof VersionTaggingError.Type
 
 /**
  * ListAllDatasetsError - Failed to list all datasets from dataset store.
  */
-export class ListAllDatasetsError extends Schema.Class<ListAllDatasetsError>(
-  "Amp/AdminApi/ListAllDatasetsError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LIST_ALL_DATASETS_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ListAllDatasetsError = makeError(
+  "LIST_ALL_DATASETS_ERROR",
+  "ListAllDatasetsError"
+).annotate({ httpApiStatus: 500 })
+
+export type ListAllDatasetsError = typeof ListAllDatasetsError.Type
 
 /**
  * ListVersionTagsError - Failed to list version tags from dataset store.
  */
-export class ListVersionTagsError extends Schema.Class<ListVersionTagsError>(
-  "Amp/AdminApi/ListVersionTagsError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LIST_VERSION_TAGS_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const ListVersionTagsError = makeError(
+  "LIST_VERSION_TAGS_ERROR",
+  "ListVersionTagsError"
+).annotate({ httpApiStatus: 500 })
+
+export type ListVersionTagsError = typeof ListVersionTagsError.Type

@@ -8,7 +8,6 @@
 import type { ArrowField, ArrowSchema, FlightData } from "@edgeandnode/amp/internal/arrow-flight-ipc/Schema"
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
-import type * as Random from "effect/Random"
 
 // Re-export FlightData for convenience
 export type { FlightData }
@@ -28,7 +27,7 @@ export interface FieldGeneratorConfig {
   /** Maximum number of items for variable-length types. Default: varies by type */
   readonly maxLength?: number
   /** Custom value generator function (overrides default random generation) */
-  readonly valueGenerator?: (index: number) => Effect.Effect<unknown, never, Random.Random>
+  readonly valueGenerator?: (index: number) => Effect.Effect<unknown>
   /** Include special float values (NaN, Infinity, -Infinity, -0). Default: false */
   readonly includeSpecialFloats?: boolean
   /** Probability of generating a special float value when includeSpecialFloats is true. Default: 0.1 */
@@ -163,7 +162,7 @@ export interface GeneratorRegistry {
   readonly getGenerator: (typeId: string) => DataGenerator
 }
 
-export const GeneratorRegistry = Context.GenericTag<GeneratorRegistry>("GeneratorRegistry")
+export const GeneratorRegistry = Context.Service<GeneratorRegistry>("GeneratorRegistry")
 
 // =============================================================================
 // Data Generator Interface
@@ -189,5 +188,5 @@ export interface DataGenerator {
     field: ArrowField,
     numRows: number,
     config: FieldGeneratorConfig
-  ): Effect.Effect<GeneratorResult, never, Random.Random | GeneratorRegistry>
+  ): Effect.Effect<GeneratorResult, never, GeneratorRegistry>
 }

@@ -128,7 +128,7 @@ const valuesEqual = (type: ArrowDataType, expected: unknown, actual: unknown): b
       return mapsEqual(type, expected as Array<unknown>, actual as Array<unknown>)
 
     case "union":
-      return unionsEqual(type, expected, actual)
+      return unionsEqual(expected, actual)
 
     default:
       return expected === actual
@@ -326,7 +326,6 @@ const mapsEqual = (
 }
 
 const unionsEqual = (
-  type: ArrowDataType,
   expected: unknown,
   actual: unknown
 ): boolean => {

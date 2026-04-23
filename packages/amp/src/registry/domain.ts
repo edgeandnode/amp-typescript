@@ -9,45 +9,45 @@ import * as Models from "../core/domain.ts"
 // General Schemas
 // =============================================================================
 
-export const PositiveIntFromString = Schema.NumberFromString.pipe(
-  Schema.int(),
-  Schema.positive()
-).annotations({ identifier: "PositiveIntFromString" })
+export const PositiveIntFromString = Schema.NumberFromString.check(
+  Schema.isInt(),
+  Schema.isGreaterThan(0)
+).annotate({ identifier: "PositiveIntFromString" })
 export type PositiveIntFromString = typeof PositiveIntFromString.Type
 
 /**
  * Represents a service status.
  */
 export const ServiceStatus = Schema.Struct({
-  "error": Schema.optionalWith(Schema.String, { nullable: true }),
+  "error": Schema.optional(Schema.NullOr(Schema.String)),
   "status": Schema.String
-}).annotations({ identifier: "ServiceStatus" })
+}).annotate({ identifier: "ServiceStatus" })
 export type ServiceStatus = typeof ServiceStatus.Type
 
 /**
  * Time-based buckets for grouping datasets by last updated time
  */
-export const LastUpdatedBucket = Schema.Literal(
+export const LastUpdatedBucket = Schema.Literals([
   "last_day",
   "last_week",
   "last_month",
   "last_year"
-).annotations({ identifier: "LastUpdatedBucket" })
+]).annotate({ identifier: "LastUpdatedBucket" })
 export type LastUpdatedBucket = typeof LastUpdatedBucket.Type
 
-export const DatasetSortBy = Schema.Literal(
+export const DatasetSortBy = Schema.Literals([
   "namespace",
   "name",
   "owner",
   "created_at",
   "updated_at"
-).annotations({ identifier: "DatasetSortBy" })
+]).annotate({ identifier: "DatasetSortBy" })
 export type DatasetSortBy = typeof DatasetSortBy.Type
 
-export const DatasetSortDirection = Schema.Literal(
+export const DatasetSortDirection = Schema.Literals([
   "asc",
   "desc"
-).annotations({ identifier: "DatasetSortDirection" })
+]).annotate({ identifier: "DatasetSortDirection" })
 export type DatasetSortDirection = typeof DatasetSortDirection.Type
 
 /**
@@ -60,18 +60,18 @@ export const DatasetVersionAncestry = Schema.Struct({
    * dependencies.
    */
   "dataset_reference": Models.DatasetReferenceFromString
-}).annotations({ identifier: "DatasetVersionAncestry" })
+}).annotate({ identifier: "DatasetVersionAncestry" })
 export type DatasetVersionAncestry = typeof DatasetVersionAncestry.Type
 
 /**
  * Represents the status of a dataset version.
  */
-export const DatasetVersionStatus = Schema.Literal(
+export const DatasetVersionStatus = Schema.Literals([
   "draft",
   "published",
   "deprecated",
   "archived"
-).annotations({ identifier: "DatasetVersionStatus" })
+]).annotate({ identifier: "DatasetVersionStatus" })
 export type DatasetVersionStatus = typeof DatasetVersionStatus.Type
 
 /**
@@ -82,13 +82,13 @@ export const DatasetVersion = Schema.Struct({
    * Array of ancestor DatasetVersion references that this version extends from
    * (version-pinned dependencies).
    */
-  "ancestors": Schema.optionalWith(Schema.Array(DatasetVersionAncestry), { nullable: true }),
+  "ancestors": Schema.optional(Schema.NullOr(Schema.Array(DatasetVersionAncestry))),
   /**
    * A description of what changed with this version. Allows developers of the
    * Dataset to communicate to downstream consumers what has changed with this
    * version from previous versions. Migration guides, etc.
    */
-  "changelog": Schema.optionalWith(Schema.String, { nullable: true }),
+  "changelog": Schema.optional(Schema.NullOr(Schema.String)),
   /**
    * Timestamp when the DatasetVersion record was created (immutable).
    */
@@ -100,13 +100,13 @@ export const DatasetVersion = Schema.Struct({
   /**
    * Array of descendant DatasetVersion references that extend from this version.
    */
-  "descendants": Schema.optionalWith(Schema.Array(DatasetVersionAncestry), { nullable: true }),
+  "descendants": Schema.optional(Schema.NullOr(Schema.Array(DatasetVersionAncestry))),
   "status": DatasetVersionStatus,
   /**
    * The published version tag. This is basically the version label. Can be semver, a commit hash, or 'latest'.
    */
   "version_tag": Models.DatasetRevision
-}).annotations({ identifier: "DatasetVersion" })
+}).annotate({ identifier: "DatasetVersion" })
 export type DatasetVersion = typeof DatasetVersion.Type
 
 /**
@@ -132,11 +132,11 @@ export const Dataset = Schema.Struct({
   /**
    * Computed link to the latest DatasetVersion reference in PURL format.
    */
-  "dataset_reference": Schema.optionalWith(Models.DatasetReferenceFromString, { nullable: true }),
+  "dataset_reference": Schema.optional(Schema.NullOr(Models.DatasetReferenceFromString)),
   /**
    * Description of the dataset, its intended use, and purpose.
    */
-  "description": Schema.optionalWith(Models.DatasetDescription, { nullable: true }),
+  "description": Schema.optional(Schema.NullOr(Models.DatasetDescription)),
   /**
    * Chains being indexed by the Dataset. Used for discovery by chain.
    */
@@ -144,12 +144,12 @@ export const Dataset = Schema.Struct({
   /**
    * User-defined or derived keywords defining the usage of the dataset.
    */
-  "keywords": Schema.optionalWith(Schema.Array(Models.DatasetKeyword), { nullable: true }),
-  "latest_version": Schema.optionalWith(DatasetVersion, { nullable: true }),
+  "keywords": Schema.optional(Schema.NullOr(Schema.Array(Models.DatasetKeyword))),
+  "latest_version": Schema.optional(Schema.NullOr(DatasetVersion)),
   /**
    * Usage license covering the Dataset.
    */
-  "license": Schema.optionalWith(Models.DatasetLicense, { nullable: true }),
+  "license": Schema.optional(Schema.NullOr(Models.DatasetLicense)),
   /**
    * Owner of the Dataset. Can be an organization or user 0x address.
    */
@@ -157,16 +157,16 @@ export const Dataset = Schema.Struct({
   /**
    * User-defined README for the Dataset providing usage examples and documentation.
    */
-  "readme": Schema.optionalWith(Models.DatasetReadme, { nullable: true }),
+  "readme": Schema.optional(Schema.NullOr(Models.DatasetReadme)),
   /**
    * VCS repository URL containing the Dataset source code.
    */
-  "repository_url": Schema.optionalWith(Models.DatasetRepository, { nullable: true }),
+  "repository_url": Schema.optional(Schema.NullOr(Models.DatasetRepository)),
   /**
    * Source of data being materialized by the Dataset (e.g., contract addresses,
    * logs, transactions).
    */
-  "source": Schema.optionalWith(Schema.Array(Models.DatasetSource), { nullable: true }),
+  "source": Schema.optional(Schema.NullOr(Schema.Array(Models.DatasetSource))),
   /**
    * Timestamp when the Dataset record was last updated.
    */
@@ -174,9 +174,9 @@ export const Dataset = Schema.Struct({
   /**
    * Link to all DatasetVersion records that this Dataset is a parent of.
    */
-  "versions": Schema.optionalWith(Schema.Array(DatasetVersion), { nullable: true }),
+  "versions": Schema.optional(Schema.NullOr(Schema.Array(DatasetVersion))),
   "visibility": Models.DatasetVisibility
-}).annotations({ identifier: "Dataset" })
+}).annotate({ identifier: "Dataset" })
 export type Dataset = typeof Dataset.Type
 
 /**
@@ -188,7 +188,7 @@ export const DatasetWithScore = Schema.Struct({
    * Weighted relevance score indicating how well this dataset matches the search query. Higher scores indicate better relevance. Score is calculated based on matches in description, keywords, source, and indexing chains fields.
    */
   "score": Schema.Number
-}).annotations({ identifier: "DatasetWithScore" })
+}).annotate({ identifier: "DatasetWithScore" })
 export type DatasetWithScore = typeof DatasetWithScore.Type
 
 /**
@@ -205,7 +205,7 @@ export const DatasetCountByChain = Schema.Struct({
    * The count of Dataset records indexing this chain
    */
   "count": Schema.Int
-}).annotations({ identifier: "DatasetCountByChain" })
+}).annotate({ identifier: "DatasetCountByChain" })
 export type DatasetCountByChain = typeof DatasetCountByChain.Type
 
 /**
@@ -222,7 +222,7 @@ export const DatasetCountByKeyword = Schema.Struct({
    * The keyword (e.g., "DeFi", "NFT", "logs")
    */
   "keyword": Schema.String
-}).annotations({ identifier: "DatasetCountByKeyword" })
+}).annotate({ identifier: "DatasetCountByKeyword" })
 export type DatasetCountByKeyword = typeof DatasetCountByKeyword.Type
 
 /**
@@ -240,7 +240,7 @@ export const DatasetCountByLastUpdated = Schema.Struct({
    * The count of Dataset records updated within this time period
    */
   "count": Schema.Int
-}).annotations({ identifier: "DatasetCountByLastUpdatedBucket" })
+}).annotate({ identifier: "DatasetCountByLastUpdatedBucket" })
 export type DatasetCountByLastUpdated = typeof DatasetCountByLastUpdated.Type
 
 /**
@@ -257,7 +257,7 @@ export const DatasetCountByStatus = Schema.Struct({
    * The version status (Draft, Published, Deprecated, or Archived)
    */
   "status": DatasetVersionStatus
-}).annotations({ identifier: "DatasetCountByStatus" })
+}).annotate({ identifier: "DatasetCountByStatus" })
 export type DatasetCountByStatus = typeof DatasetCountByStatus.Type
 
 /**
@@ -274,7 +274,7 @@ export const DatasetCountByVisibility = Schema.Struct({
    * The visibility (Public or Private)
    */
   "visibility": Models.DatasetVisibility
-}).annotations({ identifier: "DatasetCountByVisibility" })
+}).annotate({ identifier: "DatasetCountByVisibility" })
 export type DatasetCountByVisibility = typeof DatasetCountByVisibility.Type
 
 /**
@@ -292,12 +292,12 @@ export const SavedQuery = Schema.Struct({
   /**
    * Optional description of what the query does
    */
-  "description": Schema.optionalWith(Schema.String, { nullable: true }),
+  "description": Schema.optional(Schema.NullOr(Schema.String)),
   /**
    * Unique identifier for the saved query (UUID)
    */
-  "id": Schema.String.pipe(
-    Schema.pattern(new RegExp("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))
+  "id": Schema.String.check(
+    Schema.isPattern(new RegExp("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))
   ),
   /**
    * Name of the saved query
@@ -312,7 +312,7 @@ export const SavedQuery = Schema.Struct({
    */
   "updated_at": Schema.String,
   "visibility": Models.DatasetVisibility
-}).annotations({ identifier: "SavedQuery" })
+}).annotate({ identifier: "SavedQuery" })
 export type SavedQuery = typeof SavedQuery.Type
 
 // =============================================================================
@@ -330,7 +330,7 @@ export const ListDatasetsParams = Schema.Struct({
   "indexing_chains": Schema.optional(Schema.StringFromUriComponent),
   "keywords": Schema.optional(Schema.StringFromUriComponent),
   "last_updated": Schema.optional(LastUpdatedBucket)
-}).annotations({ identifier: "ListDatasetsParams" })
+}).annotate({ identifier: "ListDatasetsParams" })
 export type ListDatasetsParams = typeof ListDatasetsParams.Type
 
 /**
@@ -343,7 +343,7 @@ export const SearchDatasetsParams = Schema.Struct({
   "indexing_chains": Schema.optional(Schema.StringFromUriComponent),
   "keywords": Schema.optional(Schema.StringFromUriComponent),
   "last_updated": Schema.optional(LastUpdatedBucket)
-}).annotations({ identifier: "SearchDatasetsParams" })
+}).annotate({ identifier: "SearchDatasetsParams" })
 export type SearchDatasetsParams = typeof SearchDatasetsParams.Type
 
 /**
@@ -351,7 +351,7 @@ export type SearchDatasetsParams = typeof SearchDatasetsParams.Type
  */
 export const AiSearchDatasetsParams = Schema.Struct({
   "search": Schema.String
-}).annotations({ identifier: "AiSearchDatasetsParams" })
+}).annotate({ identifier: "AiSearchDatasetsParams" })
 export type AiSearchDatasetsParams = typeof AiSearchDatasetsParams.Type
 
 /**
@@ -365,7 +365,7 @@ export const ListOwnedDatasetsParams = Schema.Struct({
   "indexing_chains": Schema.optional(Schema.StringFromUriComponent),
   "keywords": Schema.optional(Schema.StringFromUriComponent),
   "last_updated": Schema.optional(LastUpdatedBucket)
-}).annotations({ identifier: "ListOwnedDatasetsParams" })
+}).annotate({ identifier: "ListOwnedDatasetsParams" })
 export type ListOwnedDatasetsParams = typeof ListOwnedDatasetsParams.Type
 
 /**
@@ -374,7 +374,7 @@ export type ListOwnedDatasetsParams = typeof ListOwnedDatasetsParams.Type
 export const GetOwnedDatasetsByFqdnParams = Schema.Struct({
   "namespace": Models.DatasetNamespace,
   "name": Models.DatasetName
-}).annotations({ identifier: "GetOwnedDatasetsByFqdnParams" })
+}).annotate({ identifier: "GetOwnedDatasetsByFqdnParams" })
 export type GetOwnedDatasetsByFqdnParams = typeof GetOwnedDatasetsByFqdnParams.Type
 
 /**
@@ -387,7 +387,7 @@ export const SearchOwnedDatasetsParams = Schema.Struct({
   "indexing_chains": Schema.optional(Schema.StringFromUriComponent),
   "keywords": Schema.optional(Schema.StringFromUriComponent),
   "last_updated": Schema.optional(LastUpdatedBucket)
-}).annotations({ identifier: "SearchOwnedDatasetsParams" })
+}).annotate({ identifier: "SearchOwnedDatasetsParams" })
 export type SearchOwnedDatasetsParams = typeof SearchOwnedDatasetsParams.Type
 
 /**
@@ -401,7 +401,7 @@ export const ListMyDatasetsParams = Schema.Struct({
   "indexing_chains": Schema.optional(Schema.StringFromUriComponent),
   "keywords": Schema.optional(Schema.StringFromUriComponent),
   "last_updated": Schema.optional(LastUpdatedBucket)
-}).annotations({ identifier: "ListMyDatasetsParams" })
+}).annotate({ identifier: "ListMyDatasetsParams" })
 export type ListMyDatasetsParams = typeof ListMyDatasetsParams.Type
 
 /**
@@ -414,7 +414,7 @@ export const SearchMyDatasetsParams = Schema.Struct({
   "indexing_chains": Schema.optional(Schema.StringFromUriComponent),
   "keywords": Schema.optional(Schema.StringFromUriComponent),
   "last_updated": Schema.optional(LastUpdatedBucket)
-}).annotations({ identifier: "SearchMyDatasetsParams" })
+}).annotate({ identifier: "SearchMyDatasetsParams" })
 export type SearchMyDatasetsParams = typeof SearchMyDatasetsParams.Type
 
 // =============================================================================
@@ -425,10 +425,10 @@ export type SearchMyDatasetsParams = typeof SearchMyDatasetsParams.Type
  * Represents a bearer token header.
  */
 export const BearerAuthHeader = Schema.Struct({
-  Authorization: Schema.String.pipe(
-    Schema.startsWith("Bearer")
+  Authorization: Schema.String.check(
+    Schema.isStartsWith("Bearer")
   )
-}).annotations({ identifier: "BearerAuthHeader" })
+}).annotate({ identifier: "BearerAuthHeader" })
 export type BearerAuthHeader = typeof BearerAuthHeader.Type
 
 // =============================================================================
@@ -442,18 +442,18 @@ export const InsertDatasetVersion = Schema.Struct({
   /**
    * Optional changelog describing what changed in this version.
    */
-  "changelog": Schema.optionalWith(Schema.String, { nullable: true }),
+  "changelog": Schema.optional(Schema.NullOr(Schema.String)),
   "kind": Models.DatasetKind,
   /**
    * Manifest JSON content. This should be a valid datasets_derived::Manifest structure. The SHA256 hash will be calculated server-side.
    */
-  "manifest": Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+  "manifest": Schema.Record(Schema.String, Schema.Unknown),
   "status": DatasetVersionStatus,
   /**
    * Version tag (e.g., '1.0.0', 'latest', '8e0acc0'). Pattern: lowercase, numbers, dots, underscores, hyphens.
    */
   "version_tag": Models.DatasetVersion
-}).annotations({ identifier: "InsertDatasetVersion" })
+}).annotate({ identifier: "InsertDatasetVersion" })
 export type InsertDatasetVersion = typeof InsertDatasetVersion.Type
 
 /**
@@ -465,7 +465,7 @@ export const InsertDatasetPayload = Schema.Struct({
   /**
    * Description of the dataset, its intended use, and purpose.
    */
-  "description": Schema.optionalWith(Models.DatasetDescription, { nullable: true }),
+  "description": Schema.optional(Schema.NullOr(Models.DatasetDescription)),
   /**
    * Chains being indexed by the Dataset. Used for discovery by chain.
    */
@@ -473,11 +473,11 @@ export const InsertDatasetPayload = Schema.Struct({
   /**
    * User-defined keywords defining the usage of the dataset.
    */
-  "keywords": Schema.optionalWith(Schema.Array(Models.DatasetKeyword), { nullable: true }),
+  "keywords": Schema.optional(Schema.NullOr(Schema.Array(Models.DatasetKeyword))),
   /**
    * Usage license covering the Dataset.
    */
-  "license": Schema.optionalWith(Models.DatasetLicense, { nullable: true }),
+  "license": Schema.optional(Schema.NullOr(Models.DatasetLicense)),
   /**
    * The dataset name. Pattern: lowercase, alphanumeric with underscores, cannot start with a number.
    */
@@ -489,18 +489,18 @@ export const InsertDatasetPayload = Schema.Struct({
   /**
    * User-defined README for the Dataset providing usage examples and documentation.
    */
-  "readme": Schema.optionalWith(Models.DatasetReadme, { nullable: true }),
+  "readme": Schema.optional(Schema.NullOr(Models.DatasetReadme)),
   /**
    * VCS repository URL containing the Dataset source code.
    */
-  "repository_url": Schema.optionalWith(Models.DatasetRepository, { nullable: true }),
+  "repository_url": Schema.optional(Schema.NullOr(Models.DatasetRepository)),
   /**
    * Source of data being materialized by the Dataset (e.g., contract addresses).
    */
-  "source": Schema.optionalWith(Schema.Array(Models.DatasetSource), { nullable: true }),
+  "source": Schema.optional(Schema.NullOr(Schema.Array(Models.DatasetSource))),
   "version": InsertDatasetVersion,
   "visibility": Models.DatasetVisibility
-}).annotations({ identifier: "InsertDataset" })
+}).annotate({ identifier: "InsertDataset" })
 export type InsertDatasetPayload = typeof InsertDatasetPayload.Type
 
 /**
@@ -516,7 +516,7 @@ export const UpdateDatasetMetadataPayload = Schema.Struct({
   /**
    * Dataset description
    */
-  "description": Schema.optionalWith(Models.DatasetDescription, { nullable: true }),
+  "description": Schema.optional(Schema.NullOr(Models.DatasetDescription)),
   /**
    * Chains being indexed by the dataset
    */
@@ -524,24 +524,24 @@ export const UpdateDatasetMetadataPayload = Schema.Struct({
   /**
    * Keywords for dataset discovery
    */
-  "keywords": Schema.optionalWith(Schema.Array(Models.DatasetKeyword), { nullable: true }),
+  "keywords": Schema.optional(Schema.NullOr(Schema.Array(Models.DatasetKeyword))),
   /**
    * License covering the dataset
    */
-  "license": Schema.optionalWith(Models.DatasetLicense, { nullable: true }),
+  "license": Schema.optional(Schema.NullOr(Models.DatasetLicense)),
   /**
    * User-defined README for the dataset
    */
-  "readme": Schema.optionalWith(Models.DatasetReadme, { nullable: true }),
+  "readme": Schema.optional(Schema.NullOr(Models.DatasetReadme)),
   /**
    * VCS repository URL
    */
-  "repository_url": Schema.optionalWith(Models.DatasetRepository, { nullable: true }),
+  "repository_url": Schema.optional(Schema.NullOr(Models.DatasetRepository)),
   /**
    * Source of data being materialized
    */
-  "source": Schema.optionalWith(Schema.Array(Models.DatasetSource), { nullable: true })
-}).annotations({ identifier: "UpdateDatasetMetadataPayload" })
+  "source": Schema.optional(Schema.NullOr(Schema.Array(Models.DatasetSource)))
+}).annotate({ identifier: "UpdateDatasetMetadataPayload" })
 export type UpdateDatasetMetadataPayload = typeof UpdateDatasetMetadataPayload.Type
 
 /**
@@ -553,7 +553,7 @@ export const UpdateDatasetVersionStatusPayload = Schema.Struct({
    * Note: Use the DELETE endpoint to archive a version
    */
   "status": DatasetVersionStatus
-}).annotations({ identifier: "UpdateDatasetVersionStatusPayload" })
+}).annotate({ identifier: "UpdateDatasetVersionStatusPayload" })
 export type UpdateDatasetVersionStatusPayload = typeof UpdateDatasetVersionStatusPayload.Type
 
 /**
@@ -564,7 +564,7 @@ export const UpdateDatasetVisibilityPayload = Schema.Struct({
    * The new visibility level for the dataset
    */
   "visibility": Models.DatasetVisibility
-}).annotations({ identifier: "UpdateDatasetVisibilityPayload" })
+}).annotate({ identifier: "UpdateDatasetVisibilityPayload" })
 export type UpdateDatasetVisibilityPayload = typeof UpdateDatasetVisibilityPayload.Type
 
 // =============================================================================
@@ -577,7 +577,7 @@ export type UpdateDatasetVisibilityPayload = typeof UpdateDatasetVisibilityPaylo
 export const HealthcheckResponse = Schema.Struct({
   "status": Schema.String,
   "version": Schema.String
-}).annotations({ identifier: "HealthcheckResponse" })
+}).annotate({ identifier: "HealthcheckResponse" })
 export type HealthcheckResponse = typeof HealthcheckResponse.Type
 
 /**
@@ -596,13 +596,13 @@ export const DatasetListResponse = Schema.Struct({
    * Total number of datasets matching the query filters
    */
   "total_count": Schema.Int
-}).annotations({ identifier: "DatasetListResponse" })
+}).annotate({ identifier: "DatasetListResponse" })
 export type DatasetListResponse = typeof DatasetListResponse.Type
 
 /**
  * Response for datasets count by chain.
  */
-export const DatasetCountsByChainResponse = Schema.Array(DatasetCountByChain).annotations({
+export const DatasetCountsByChainResponse = Schema.Array(DatasetCountByChain).annotate({
   identifier: "DatasetCountsByChainResponse"
 })
 export type DatasetCountsByChainResponse = typeof DatasetCountsByChainResponse.Type
@@ -610,7 +610,7 @@ export type DatasetCountsByChainResponse = typeof DatasetCountsByChainResponse.T
 /**
  * Response for datasets count by keyword.
  */
-export const DatasetCountsByKeywordResponse = Schema.Array(DatasetCountByKeyword).annotations({
+export const DatasetCountsByKeywordResponse = Schema.Array(DatasetCountByKeyword).annotate({
   identifier: "DatasetCountsByKeywordResponse"
 })
 export type DatasetCountsByKeywordResponse = typeof DatasetCountsByKeywordResponse.Type
@@ -618,7 +618,7 @@ export type DatasetCountsByKeywordResponse = typeof DatasetCountsByKeywordRespon
 /**
  * Response for datasets count by last updated.
  */
-export const DatasetCountsByLastUpdatedResponse = Schema.Array(DatasetCountByLastUpdated).annotations({
+export const DatasetCountsByLastUpdatedResponse = Schema.Array(DatasetCountByLastUpdated).annotate({
   identifier: "DatasetCountsByLastUpdatedResponse"
 })
 export type DatasetCountsByLastUpdatedResponse = typeof DatasetCountsByLastUpdatedResponse.Type
@@ -639,13 +639,13 @@ export const DatasetSearchResponse = Schema.Struct({
    * Total number of datasets matching the query filters
    */
   "total_count": Schema.Int
-}).annotations({ identifier: "DatasetSearchResponse" })
+}).annotate({ identifier: "DatasetSearchResponse" })
 export type DatasetSearchResponse = typeof DatasetSearchResponse.Type
 
 /**
  * Response for AI search of datasets.
  */
-export const DatasetAiSearchResponse = Schema.Array(DatasetWithScore).annotations({
+export const DatasetAiSearchResponse = Schema.Array(DatasetWithScore).annotate({
   identifier: "DatasetAiSearchResponse"
 })
 export type DatasetAiSearchResponse = typeof DatasetAiSearchResponse.Type
@@ -653,7 +653,7 @@ export type DatasetAiSearchResponse = typeof DatasetAiSearchResponse.Type
 /**
  * Response for listing dataset versions.
  */
-export const DatasetListVersionsResponse = Schema.Array(DatasetVersion).annotations({
+export const DatasetListVersionsResponse = Schema.Array(DatasetVersion).annotate({
   identifier: "DatasetListVersionsResponse"
 })
 export type DatasetListVersionsResponse = typeof DatasetListVersionsResponse.Type
@@ -661,7 +661,7 @@ export type DatasetListVersionsResponse = typeof DatasetListVersionsResponse.Typ
 /**
  * Response for getting latest manifest.
  */
-export const DatasetGetLatestManifestResponse = Schema.String.annotations({
+export const DatasetGetLatestManifestResponse = Schema.String.annotate({
   identifier: "DatasetGetLatestManifestResponse"
 })
 export type DatasetGetLatestManifestResponse = typeof DatasetGetLatestManifestResponse.Type
@@ -669,7 +669,7 @@ export type DatasetGetLatestManifestResponse = typeof DatasetGetLatestManifestRe
 /**
  * Response for getting a manifest.
  */
-export const DatasetGetManifestResponse = Schema.String.annotations({
+export const DatasetGetManifestResponse = Schema.String.annotate({
   identifier: "DatasetGetManifestResponse"
 })
 export type DatasetGetManifestResponse = typeof DatasetGetManifestResponse.Type
@@ -677,7 +677,7 @@ export type DatasetGetManifestResponse = typeof DatasetGetManifestResponse.Type
 /**
  * Response for listing latest queries.
  */
-export const DatasetListLatestQueriesResponse = Schema.Array(SavedQuery).annotations({
+export const DatasetListLatestQueriesResponse = Schema.Array(SavedQuery).annotate({
   identifier: "DatasetListLatestQueriesResponse"
 })
 export type DatasetsListLatestQueries = typeof DatasetListLatestQueriesResponse.Type
@@ -685,7 +685,7 @@ export type DatasetsListLatestQueries = typeof DatasetListLatestQueriesResponse.
 /**
  * Response for listing queries.
  */
-export const DatasetListQueriesResponse = Schema.Array(SavedQuery).annotations({
+export const DatasetListQueriesResponse = Schema.Array(SavedQuery).annotate({
   identifier: "DatasetListQueriesResponse"
 })
 export type DatasetListQueriesResponse = typeof DatasetListQueriesResponse.Type
@@ -706,13 +706,13 @@ export const AuthUserOwnedDatasetListResponse = Schema.Struct({
    * Total number of datasets matching the query filters
    */
   "total_count": Schema.Int
-}).annotations({ identifier: "AuthUserOwnedDatasetListResponse" })
+}).annotate({ identifier: "AuthUserOwnedDatasetListResponse" })
 export type AuthUserOwnedDatasetListResponse = typeof AuthUserOwnedDatasetListResponse.Type
 
 /**
  * Response for owned datasets count by chain.
  */
-export const OwnedDatasetCountsByChainResponse = Schema.Array(DatasetCountByChain).annotations({
+export const OwnedDatasetCountsByChainResponse = Schema.Array(DatasetCountByChain).annotate({
   identifier: "OwnedDatasetCountsByChainResponse"
 })
 export type OwnedDatasetCountsByChainResponse = typeof OwnedDatasetCountsByChainResponse.Type
@@ -720,7 +720,7 @@ export type OwnedDatasetCountsByChainResponse = typeof OwnedDatasetCountsByChain
 /**
  * Response for owned datasets count by keyword.
  */
-export const OwnedDatasetCountsByKeywordResponse = Schema.Array(DatasetCountByKeyword).annotations({
+export const OwnedDatasetCountsByKeywordResponse = Schema.Array(DatasetCountByKeyword).annotate({
   identifier: "OwnedDatasetCountsByKeywordResponse"
 })
 export type OwnedDatasetCountsByKeywordResponse = typeof OwnedDatasetCountsByKeywordResponse.Type
@@ -728,7 +728,7 @@ export type OwnedDatasetCountsByKeywordResponse = typeof OwnedDatasetCountsByKey
 /**
  * Response for owned datasets count by last updated.
  */
-export const OwnedDatasetsCountByLastUpdatedResponse = Schema.Array(DatasetCountByLastUpdated).annotations({
+export const OwnedDatasetsCountByLastUpdatedResponse = Schema.Array(DatasetCountByLastUpdated).annotate({
   identifier: "OwnedDatasetsCountByLastUpdatedResponse"
 })
 export type OwnedDatasetsCountByLastUpdatedResponse = typeof OwnedDatasetsCountByLastUpdatedResponse.Type
@@ -736,7 +736,7 @@ export type OwnedDatasetsCountByLastUpdatedResponse = typeof OwnedDatasetsCountB
 /**
  * Response for owned datasets count by status.
  */
-export const OwnedDatasetCountsByStatusResponse = Schema.Array(DatasetCountByStatus).annotations({
+export const OwnedDatasetCountsByStatusResponse = Schema.Array(DatasetCountByStatus).annotate({
   identifier: "OwnedDatasetCountsByStatusResponse"
 })
 export type OwnedDatasetCountsByStatusResponse = typeof OwnedDatasetCountsByStatusResponse.Type
@@ -744,7 +744,7 @@ export type OwnedDatasetCountsByStatusResponse = typeof OwnedDatasetCountsByStat
 /**
  * Response for owned datasets count by visibility.
  */
-export const OwnedDatasetCountsByVisibilityResponse = Schema.Array(DatasetCountByVisibility).annotations({
+export const OwnedDatasetCountsByVisibilityResponse = Schema.Array(DatasetCountByVisibility).annotate({
   identifier: "wnedDatasetCountsByVisibilityResponse"
 })
 export type OwnedDatasetCountsByVisibilityResponse = typeof OwnedDatasetCountsByVisibilityResponse.Type
@@ -757,13 +757,13 @@ export const ArchiveDatasetVersionResponse = Schema.Struct({
    * The reference of the archived dataset version
    */
   "reference": Schema.String
-}).annotations({ identifier: "ArchiveDatasetVersionResponse" })
+}).annotate({ identifier: "ArchiveDatasetVersionResponse" })
 export type ArchiveDatasetVersionResponse = typeof ArchiveDatasetVersionResponse.Type
 
 /**
  * Response for listing owned queries.
  */
-export const OwnedDatasetListQueriesResponse = Schema.Array(SavedQuery).annotations({
+export const OwnedDatasetListQueriesResponse = Schema.Array(SavedQuery).annotate({
   identifier: "OwnedDatasetListQueriesResponse"
 })
 export type OwnedDatasetListQueriesResponse = typeof OwnedDatasetListQueriesResponse.Type
@@ -784,7 +784,7 @@ export const ListMyDatasetsResponse = Schema.Struct({
    * Total number of datasets matching the query filters
    */
   "total_count": Schema.Int
-}).annotations({ identifier: "ListMyDatasetsResponse" })
+}).annotate({ identifier: "ListMyDatasetsResponse" })
 export type ListMyDatasetsResponse = typeof ListMyDatasetsResponse.Type
 
 /**
@@ -792,7 +792,7 @@ export type ListMyDatasetsResponse = typeof ListMyDatasetsResponse.Type
  */
 export const LivenessResponse = Schema.Struct({
   "status": Schema.String
-}).annotations({ identifier: "LivenessResponse" })
+}).annotate({ identifier: "LivenessResponse" })
 export type LivenessResponse = typeof LivenessResponse.Type
 
 /**
@@ -800,7 +800,7 @@ export type LivenessResponse = typeof LivenessResponse.Type
  */
 export const ReadinessChecks = Schema.Struct({
   "database": ServiceStatus
-}).annotations({ identifier: "ReadinessChecks" })
+}).annotate({ identifier: "ReadinessChecks" })
 export type ReadinessChecks = typeof ReadinessChecks.Type
 
 /**
@@ -809,5 +809,5 @@ export type ReadinessChecks = typeof ReadinessChecks.Type
 export const ReadinessResponse = Schema.Struct({
   "checks": ReadinessChecks,
   "status": Schema.String
-}).annotations({ identifier: "ReadinessResponse" })
+}).annotate({ identifier: "ReadinessResponse" })
 export type ReadinessResponse = typeof ReadinessResponse.Type

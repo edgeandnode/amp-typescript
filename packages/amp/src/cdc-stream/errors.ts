@@ -13,11 +13,11 @@ import type { TransactionalStreamError } from "../transactional-stream/errors.ts
 /**
  * Error from BatchStore operations.
  */
-export class BatchStoreError extends Schema.TaggedError<BatchStoreError>(
+export class BatchStoreError extends Schema.TaggedErrorClass<BatchStoreError>(
   "Amp/CdcStream/BatchStoreError"
 )("BatchStoreError", {
   reason: Schema.String,
-  operation: Schema.Literal("append", "seek", "load", "prune"),
+  operation: Schema.Literals(["append", "seek", "load", "prune"]),
   cause: Schema.optional(Schema.Defect)
 }) {}
 

@@ -35,6 +35,6 @@ export interface QueryOptions {
  * A utility type to extract the result type for a query.
  */
 export type ExtractQueryResult<Options extends QueryOptions> = Options extends {
-  readonly schema: Schema.Schema<infer _A, infer _I, infer _R>
-} ? QueryResult<_A>
+  readonly schema: Schema.Top
+} ? QueryResult<Schema.Schema.Type<Options["schema"]>>
   : QueryResult<Record<string, unknown>>

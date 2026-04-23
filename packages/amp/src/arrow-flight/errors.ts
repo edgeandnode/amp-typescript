@@ -21,7 +21,7 @@ export type ArrowFlightError =
 /**
  * Represents an Arrow Flight RPC request that failed.
  */
-export class RpcError extends Schema.TaggedError<RpcError>(
+export class RpcError extends Schema.TaggedErrorClass<RpcError>(
   "Amp/RpcError"
 )("RpcError", {
   method: Schema.String,
@@ -35,7 +35,7 @@ export class RpcError extends Schema.TaggedError<RpcError>(
  * Represents an error that occurred as a result of a `FlightInfo` request
  * returning an empty list of endpoints from which data can be acquired.
  */
-export class NoEndpointsError extends Schema.TaggedError<NoEndpointsError>(
+export class NoEndpointsError extends Schema.TaggedErrorClass<NoEndpointsError>(
   "Amp/NoEndpointsError"
 )("NoEndpointsError", {
   /**
@@ -52,7 +52,7 @@ export class NoEndpointsError extends Schema.TaggedError<NoEndpointsError>(
  * For Amp queries, there should only ever be **one** authoritative source
  * of data.
  */
-export class MultipleEndpointsError extends Schema.TaggedError<MultipleEndpointsError>(
+export class MultipleEndpointsError extends Schema.TaggedErrorClass<MultipleEndpointsError>(
   "Amp/MultipleEndpointsError"
 )("MultipleEndpointsError", {
   /**
@@ -65,7 +65,7 @@ export class MultipleEndpointsError extends Schema.TaggedError<MultipleEndpoints
  * Represents an error that occurred as a result of a `FlightInfo` request
  * whose endpoint did not have a ticket.
  */
-export class TicketNotFoundError extends Schema.TaggedError<TicketNotFoundError>(
+export class TicketNotFoundError extends Schema.TaggedErrorClass<TicketNotFoundError>(
   "Amp/TicketNotFoundError"
 )("TicketNotFoundError", {
   /**
@@ -78,7 +78,7 @@ export class TicketNotFoundError extends Schema.TaggedError<TicketNotFoundError>
  * Represents an error that occurred as a result of failing to parse an Apache
  * Arrow RecordBatch.
  */
-export class ParseRecordBatchError extends Schema.TaggedError<ParseRecordBatchError>(
+export class ParseRecordBatchError extends Schema.TaggedErrorClass<ParseRecordBatchError>(
   "Amp/ParseRecordBatchError"
 )("ParseRecordBatchError", {
   /**
@@ -91,7 +91,7 @@ export class ParseRecordBatchError extends Schema.TaggedError<ParseRecordBatchEr
  * Represents an error that occurred as a result of failing to parse an Apache
  * Arrow DictionaryBatch.
  */
-export class ParseDictionaryBatchError extends Schema.TaggedError<ParseDictionaryBatchError>(
+export class ParseDictionaryBatchError extends Schema.TaggedErrorClass<ParseDictionaryBatchError>(
   "Amp/ParseDictionaryBatchError"
 )("ParseDictionaryBatchError", {
   /**
@@ -104,7 +104,7 @@ export class ParseDictionaryBatchError extends Schema.TaggedError<ParseDictionar
  * Represents an error that occurred as a result of failing to parse an Apache
  * Arrow Schema.
  */
-export class ParseSchemaError extends Schema.TaggedError<ParseSchemaError>(
+export class ParseSchemaError extends Schema.TaggedErrorClass<ParseSchemaError>(
   "Amp/ParseSchemaError"
 )("ParseSchemaError", {
   /**

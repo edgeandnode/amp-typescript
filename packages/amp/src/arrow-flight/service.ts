@@ -4,6 +4,7 @@ import { type Client, createClient, createContextValues } from "@connectrpc/conn
 import * as Cause from "effect/Cause"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
+import * as Filter from "effect/Filter"
 import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
@@ -44,7 +45,7 @@ import type { ExtractQueryResult, QueryOptions, QueryResult } from "./types.ts"
 /**
  * A service which can be used to execute queries against an Arrow Flight API.
  */
-export class ArrowFlight extends Context.Tag("Amp/ArrowFlight")<ArrowFlight, {
+export class ArrowFlight extends Context.Service<ArrowFlight, {
   /**
    * The Connect `Client` that will be used to execute Arrow Flight queries.
    */
@@ -65,14 +66,14 @@ export class ArrowFlight extends Context.Tag("Amp/ArrowFlight")<ArrowFlight, {
     sql: string,
     options?: Options
   ) => Stream.Stream<ExtractQueryResult<Options>, ArrowFlightError>
-}>() {}
+}>()("Amp/ArrowFlight") {}
 
 const make = Effect.gen(function*() {
   const auth = yield* Effect.serviceOption(Auth)
   const transport = yield* Transport
   const client = createClient(FlightService, transport)
 
-  const decodeRecordBatchMetadata = Schema.decode(RecordBatchMetadataFromUint8Array)
+  const decodeRecordBatchMetadata = Schema.decodeEffect(RecordBatchMetadataFromUint8Array)
 
   /**
    * Execute a SQL query and return a stream of rows.
@@ -122,7 +123,7 @@ const make = Effect.gen(function*() {
         return yield* new TicketNotFoundError({ query })
       }
 
-      const flightDataStream = Stream.unwrapScoped(Effect.gen(function*() {
+      const flightDataStream = Stream.unwrap(Effect.gen(function*() {
         const controller = yield* Effect.acquireRelease(
           Effect.sync(() => new AbortController()),
           (controller) => Effect.sync(() => controller.abort())
@@ -135,18 +136,14 @@ const make = Effect.gen(function*() {
 
       let schema: ArrowSchema | undefined
       const dictionaryRegistry = new DictionaryRegistry()
-      const dataSchema: Schema.Array$<
-        Schema.Record$<
+      const dataSchema: Schema.$Array<
+        Schema.$Record<
           typeof Schema.String,
           typeof Schema.Unknown
         >
-      > = Schema.Array(
-        options?.schema ?? Schema.Record({
-          key: Schema.String,
-          value: Schema.Unknown
-        }) as any
-      )
-      const decodeRecordBatchData = Schema.decode(dataSchema)
+      > = Schema.Array(options?.schema ?? Schema.Record(Schema.String, Schema.Unknown) as any)
+
+      const decodeRecordBatchData = Schema.decodeEffect(dataSchema)
 
       // Convert FlightData stream to a stream of rows
       return flightDataStream.pipe(
@@ -187,9 +184,9 @@ const make = Effect.gen(function*() {
             }
           }
 
-          return yield* Effect.die(new Cause.RuntimeException(`Invalid message type received: ${messageType}`))
+          return yield* Effect.die(new Cause.IllegalArgumentError(`Invalid message type received: ${messageType}`))
         })),
-        Stream.filterMap(identity)
+        Stream.filterMap(Filter.fromPredicateOption(identity))
       )
     }).pipe(
       Stream.unwrap,

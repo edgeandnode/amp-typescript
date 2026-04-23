@@ -43,6 +43,7 @@ describe("FlightData roundtrip", () => {
 
       // Verify decoded values match expected values
       const comparison = verifyDecodedValues(testSchema, decoded, generated.expectedValues)
+
       expect(comparison.success, formatComparisonErrors(comparison.errors)).toBe(true)
     }))
 

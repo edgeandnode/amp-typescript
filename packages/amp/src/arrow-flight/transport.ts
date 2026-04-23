@@ -16,10 +16,9 @@ import type { AuthInfo } from "../core/domain.ts"
  * A transport implements a protocol, such as Connect or gRPC-web, and allows
  * for the concrete clients to be independent of the protocol.
  */
-export class Transport extends Context.Tag("@edgeandnode/amp/Transport")<
-  Transport,
-  ConnectTransport
->() {}
+export class Transport extends Context.Service<Transport, ConnectTransport>()(
+  "@edgeandnode/amp/Transport"
+) {}
 
 /**
  * A service which abstracts the set of interceptors that are passed to a given
@@ -30,7 +29,7 @@ export class Transport extends Context.Tag("@edgeandnode/amp/Transport")<
  * mutate the request and response, catch errors and retry/recover, emit
  * logs, or do nearly everything else.
  */
-export class Interceptors extends Context.Reference<Interceptors>()(
+export class Interceptors extends Context.Reference(
   "Amp/ArrowFlight/ConnectRPC/Interceptors",
   { defaultValue: () => Arr.empty<Interceptor>() }
 ) {}
