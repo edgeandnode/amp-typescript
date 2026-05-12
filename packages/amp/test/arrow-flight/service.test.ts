@@ -1,11 +1,12 @@
 import { create } from "@bufbuild/protobuf"
-import type { Transport as ConnectTransport } from "@connectrpc/connect"
+import { createRouterTransport } from "@connectrpc/connect"
 import * as ArrowFlight from "@edgeandnode/amp/arrow-flight"
 import {
   type FlightData,
   FlightDataSchema,
   FlightEndpointSchema,
   FlightInfoSchema,
+  FlightService,
   TicketSchema
 } from "@edgeandnode/amp/protobuf/Flight_pb"
 import { describe, it } from "@effect/vitest"
@@ -21,8 +22,8 @@ const recordBatchMetadata = encoder.encode(JSON.stringify({ ranges: [], ranges_c
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("")
 
-const makeTransport = (flightData: ReadonlyArray<FlightData>): ConnectTransport => ({
-  async unary(service, method) {
+const makeTransport = (flightData: ReadonlyArray<FlightData>) =>
+  createRouterTransport((router) => {
     const ticket = create(TicketSchema, { ticket: encoder.encode("ticket") })
     const endpoint = create(FlightEndpointSchema, {
       appMetadata: new Uint8Array(0),
@@ -38,30 +39,18 @@ const makeTransport = (flightData: ReadonlyArray<FlightData>): ConnectTransport 
       totalRecords: 1n
     })
 
-    return {
-      header: new Headers(),
-      message: flightInfo,
-      method,
-      service,
-      stream: false,
-      trailer: new Headers()
-    }
-  },
-  async stream(service, method) {
-    async function* messages() {
-      yield* flightData
-    }
-
-    return {
-      header: new Headers(),
-      message: messages(),
-      method,
-      service,
-      stream: true,
-      trailer: new Headers()
-    }
-  }
-})
+    router.service(FlightService, {
+      doGet() {
+        async function* messages() {
+          yield* flightData
+        }
+        return messages()
+      },
+      getFlightInfo() {
+        return flightInfo
+      }
+    })
+  })
 
 const toProtoFlightData = (
   flightData: { readonly dataHeader: Uint8Array; readonly dataBody: Uint8Array },
@@ -89,7 +78,7 @@ describe("ArrowFlight", () => {
 
       const firstExpected = generated.expectedValues.bin?.[0]
       if (!(firstExpected instanceof Uint8Array)) {
-        return yield* Effect.dieMessage("Expected generated binary value")
+        return yield* Effect.die(new Error("Expected generated binary value"))
       }
 
       const transport = makeTransport([
