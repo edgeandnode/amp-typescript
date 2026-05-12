@@ -15,7 +15,7 @@ import { Auth } from "../auth/service.ts"
 import type { AuthInfo, BlockRange } from "../core/domain.ts"
 import { RecordBatchMetadataFromUint8Array } from "../core/domain.ts"
 import { decodeRecordBatch, DictionaryRegistry } from "../internal/arrow-flight-ipc/Decoder.ts"
-import { recordBatchToJson } from "../internal/arrow-flight-ipc/Json.ts"
+import { recordBatchToJson, type RecordBatchToJsonOptions } from "../internal/arrow-flight-ipc/Json.ts"
 import { parseRecordBatch } from "../internal/arrow-flight-ipc/RecordBatch.ts"
 import {
   type ArrowSchema,
@@ -176,7 +176,13 @@ const make = Effect.gen(function*() {
                 Effect.mapError((cause) => new ParseRecordBatchError({ cause }))
               )
               const decodedRecordBatch = decodeRecordBatch(recordBatch, flightData.dataBody, schema!)
-              const json = recordBatchToJson(decodedRecordBatch, { dictionaryRegistry })
+              const jsonOptions: RecordBatchToJsonOptions = { dictionaryRegistry }
+              if (options?.bigIntHandling !== undefined) jsonOptions.bigIntHandling = options.bigIntHandling
+              if (options?.binaryHandling !== undefined) jsonOptions.binaryHandling = options.binaryHandling
+              if (options?.dateHandling !== undefined) jsonOptions.dateHandling = options.dateHandling
+              if (options?.includeNulls !== undefined) jsonOptions.includeNulls = options.includeNulls
+
+              const json = recordBatchToJson(decodedRecordBatch, jsonOptions)
               const data = yield* decodeRecordBatchData(json).pipe(
                 Effect.mapError((cause) => new ParseRecordBatchError({ cause }))
               )
