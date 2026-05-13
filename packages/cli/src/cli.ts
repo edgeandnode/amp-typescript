@@ -1,12 +1,11 @@
 import * as Auth from "@edgeandnode/amp/auth/service"
-import * as CliConfig from "@effect/cli/CliConfig"
-import * as Command from "@effect/cli/Command"
-import * as NodeContext from "@effect/platform-node/NodeContext"
-import * as FetchHttpClient from "@effect/platform/FetchHttpClient"
-import * as KeyValueStore from "@effect/platform/KeyValueStore"
-import * as Path from "@effect/platform/Path"
+import * as NodeServices from "@effect/platform-node/NodeServices"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Path from "effect/Path"
+import * as Command from "effect/unstable/cli/Command"
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
+import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
 import * as NodeOS from "node:os"
 import PackageJson from "../package.json" with { type: "json" }
 import { AuthCommand } from "./commands/auth.ts"
@@ -17,15 +16,10 @@ const RootCommand = Command.make("amp").pipe(
 )
 
 const run = Command.run(RootCommand, {
-  name: "Amp",
   version: PackageJson["version"]
 })
 
-const CliConfigLayer = CliConfig.layer({
-  showBuiltIns: false
-})
-
-const CliCacheLayer = Layer.unwrapEffect(
+const CliCacheLayer = Layer.unwrap(
   Effect.gen(function*() {
     const path = yield* Path.Path
 
@@ -45,14 +39,10 @@ const AuthLayer = Auth.layer.pipe(
 
 const MainLayer = Layer.mergeAll(
   AuthLayer,
-  CliConfigLayer,
   HttpClientLayer
 ).pipe(
-  Layer.provideMerge(NodeContext.layer),
+  Layer.provideMerge(NodeServices.layer),
   Layer.orDie
 )
 
-export const Cli = run(process.argv).pipe(
-  Effect.provide(MainLayer),
-  Effect.catchTag("Amp/NonZeroExitCode", () => Effect.sync(() => process.exit(1)))
-)
+export const Cli = Effect.provide(run, MainLayer)

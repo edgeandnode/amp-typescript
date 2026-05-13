@@ -19,218 +19,250 @@
  * }
  * ```
  */
-import * as HttpApiSchema from "@effect/platform/HttpApiSchema"
 import * as Schema from "effect/Schema"
 
-/**
- * Machine-readable error code in SCREAMING_SNAKE_CASE format
- *
- * Error codes are stable across API versions and should be used
- * for programmatic error handling. Examples: `INVALID_SELECTOR`,
- * `DATASET_NOT_FOUND`, `REGISTRY_DB_ERROR`
- */
-const ErrorCode = <Code extends string>(
-  code: Code
-): Schema.PropertySignature<":", Code, "error_code", ":", Code> =>
-  Schema.Literal(code).pipe(
-    Schema.propertySignature,
-    Schema.fromKey("error_code")
-  )
+export const makeError = <
+  const Code extends string,
+  const Tag extends string,
+  const Fields extends Schema.Struct.Fields = {}
+>(code: Code, tag: Tag, fields?: Fields): Schema.encodeKeys<
+  Schema.Struct<
+    Fields & {
+      readonly _tag: Schema.withDecodingDefaultKey<Schema.tag<Tag>>
+      /**
+       * Machine-readable error code in SCREAMING_SNAKE_CASE format
+       *
+       * Error codes are stable across API versions and should be used
+       * for programmatic error handling. Examples: `INVALID_SELECTOR`,
+       * `DATASET_NOT_FOUND`, `REGISTRY_DB_ERROR`
+       */
+      readonly code: Schema.withConstructorDefault<Schema.Literal<Code>>
+      /**
+       * Human-readable error message
+       *
+       * Messages provide detailed context about the error but may change
+       * over time. Use `error_code` for programmatic decisions.
+       */
+      readonly message: Schema.String
+      /**
+       * Request ID for tracing and correlation
+       *
+       * This ID can be used to correlate error responses with server logs
+       * for debugging and support purposes. The ID is generated per-request
+       * and appears in both logs and error responses.
+       */
+      readonly requestId: Schema.optional<Schema.String>
+    }
+  >,
+  {
+    readonly code: "error_code"
+    readonly message: "error_message"
+    readonly requestId: "request_id"
+  }
+> =>
+  Schema.Struct({
+    ...fields,
+    _tag: Schema.tagDefaultOmit(tag),
+    /**
+     * Machine-readable error code in SCREAMING_SNAKE_CASE format
+     *
+     * Error codes are stable across API versions and should be used
+     * for programmatic error handling. Examples: `INVALID_SELECTOR`,
+     * `DATASET_NOT_FOUND`, `REGISTRY_DB_ERROR`
+     */
+    code: Schema.Literal(code),
+    /**
+     * Human-readable error message
+     *
+     * Messages provide detailed context about the error but may change
+     * over time. Use `error_code` for programmatic decisions.
+     */
+    message: Schema.String,
+    /**
+     * Request ID for tracing and correlation
+     *
+     * This ID can be used to correlate error responses with server logs
+     * for debugging and support purposes. The ID is generated per-request
+     * and appears in both logs and error responses.
+     */
+    requestId: Schema.optional(Schema.String)
+  }).pipe(Schema.encodeKeys({
+    code: "error_code",
+    message: "error_message",
+    requestId: "request_id"
+  })) as any
 
-const BaseErrorFields = {
-  /**
-   * Human-readable error message
-   *
-   * Messages provide detailed context about the error but may change
-   * over time. Use `error_code` for programmatic decisions.
-   */
-  message: Schema.String.pipe(
-    Schema.propertySignature,
-    Schema.fromKey("error_message")
-  ),
-  /**
-   * Request ID for tracing and correlation
-   *
-   * This ID can be used to correlate error responses with server logs
-   * for debugging and support purposes. The ID is generated per-request
-   * and appears in both logs and error responses.
-   */
-  requestId: Schema.optional(Schema.String).pipe(
-    Schema.fromKey("request_id")
-  )
-}
+export const DatasetConversionError = makeError(
+  "DATASET_CONVERSION_ERROR",
+  "DatasetConversionError"
+).annotate({ httpApiStatus: 500 })
 
-export class DatasetConversionError extends Schema.Class<DatasetConversionError>(
-  "Amp/RegistryApi/DatasetConversionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DATASET_CONVERSION_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export type DatasetConversionError = typeof DatasetConversionError.Type
 
-export class DatasetNotFoundError extends Schema.Class<DatasetNotFoundError>(
-  "Amp/RegistryApi/DatasetNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DATASET_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const DatasetNotFoundError = makeError(
+  "DATASET_NOT_FOUND",
+  "DatasetNotFoundError"
+).annotate({ httpApiStatus: 404 })
 
-export class DatasetVersionConversionError extends Schema.Class<DatasetVersionConversionError>(
-  "Amp/RegistryApi/DatasetVersionConversionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("DATASET_VERSION_CONVERSION_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export type DatasetNotFoundError = typeof DatasetNotFoundError.Type
 
-export class DatasetVersionNotFoundError extends Schema.Class<DatasetVersionNotFoundError>(
-  "Amp/RegistryApi/DatasetVersionNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("VERSION_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const DatasetVersionConversionError = makeError(
+  "DATASET_VERSION_CONVERSION_ERROR",
+  "DatasetVersionConversionError"
+).annotate({ httpApiStatus: 500 })
 
-export class ForbiddenError extends Schema.Class<ForbiddenError>(
-  "Amp/RegistryApi/ForbiddenError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("FORBIDDEN")
-}, HttpApiSchema.annotations({ status: 403 })) {}
+export type DatasetVersionConversionError = typeof DatasetVersionConversionError.Type
 
-export class InvalidDatasetOwnerPathError extends Schema.Class<InvalidDatasetOwnerPathError>(
-  "Amp/RegistryApi/InvalidDatasetOwnerPathError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_DATASET_OWNER_PATH")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const DatasetVersionNotFoundError = makeError(
+  "VERSION_NOT_FOUND",
+  "DatasetVersionNotFoundError"
+).annotate({ httpApiStatus: 404 })
 
-export class InvalidDatasetReferenceError extends Schema.Class<InvalidDatasetReferenceError>(
-  "Amp/RegistryApi/InvalidDatasetReferenceError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_REFERENCE")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export type DatasetVersionNotFoundError = typeof DatasetVersionNotFoundError.Type
 
-export class InvalidDatasetSelectorError extends Schema.Class<InvalidDatasetSelectorError>(
-  "Amp/RegistryApi/InvalidDatasetSelectorError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_DATASET_SELECTOR")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const ForbiddenError = makeError(
+  "FORBIDDEN",
+  "ForbiddenError"
+).annotate({ httpApiStatus: 403 })
 
-export class InvalidManifestError extends Schema.Class<InvalidManifestError>(
-  "Amp/RegistryApi/InvalidManifestError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_MANIFEST")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export type ForbiddenError = typeof ForbiddenError.Type
 
-export class InvalidManifestHashError extends Schema.Class<InvalidManifestHashError>(
-  "Amp/RegistryApi/InvalidManifestHashError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_MANIFEST_HASH")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const InvalidDatasetOwnerPathError = makeError(
+  "INVALID_DATASET_OWNER_PATH",
+  "InvalidDatasetOwnerPathError"
+).annotate({ httpApiStatus: 400 })
 
-export class InvalidNamespaceError extends Schema.Class<InvalidNamespaceError>(
-  "Amp/RegistryApi/InvalidNamespaceError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_NAMESPACE")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export type InvalidDatasetOwnerPathError = typeof InvalidDatasetOwnerPathError.Type
 
-export class InvalidQueryParametersError extends Schema.Class<InvalidQueryParametersError>(
-  "Amp/RegistryApi/InvalidQueryParametersError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_QUERY_PARAMETERS")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidDatasetReferenceError = makeError(
+  "INVALID_REFERENCE",
+  "InvalidDatasetReferenceError"
+).annotate({ httpApiStatus: 500 })
 
-export class InvalidPathParametersError extends Schema.Class<InvalidPathParametersError>(
-  "Amp/RegistryApi/InvalidPathParametersError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_PATH_PARAMETERS")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export type InvalidDatasetReferenceError = typeof InvalidDatasetReferenceError.Type
 
-export class InvalidRequestBodyError extends Schema.Class<InvalidRequestBodyError>(
-  "Amp/RegistryApi/InvalidRequestBodyError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_REQUEST_BODY")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidDatasetSelectorError = makeError(
+  "INVALID_DATASET_SELECTOR",
+  "InvalidDatasetSelectorError"
+).annotate({ httpApiStatus: 400 })
 
-export class InvalidSelectorError extends Schema.Class<InvalidSelectorError>(
-  "Amp/RegistryApi/InvalidSelectorError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("INVALID_SELECTOR")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export type InvalidDatasetSelectorError = typeof InvalidDatasetSelectorError.Type
 
-export class LatestDatasetVersionNotFoundError extends Schema.Class<LatestDatasetVersionNotFoundError>(
-  "Amp/RegistryApi/LatestDatasetVersionNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LATEST_VERSION_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const InvalidManifestError = makeError(
+  "INVALID_MANIFEST",
+  "InvalidManifestError"
+).annotate({ httpApiStatus: 400 })
 
-export class LimitInvalidError extends Schema.Class<LimitInvalidError>(
-  "Amp/RegistryApi/LimitInvalidError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LIMIT_INVALID")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export type InvalidManifestError = typeof InvalidManifestError.Type
 
-export class LimitTooLargeError extends Schema.Class<LimitTooLargeError>(
-  "Amp/RegistryApi/LimitTooLargeError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("LIMIT_TOO_LARGE")
-}, HttpApiSchema.annotations({ status: 400 })) {}
+export const InvalidManifestHashError = makeError(
+  "INVALID_MANIFEST_HASH",
+  "InvalidManifestHashError"
+).annotate({ httpApiStatus: 500 })
 
-export class ManifestDeserializationError extends Schema.Class<ManifestDeserializationError>(
-  "Amp/RegistryApi/ManifestDeserializationError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_DESERIALIZATION_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export type InvalidManifestHashError = typeof InvalidManifestHashError.Type
 
-export class ManifestNotFoundError extends Schema.Class<ManifestNotFoundError>(
-  "Amp/RegistryApi/ManifestNotFoundError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_NOT_FOUND")
-}, HttpApiSchema.annotations({ status: 404 })) {}
+export const InvalidNamespaceError = makeError(
+  "INVALID_NAMESPACE",
+  "InvalidNamespaceError"
+).annotate({ httpApiStatus: 400 })
 
-export class ManifestRetrievalError extends Schema.Class<ManifestRetrievalError>(
-  "Amp/RegistryApi/ManifestRetrievalError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("MANIFEST_RETRIEVAL_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export type InvalidNamespaceError = typeof InvalidNamespaceError.Type
 
-export class NamespaceAccessDeniedError extends Schema.Class<NamespaceAccessDeniedError>(
-  "Amp/RegistryApi/NamespaceAccessDeniedError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("NAMESPACE_ACCESS_DENIED")
-}, HttpApiSchema.annotations({ status: 403 })) {}
+export const InvalidQueryParametersError = makeError(
+  "INVALID_QUERY_PARAMETERS",
+  "InvalidQueryParametersError"
+).annotate({ httpApiStatus: 400 })
 
-export class RegistryDatabaseError extends Schema.Class<RegistryDatabaseError>(
-  "Amp/RegistryApi/RegistryDatabaseError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("AMP_REGISTRY_DB_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export type InvalidQueryParametersError = typeof InvalidQueryParametersError.Type
 
-export class SavedQueryConversionError extends Schema.Class<SavedQueryConversionError>(
-  "Amp/RegistryApi/SavedQueryConversionError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("SAVED_QUERY_CONVERSION_ERROR")
-}, HttpApiSchema.annotations({ status: 500 })) {}
+export const InvalidPathParametersError = makeError(
+  "INVALID_PATH_PARAMETERS",
+  "InvalidPathParametersError"
+).annotate({ httpApiStatus: 400 })
 
-export class ServiceUnavailableError extends Schema.Class<ServiceUnavailableError>(
-  "Amp/RegistryApi/ServiceUnavailableError"
-)({
-  ...BaseErrorFields,
-  code: ErrorCode("SERVICE_UNAVAILABLE")
-}, HttpApiSchema.annotations({ status: 503 })) {}
+export type InvalidPathParametersError = typeof InvalidPathParametersError.Type
+
+export const InvalidRequestBodyError = makeError(
+  "INVALID_REQUEST_BODY",
+  "InvalidRequestBodyError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidRequestBodyError = typeof InvalidRequestBodyError.Type
+
+export const InvalidSelectorError = makeError(
+  "INVALID_SELECTOR",
+  "InvalidSelectorError"
+).annotate({ httpApiStatus: 400 })
+
+export type InvalidSelectorError = typeof InvalidSelectorError.Type
+
+export const LatestDatasetVersionNotFoundError = makeError(
+  "LATEST_VERSION_NOT_FOUND",
+  "LatestDatasetVersionNotFoundError"
+).annotate({ httpApiStatus: 404 })
+
+export type LatestDatasetVersionNotFoundError = typeof LatestDatasetVersionNotFoundError.Type
+
+export const LimitInvalidError = makeError(
+  "LIMIT_INVALID",
+  "LimitInvalidError"
+).annotate({ httpApiStatus: 400 })
+
+export type LimitInvalidError = typeof LimitInvalidError.Type
+
+export const LimitTooLargeError = makeError(
+  "LIMIT_TOO_LARGE",
+  "LimitTooLargeError"
+).annotate({ httpApiStatus: 400 })
+
+export type LimitTooLargeError = typeof LimitTooLargeError.Type
+
+export const ManifestDeserializationError = makeError(
+  "MANIFEST_DESERIALIZATION_ERROR",
+  "ManifestDeserializationError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestDeserializationError = typeof ManifestDeserializationError.Type
+
+export const ManifestNotFoundError = makeError(
+  "MANIFEST_NOT_FOUND",
+  "ManifestNotFoundError"
+).annotate({ httpApiStatus: 404 })
+
+export type ManifestNotFoundError = typeof ManifestNotFoundError.Type
+
+export const ManifestRetrievalError = makeError(
+  "MANIFEST_RETRIEVAL_ERROR",
+  "ManifestRetrievalError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestRetrievalError = typeof ManifestRetrievalError.Type
+
+export const NamespaceAccessDeniedError = makeError(
+  "NAMESPACE_ACCESS_DENIED",
+  "NamespaceAccessDeniedError"
+).annotate({ httpApiStatus: 403 })
+
+export type NamespaceAccessDeniedError = typeof NamespaceAccessDeniedError.Type
+
+export const RegistryDatabaseError = makeError(
+  "AMP_REGISTRY_DB_ERROR",
+  "RegistryDatabaseError"
+).annotate({ httpApiStatus: 500 })
+
+export type RegistryDatabaseError = typeof RegistryDatabaseError.Type
+
+export const SavedQueryConversionError = makeError(
+  "SAVED_QUERY_CONVERSION_ERROR",
+  "SavedQueryConversionError"
+).annotate({ httpApiStatus: 500 })
+
+export type SavedQueryConversionError = typeof SavedQueryConversionError.Type
+
+export const ServiceUnavailableError = makeError(
+  "SERVICE_UNAVAILABLE",
+  "ServiceUnavailableError"
+).annotate({ httpApiStatus: 503 })
+
+export type ServiceUnavailableError = typeof ServiceUnavailableError.Type

@@ -116,10 +116,10 @@ export interface ProtocolStreamService {
  * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  */
-export class ProtocolStream extends Context.Tag("Amp/ProtocolStream")<
+export class ProtocolStream extends Context.Service<
   ProtocolStream,
   ProtocolStreamService
->() {}
+>()("Amp/ProtocolStream") {}
 
 // =============================================================================
 // Implementation
@@ -201,13 +201,13 @@ const make = Effect.gen(function*() {
       Stream.mapError((error: ArrowFlightError) => new ProtocolArrowFlightError({ cause: error })),
       // Process each batch with state tracking
       Stream.mapAccumEffect(
-        initialState,
+        () => initialState,
         Effect.fnUntraced(
           function*(
             state: ProtocolStreamState,
             queryResult: QueryResult<Record<string, unknown>>
           ): Effect.fn.Return<
-            readonly [ProtocolStreamState, ProtocolMessage],
+            readonly [ProtocolStreamState, ReadonlyArray<ProtocolMessage>],
             ProtocolStreamError
           > {
             const batchData = queryResult.data
@@ -238,7 +238,7 @@ const make = Effect.gen(function*() {
               initialized: true
             }
 
-            return [newState, message] as const
+            return [newState, [message]] as const
           }
         )
       ),

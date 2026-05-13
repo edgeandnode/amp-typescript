@@ -1,25 +1,39 @@
+import type * as AuthError from "@edgeandnode/amp/auth/error"
 import * as Auth from "@edgeandnode/amp/auth/service"
-import * as Command from "@effect/cli/Command"
-import * as Prompt from "@effect/cli/Prompt"
 import * as Console from "effect/Console"
+import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
+import * as Runtime from "effect/Runtime"
+import * as Command from "effect/unstable/cli/Command"
+import * as Prompt from "effect/unstable/cli/Prompt"
 
-const handleLogoutCommand = Effect.fnUntraced(function*() {
-  const auth = yield* Auth.Auth
+export class LogoutCommandError extends Data.TaggedError("LogoutCommandError")<{
+  readonly cause: AuthError.AuthCacheError
+}> {
+  override readonly [Runtime.errorExitCode] = 1
+  override readonly [Runtime.errorReported] = false
+}
 
-  const shouldLogout = yield* Prompt.confirm({
-    message: "Are you sure you want to logout of Amp?",
-    initial: false
-  })
+const handleLogoutCommand = Effect.fnUntraced(
+  function*() {
+    const auth = yield* Auth.Auth
 
-  if (!shouldLogout) {
-    return yield* Console.error("Logout cancelled, exiting...")
-  }
+    const shouldLogout = yield* Prompt.confirm({
+      message: "Are you sure you want to logout of Amp?",
+      initial: false
+    })
 
-  yield* auth.clearCachedAuthInfo
+    if (!shouldLogout) {
+      return yield* Console.error("Logout cancelled, exiting...")
+    }
 
-  yield* Console.error("You have successfully logged out!")
-})
+    yield* auth.clearCachedAuthInfo
+
+    yield* Console.error("You have successfully logged out!")
+  },
+  Effect.catchTag("QuitError", () => Effect.void),
+  Effect.mapError((cause) => new LogoutCommandError({ cause }))
+)
 
 export const LogoutCommand = Command.make("logout").pipe(
   Command.withDescription("Logout of the Amp CLI"),

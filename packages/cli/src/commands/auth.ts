@@ -1,4 +1,4 @@
-import * as Command from "@effect/cli/Command"
+import * as Command from "effect/unstable/cli/Command"
 import { LoginCommand } from "./auth/login.ts"
 import { LogoutCommand } from "./auth/logout.ts"
 import { TokenCommand } from "./auth/token.ts"

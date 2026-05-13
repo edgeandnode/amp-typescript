@@ -70,7 +70,6 @@ export interface BatchStoreService {
 // Context.Tag
 // =============================================================================
 
-export class BatchStore extends Context.Tag("Amp/CdcStream/BatchStore")<
-  BatchStore,
-  BatchStoreService
->() {}
+export class BatchStore extends Context.Service<BatchStore, BatchStoreService>()(
+  "Amp/CdcStream/BatchStore"
+) {}

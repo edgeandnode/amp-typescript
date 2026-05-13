@@ -1,30 +1,46 @@
+import * as AuthError from "@edgeandnode/amp/auth/error"
 import * as Auth from "@edgeandnode/amp/auth/service"
 import * as Models from "@edgeandnode/amp/core"
-import * as Args from "@effect/cli/Args"
-import * as Command from "@effect/cli/Command"
-import * as Options from "@effect/cli/Options"
 import * as Console from "effect/Console"
+import * as Data from "effect/Data"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Redacted from "effect/Redacted"
+import * as Runtime from "effect/Runtime"
 import * as String from "effect/String"
-import * as Errors from "../../errors.ts"
+import * as Argument from "effect/unstable/cli/Argument"
+import * as Command from "effect/unstable/cli/Command"
+import * as Flag from "effect/unstable/cli/Flag"
 
-const audience = Options.text("audience").pipe(
-  Options.withAlias("a"),
-  Options.withDescription(
+export class TokenCommandError extends Data.TaggedError("TokenCommandError")<{
+  readonly cause?:
+    | AuthError.AuthCacheError
+    | AuthError.AuthDeviceFlowError
+    | AuthError.AuthNetworkError
+    | AuthError.AuthProtocolError
+    | AuthError.AuthRefreshError
+    | AuthError.AuthRequestError
+    | undefined
+}> {
+  override readonly [Runtime.errorExitCode] = 1
+  override readonly [Runtime.errorReported] = false
+}
+
+const audience = Flag.string("audience").pipe(
+  Flag.withAlias("a"),
+  Flag.withDescription(
     "URLs that are valid to use the generated access token. " +
       "Becomes the JWT aud value"
   ),
-  Options.repeated
+  Flag.atLeast(0)
 )
 
-const duration = Args.text({ name: "duration" }).pipe(
-  Args.withDescription(
+const duration = Argument.string("duration").pipe(
+  Argument.withDescription(
     "Duration of the generated access token before it expires. " +
       "Ex: \"7 days\", \"30 days\", \"1 hour\""
   ),
-  Args.withSchema(Models.TokenDuration)
+  Argument.withSchema(Models.TokenDuration)
 )
 
 const handleTokenCommand = Effect.fnUntraced(function*({ audience, duration }: {
@@ -34,41 +50,45 @@ const handleTokenCommand = Effect.fnUntraced(function*({ audience, duration }: {
   const auth = yield* Auth.Auth
 
   const authInfo = yield* auth.getCachedAuthInfo.pipe(
-    Effect.flatten,
+    Effect.flatMap(Effect.fromOption),
     Effect.catchTag(
-      "NoSuchElementException",
+      "NoSuchElementError",
       Effect.fnUntraced(function*() {
         const errorMessage = [
           "You must be authenticated with Amp to generate an access token.",
           "Run \"amp auth login\" to authenticate."
         ].join(" ")
         yield* Console.error(errorMessage)
-        return yield* new Errors.NonZeroExitCode()
+        return yield* new TokenCommandError({})
       })
     )
   )
 
   const response = yield* auth.generateAccessToken({ authInfo, audience, duration }).pipe(
-    Effect.catchAll(Effect.fnUntraced(function*(error) {
-      const errorMessage = `${error.userMessage}. ${error.userSuggestion}`
+    Effect.catch(Effect.fnUntraced(function*(error) {
+      const userMessage = AuthError.getUserMessage(error)
+      const userSuggestion = AuthError.getUserSuggestion(error)
+      const errorMessage = `${userMessage}. ${userSuggestion}`
       yield* Console.error(errorMessage)
-      return yield* new Errors.NonZeroExitCode()
+      return yield* new TokenCommandError({})
     }))
   )
 
   yield* auth.verifyAccessToken(Redacted.make(response.token), response.iss).pipe(
-    Effect.catchAll(Effect.fnUntraced(function*(error) {
+    Effect.catch(Effect.fnUntraced(function*(error) {
+      const userMessage = AuthError.getUserMessage(error)
+      const userSuggestion = AuthError.getUserSuggestion(error)
       const errorMessage = [
         "Failed to verify the signed token.",
-        error.userMessage,
-        error.userSuggestion
+        userMessage,
+        userSuggestion
       ].join("\n")
       yield* Console.error(errorMessage)
-      return yield* new Errors.NonZeroExitCode()
+      return yield* new TokenCommandError({})
     }))
   )
 
-  const expiresAt = DateTime.unsafeMake(response.exp * 1000)
+  const expiresAt = DateTime.makeUnsafe(response.exp * 1000)
   const formatDateTime = DateTime.formatLocal({
     timeStyle: "full",
     dateStyle: "medium"
@@ -84,7 +104,7 @@ const handleTokenCommand = Effect.fnUntraced(function*({ audience, duration }: {
   ].join("\n\n")
 
   yield* Console.error(message)
-})
+}, Effect.catchTag("AuthCacheError", (cause) => Effect.fail(new TokenCommandError({ cause }))))
 
 export const TokenCommand = Command.make("token", { audience, duration }).pipe(
   Command.withDescription(

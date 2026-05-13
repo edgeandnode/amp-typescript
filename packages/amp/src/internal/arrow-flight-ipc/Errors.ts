@@ -5,7 +5,7 @@ import * as Schema from "effect/Schema"
  *
  * @internal
  */
-export class InvalidArrowDataTypeError extends Schema.TaggedError<InvalidArrowDataTypeError>(
+export class InvalidArrowDataTypeError extends Schema.TaggedErrorClass<InvalidArrowDataTypeError>(
   "Amp/InvalidArrowDataTypeError"
 )("InvalidArrowDataTypeError", {
   type: Schema.Number,
@@ -18,7 +18,7 @@ export class InvalidArrowDataTypeError extends Schema.TaggedError<InvalidArrowDa
  *
  * @internal
  */
-export class InvalidMessageTypeError extends Schema.TaggedError<InvalidMessageTypeError>(
+export class InvalidMessageTypeError extends Schema.TaggedErrorClass<InvalidMessageTypeError>(
   "Amp/InvalidMessageTypeError"
 )("InvalidMessageTypeError", {
   value: Schema.Number
@@ -34,7 +34,7 @@ export class InvalidMessageTypeError extends Schema.TaggedError<InvalidMessageTy
  *
  * @internal
  */
-export class MissingFieldError extends Schema.TaggedError<MissingFieldError>(
+export class MissingFieldError extends Schema.TaggedErrorClass<MissingFieldError>(
   "Amp/MissingFieldError"
 )("MissingFieldError", {
   fieldName: Schema.String,
@@ -52,7 +52,7 @@ export class MissingFieldError extends Schema.TaggedError<MissingFieldError>(
  *
  * @internal
  */
-export class UnexpectedMessageTypeError extends Schema.TaggedError<UnexpectedMessageTypeError>(
+export class UnexpectedMessageTypeError extends Schema.TaggedErrorClass<UnexpectedMessageTypeError>(
   "Amp/UnexpectedMessageTypeError"
 )("UnexpectedMessageTypeError", {
   expected: Schema.Number,

@@ -319,11 +319,9 @@ const executeReorg = Effect.fnUntraced(function*(
     } else {
       // No recovery point with a non-empty buffer means all buffered watermarks
       // are affected by the reorg. This is not recoverable.
-      return yield* Effect.fail(
-        new UnrecoverableReorgError({
-          reason: "All buffered watermarks are affected by the reorg"
-        })
-      )
+      return yield* new UnrecoverableReorgError({
+        reason: "All buffered watermarks are affected by the reorg"
+      })
     }
   } else {
     const [recoveryId, recoveryRanges] = recovery
@@ -331,12 +329,10 @@ const executeReorg = Effect.fnUntraced(function*(
     // 3. Check for partial reorg
     const partialNetwork = checkPartialReorg(recoveryRanges, invalidation)
     if (partialNetwork !== undefined) {
-      return yield* Effect.fail(
-        new PartialReorgError({
-          reason: "Recovery point doesn't align with reorg boundary",
-          network: partialNetwork
-        })
-      )
+      return yield* new PartialReorgError({
+        reason: "Recovery point doesn't align with reorg boundary",
+        network: partialNetwork
+      })
     }
 
     anchor = recoveryId

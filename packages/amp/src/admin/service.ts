@@ -9,21 +9,22 @@
  * - Schema analysis
  * - Manifests (registration)
  */
-import * as HttpApiClient from "@effect/platform/HttpApiClient"
-import type * as HttpApiError from "@effect/platform/HttpApiError"
-import * as HttpClient from "@effect/platform/HttpClient"
-import type * as HttpClientError from "@effect/platform/HttpClientError"
-import * as HttpClientRequest from "@effect/platform/HttpClientRequest"
-import type * as KeyValueStore from "@effect/platform/KeyValueStore"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import { constUndefined } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as HttpClient from "effect/unstable/http/HttpClient"
+import type * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import * as HttpApiClient from "effect/unstable/httpapi/HttpApiClient"
+import type * as HttpApiError from "effect/unstable/httpapi/HttpApiError"
+import type * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
 import * as Auth from "../auth/service.ts"
 import type * as Models from "../core/domain.ts"
 import * as Api from "./api.ts"
 import type * as Domain from "./domain.ts"
+import type { DatasetStoreError, ListAllDatasetsError, MetadataDbError, SchedulerListWorkersError } from "./error.ts"
 
 // =============================================================================
 // Admin API Service Types
@@ -44,7 +45,7 @@ export type HttpError =
 /**
  * A service which can be used to execute operations against the Amp admin API.
  */
-export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
+export class AdminApi extends Context.Service<AdminApi, {
   /**
    * Register a dataset manifest.
    *
@@ -68,7 +69,11 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    */
   readonly getDatasets: Effect.Effect<
     Domain.GetDatasetsResponse,
-    HttpError | Api.GetDatasetsError
+    | HttpError
+    | Api.GetDatasetsError
+    | DatasetStoreError
+    | ListAllDatasetsError
+    | MetadataDbError
   >
 
   /**
@@ -210,7 +215,7 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
    */
   readonly getWorkers: Effect.Effect<
     Domain.GetWorkersResponse,
-    HttpError | Api.GetWorkersError
+    HttpError | Api.GetWorkersError | SchedulerListWorkersError
   >
 
   /**
@@ -245,7 +250,9 @@ export class AdminApi extends Context.Tag("Amp/AdminApi")<AdminApi, {
     Domain.GetOutputSchemaResponse,
     HttpError | Api.GetOutputSchemaError
   >
-}>() {}
+}>()(
+  "Amp/AdminApi"
+) {}
 
 export interface MakeOptions {
   readonly url: string | URL
@@ -265,7 +272,7 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
           Effect.fnUntraced(function*(request) {
             const authInfo = yield* auth.getCachedAuthInfo.pipe(
               // Treat cache errors as "no auth available"
-              Effect.catchAll(() => Effect.succeed(Option.none()))
+              Effect.catch(() => Effect.succeed(Option.none()))
             )
             if (Option.isNone(authInfo)) return request
             const token = authInfo.value.accessToken
@@ -279,127 +286,123 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
 
   const deployDataset: Service["deployDataset"] = Effect.fn("AdminApi.deployDataset")(
     function*(namespace, name, revision, options) {
-      const path = { namespace, name, revision }
+      const params = { namespace, name, revision }
       const payload = {
         endBlock: options?.endBlock,
         parallelism: options?.parallelism,
         workerId: options?.workerId
       }
-      yield* Effect.annotateCurrentSpan({ ...path, ...payload })
-      return yield* client.dataset.deployDataset({ path, payload })
+      yield* Effect.annotateCurrentSpan({ params, payload })
+      return yield* client.dataset.deployDataset({ params, payload })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   const getDatasetManifest: Service["getDatasetManifest"] = Effect.fn("AdminApi.getDatasetManifest")(
     function*(namespace, name, revision) {
-      const path = { namespace, name, revision }
-      yield* Effect.annotateCurrentSpan(path)
-      return yield* client.dataset.getDatasetManifest({ path })
+      const params = { namespace, name, revision }
+      yield* Effect.annotateCurrentSpan({ params })
+      return yield* client.dataset.getDatasetManifest({ params })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
-  const getDatasets: Service["getDatasets"] = Effect.gen(function*() {
-    return yield* client.dataset.getDatasets({})
-  }).pipe(
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die),
+  const getDatasets: Service["getDatasets"] = client.dataset.getDatasets({}).pipe(
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die),
     Effect.withSpan("AdminApi.getDatasets")
   )
 
   const getDatasetVersion: Service["getDatasetVersion"] = Effect.fn("AdminApi.getDatasetVersion")(
     function*(namespace, name, revision) {
-      const path = { namespace, name, revision }
-      yield* Effect.annotateCurrentSpan(path)
-      return yield* client.dataset.getDatasetVersion({ path })
+      const params = { namespace, name, revision }
+      yield* Effect.annotateCurrentSpan({ params })
+      return yield* client.dataset.getDatasetVersion({ params })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   const getDatasetVersions: Service["getDatasetVersions"] = Effect.fn("AdminApi.getDatasetVersions")(
     function*(namespace, name) {
-      const path = { namespace, name }
-      yield* Effect.annotateCurrentSpan(path)
-      return yield* client.dataset.getDatasetVersions({ path })
+      const params = { namespace, name }
+      yield* Effect.annotateCurrentSpan({ params })
+      return yield* client.dataset.getDatasetVersions({ params })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   const registerDataset: Service["registerDataset"] = Effect.fn("AdminApi.registerDataset")(
     function*(namespace, name, manifest, version) {
       const payload = { namespace, name, version, manifest }
-      yield* Effect.annotateCurrentSpan(payload)
+      yield* Effect.annotateCurrentSpan({ payload })
       return yield* client.dataset.registerDataset({ payload })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
-  const getDatasetSyncProgress: Service["getDatasetSyncProgress"] = Effect.fn("AdminApi.getDatasetSyncProgress")(
+  const getDatasetSyncProgress: Service["getDatasetSyncProgress"] = Effect.fn(
+    "AdminApi.getDatasetSyncProgress"
+  )(
     function*(namespace, name, revision) {
-      const path = { namespace, name, revision }
-      yield* Effect.annotateCurrentSpan(path)
-      return yield* client.dataset.getDatasetSyncProgress({ path })
+      const params = { namespace, name, revision }
+      yield* Effect.annotateCurrentSpan({ params })
+      return yield* client.dataset.getDatasetSyncProgress({ params })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   // Job Operations
 
   const getJobs: Service["getJobs"] = Effect.fn("AdminApi.getJobs")(
     function*(options) {
-      const urlParams = {
+      const query = {
         limit: options?.limit,
         lastJobId: options?.lastJobId,
         status: options?.status
       }
-      yield* Effect.annotateCurrentSpan(urlParams)
-      return yield* client.job.getJobs({ urlParams })
+      yield* Effect.annotateCurrentSpan({ query })
+      return yield* client.job.getJobs({ query })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   const getJobById: Service["getJobById"] = Effect.fn("AdminApi.getJobById")(
     function*(jobId) {
-      const path = { jobId }
-      yield* Effect.annotateCurrentSpan(path)
-      return yield* client.job.getJobById({ path })
+      const params = { id: jobId }
+      yield* Effect.annotateCurrentSpan({ params })
+      return yield* client.job.getJobById({ params })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   const stopJob: Service["stopJob"] = Effect.fn("AdminApi.stopJob")(
     function*(jobId) {
-      const path = { jobId }
-      yield* Effect.annotateCurrentSpan(path)
-      return yield* client.job.stopJob({ path })
+      const params = { id: jobId }
+      yield* Effect.annotateCurrentSpan({ params })
+      return yield* client.job.stopJob({ params })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   const deleteJob: Service["deleteJob"] = Effect.fn("AdminApi.deleteJob")(
     function*(jobId) {
-      const path = { jobId }
-      yield* Effect.annotateCurrentSpan(path)
-      return yield* client.job.deleteJob({ path })
+      const params = { id: jobId }
+      yield* Effect.annotateCurrentSpan({ params })
+      return yield* client.job.deleteJob({ params })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   // Worker Operations
 
-  const getWorkers: Service["getWorkers"] = Effect.gen(function*() {
-    return yield* client.worker.getWorkers({})
-  }).pipe(
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die),
+  const getWorkers: Service["getWorkers"] = client.worker.getWorkers({}).pipe(
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die),
     Effect.withSpan("AdminApi.getWorkers")
   )
 
   // Provider Operations
 
-  const getProviders: Service["getProviders"] = Effect.gen(function*() {
-    return yield* client.provider.getProviders({})
-  }).pipe(
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die),
+  const getProviders: Service["getProviders"] = client.provider.getProviders({}).pipe(
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die),
     Effect.withSpan("AdminApi.getProviders")
   )
 
@@ -409,7 +412,7 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
     function*(manifest) {
       return yield* client.manifest.registerManifest({ payload: manifest })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   // Schema Operations
@@ -418,7 +421,7 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
     function*(payload) {
       return yield* client.schema.getOutputSchema({ payload })
     },
-    Effect.catchTag("HttpApiDecodeError", "ParseError", Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
   return AdminApi.of({

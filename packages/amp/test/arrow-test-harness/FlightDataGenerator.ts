@@ -4,7 +4,6 @@
  */
 import type { ArrowField, ArrowSchema } from "@edgeandnode/amp/internal/arrow-flight-ipc/Schema"
 import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
 import * as Random from "effect/Random"
 import * as BufferUtils from "./BufferUtils.ts"
 import * as GeneratorRegistry from "./GeneratorRegistry.ts"
@@ -84,10 +83,8 @@ export const generateFlightData = (
       schema
     }
   }).pipe(
-    Effect.provide(Layer.mergeAll(
-      Layer.succeed(Random.Random, Random.make(seed)),
-      GeneratorRegistry.Live
-    ))
+    Effect.provide(GeneratorRegistry.Live),
+    Random.withSeed(seed)
   )
 }
 
@@ -247,10 +244,8 @@ export const generateMultiBatchFlightData = (
       totalRows
     }
   }).pipe(
-    Effect.provide(Layer.mergeAll(
-      Layer.succeed(Random.Random, Random.make(seed)),
-      GeneratorRegistry.Live
-    ))
+    Effect.provide(GeneratorRegistry.Live),
+    Random.withSeed(seed)
   )
 }
 

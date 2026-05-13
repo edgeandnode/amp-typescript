@@ -51,17 +51,13 @@
   },
   "peerDependencies": {
     "@edgeandnode/amp": "workspace:^",
-    "@effect/cli": "^0.73.2",
-    "@effect/platform": "^0.94.5",
-    "@effect/platform-node": "^0.104.1",
-    "effect": "^3.19.18"
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@connectrpc/connect": "^2.1.1",
-    "@effect/cli": "^0.73.2",
-    "@effect/platform": "^0.94.5",
-    "@effect/platform-node": "^0.104.1",
-    "effect": "^3.19.18"
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:"
   },
   "dependencies": {
     "open": "^11.0.0"

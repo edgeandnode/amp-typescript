@@ -13,11 +13,11 @@ import type { ProtocolStreamError } from "../protocol-stream/errors.ts"
 /**
  * Error from StateStore operations.
  */
-export class StateStoreError extends Schema.TaggedError<StateStoreError>(
+export class StateStoreError extends Schema.TaggedErrorClass<StateStoreError>(
   "Amp/TransactionalStream/StateStoreError"
 )("StateStoreError", {
   reason: Schema.String,
-  operation: Schema.Literal("advance", "commit", "truncate", "load"),
+  operation: Schema.Literals(["advance", "commit", "truncate", "load"]),
   cause: Schema.optional(Schema.Defect)
 }) {}
 
@@ -30,7 +30,7 @@ export class StateStoreError extends Schema.TaggedError<StateStoreError>(
  * This occurs when a reorg is so deep that there's no valid recovery point.
  * The stream must be restarted with fresh state.
  */
-export class UnrecoverableReorgError extends Schema.TaggedError<UnrecoverableReorgError>(
+export class UnrecoverableReorgError extends Schema.TaggedErrorClass<UnrecoverableReorgError>(
   "Amp/TransactionalStream/UnrecoverableReorgError"
 )("UnrecoverableReorgError", {
   reason: Schema.String
@@ -41,7 +41,7 @@ export class UnrecoverableReorgError extends Schema.TaggedError<UnrecoverableReo
  * This occurs when a reorg point falls in the middle of a watermark's block range.
  * The stream must be restarted with fresh state.
  */
-export class PartialReorgError extends Schema.TaggedError<PartialReorgError>(
+export class PartialReorgError extends Schema.TaggedErrorClass<PartialReorgError>(
   "Amp/TransactionalStream/PartialReorgError"
 )("PartialReorgError", {
   reason: Schema.String,

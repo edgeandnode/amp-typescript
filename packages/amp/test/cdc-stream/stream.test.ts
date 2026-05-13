@@ -17,7 +17,6 @@ import {
   watermarkEvent
 } from "@edgeandnode/amp/transactional-stream"
 import { describe, expect, it } from "@effect/vitest"
-import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
@@ -99,8 +98,7 @@ describe("CdcStream - Insert", () => {
       const ranges = [makeBlockRange("eth", 0, 10)]
 
       const cdc = yield* CdcStream
-      const chunk = yield* cdc.streamCdc("SELECT * FROM eth.logs").pipe(Stream.runCollect)
-      const results = Chunk.toReadonlyArray(chunk)
+      const results = yield* cdc.streamCdc("SELECT * FROM eth.logs").pipe(Stream.runCollect)
 
       expect(results.length).toBe(1)
       const [cdcEvent] = results[0]!
@@ -152,8 +150,7 @@ describe("CdcStream - Delete", () => {
       const data = [{ block: 1 }]
 
       const cdc = yield* CdcStream
-      const chunk = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
-      const results = Chunk.toReadonlyArray(chunk)
+      const results = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
 
       // Should have Insert then Delete
       expect(results.length).toBe(2)
@@ -192,8 +189,7 @@ describe("CdcStream - Delete", () => {
   it.effect("Undo with no matching batches is skipped", () =>
     Effect.gen(function*() {
       const cdc = yield* CdcStream
-      const chunk = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
-      const results = Chunk.toReadonlyArray(chunk)
+      const results = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
 
       // Undo for range with no stored batches should be filtered out
       expect(results.length).toBe(0)
@@ -209,8 +205,7 @@ describe("CdcStream - Delete", () => {
   it.effect("Delete iterator loads lazily and skips missing", () =>
     Effect.gen(function*() {
       const cdc = yield* CdcStream
-      const chunk = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
-      const results = Chunk.toReadonlyArray(chunk)
+      const results = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
 
       // Data events for IDs 1 and 3, then undo covering 1-3 (2 is missing)
       expect(results.length).toBe(3) // 2 Inserts + 1 Delete
@@ -258,8 +253,7 @@ describe("CdcStream - Watermark", () => {
   it.effect("Watermark events are not exposed to consumer", () =>
     Effect.gen(function*() {
       const cdc = yield* CdcStream
-      const chunk = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
-      const results = Chunk.toReadonlyArray(chunk)
+      const results = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
 
       // Watermark should be filtered out
       expect(results.length).toBe(0)

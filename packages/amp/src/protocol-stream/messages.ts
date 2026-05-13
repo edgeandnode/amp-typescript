@@ -35,7 +35,7 @@ export const InvalidationRange = Schema.Struct({
    * The end of the invalidation range (inclusive).
    */
   end: BlockNumber
-}).annotations({
+}).annotate({
   identifier: "InvalidationRange",
   description: "A range of blocks that must be invalidated due to a reorg"
 })
@@ -90,15 +90,12 @@ export const ProtocolMessageData = Schema.TaggedStruct("Data", {
   /**
    * The decoded record batch data as an array of records.
    */
-  data: Schema.Array(Schema.Record({
-    key: Schema.String,
-    value: Schema.Unknown
-  })),
+  data: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)),
   /**
    * The block ranges covered by this batch.
    */
   ranges: Schema.Array(BlockRange)
-}).annotations({
+}).annotate({
   identifier: "ProtocolMessage.Data",
   description: "New data to process from the protocol stream"
 })
@@ -125,7 +122,7 @@ export const ProtocolMessageReorg = Schema.TaggedStruct("Reorg", {
    * The ranges that need to be invalidated due to the reorg.
    */
   invalidation: Schema.Array(InvalidationRange)
-}).annotations({
+}).annotate({
   identifier: "ProtocolMessage.Reorg",
   description: "Chain reorganization detected"
 })
@@ -143,7 +140,7 @@ export const ProtocolMessageWatermark = Schema.TaggedStruct("Watermark", {
    * The block ranges that are confirmed complete.
    */
   ranges: Schema.Array(BlockRange)
-}).annotations({
+}).annotate({
   identifier: "ProtocolMessage.Watermark",
   description: "Watermark indicating ranges are confirmed complete"
 })
@@ -168,11 +165,11 @@ export type ProtocolMessageWatermark = typeof ProtocolMessageWatermark.Type
  * }
  * ```
  */
-export const ProtocolMessage = Schema.Union(
+export const ProtocolMessage = Schema.Union([
   ProtocolMessageData,
   ProtocolMessageReorg,
   ProtocolMessageWatermark
-).annotations({
+]).annotate({
   identifier: "ProtocolMessage",
   description: "A message from the protocol stream"
 })

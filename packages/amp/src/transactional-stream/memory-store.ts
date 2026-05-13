@@ -123,10 +123,10 @@ export const layerWithState = (initial: StateSnapshot): Layer.Layer<StateStore> 
  * expect(snapshot.next).toBe(5)
  * ```
  */
-export class TestState extends Context.Tag("Amp/TransactionalStream/TestState")<
+export class TestState extends Context.Service<
   TestState,
   { readonly get: Effect.Effect<StateSnapshot> }
->() {}
+>()("Amp/TransactionalStream/TestState") {}
 
 /**
  * Test layer providing both `StateStore` and `TestState`.

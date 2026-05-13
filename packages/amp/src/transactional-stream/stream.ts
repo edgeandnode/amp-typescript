@@ -148,10 +148,10 @@ export interface TransactionalStreamService {
  * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  */
-export class TransactionalStream extends Context.Tag("Amp/TransactionalStream")<
+export class TransactionalStream extends Context.Service<
   TransactionalStream,
   TransactionalStreamService
->() {}
+>()("Amp/TransactionalStream") {}
 
 // =============================================================================
 // Implementation
@@ -195,7 +195,7 @@ const make = Effect.gen(function*() {
     const retention = options?.retention ?? DEFAULT_RETENTION
 
     // Create the stream with proper scoping
-    return Stream.unwrapScoped(
+    return Stream.unwrap(
       Effect.gen(function*() {
         // 1. Create StateActor
         const actor: StateActor = yield* makeStateActor(storeService, retention)
