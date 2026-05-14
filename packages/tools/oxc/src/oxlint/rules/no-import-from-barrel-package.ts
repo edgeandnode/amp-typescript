@@ -1,6 +1,6 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import type { CreateRule, ESTree, Visitor } from "oxlint"
+import type { CreateRule, ESTree, Visitor } from "../types.ts"
 
 interface RuleOptions {
   checkPatterns?: Array<string>

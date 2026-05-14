@@ -242,7 +242,7 @@ export const decodeRecordBatch = (
     }
 
     // Decode children recursively
-    const children: ReadonlyArray<DecodedColumn> = field.children.map((field) => decodeField(field))
+    const children: ReadonlyArray<DecodedColumn> = field.children.map((child) => decodeField(child))
 
     return new DecodedColumn(field, node, buffers, children)
   }

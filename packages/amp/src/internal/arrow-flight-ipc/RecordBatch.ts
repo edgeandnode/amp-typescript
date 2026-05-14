@@ -494,9 +494,9 @@ export const parseRecordBatchTable = Effect.fn(function*(reader: FlatBufferReade
 
     for (let i = 0; i < nodeCount; i++) {
       const nodeOffset = nodesVectorOffset + 4 + i * FIELD_NODE_SIZE
-      const length = reader.readInt64(nodeOffset)
+      const nodeLength = reader.readInt64(nodeOffset)
       const nullCount = reader.readInt64(nodeOffset + 8)
-      nodes.push(new FieldNode(length, nullCount))
+      nodes.push(new FieldNode(nodeLength, nullCount))
     }
   }
 
@@ -513,9 +513,9 @@ export const parseRecordBatchTable = Effect.fn(function*(reader: FlatBufferReade
 
     for (let i = 0; i < numBuffers; i++) {
       const bufferOffset = buffersVectorOffset + 4 + i * BUFFER_SIZE
-      const offset = reader.readInt64(bufferOffset)
-      const length = reader.readInt64(bufferOffset + 8)
-      buffers.push(new BufferDescriptor(offset, length))
+      const bufferStart = reader.readInt64(bufferOffset)
+      const bufferLength = reader.readInt64(bufferOffset + 8)
+      buffers.push(new BufferDescriptor(bufferStart, bufferLength))
     }
   }
 

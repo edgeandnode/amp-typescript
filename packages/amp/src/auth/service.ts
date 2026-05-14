@@ -433,8 +433,8 @@ const make = Effect.gen(function*() {
           429: Effect.fnUntraced(function*(response) {
             const message = yield* extractErrorDescription(response)
             const retryAfter = Option.fromNullishOr(response.headers["retry-after"]).pipe(
-              Option.flatMap((retryAfter) => {
-                const parsed = Number.parseInt(retryAfter, 10)
+              Option.flatMap((header) => {
+                const parsed = Number.parseInt(header, 10)
                 return Number.isNaN(parsed)
                   ? Option.none()
                   : Option.some(Duration.seconds(parsed))

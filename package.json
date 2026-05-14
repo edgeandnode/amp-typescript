@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.25.0+sha512.5e82639027af37cf832061bcc6d639c219634488e0f2baebe785028a793de7b525ffcd3f7ff574f5e9860654e098fe852ba8ac5dd5cefe1767d23a020a92f501",
+  "packageManager": "pnpm@11.1.1+sha512.d1fdf5f73c617b64fa1a56a81c3c8dfe0e966e33a6010aa256b517ae77be21d93e05affc0de1a83b0e4f29d569f68b446ae8f068cd7247c0bb3df0fb4d7bdf9a",
   "scripts": {
     "prepare": "effect-language-service patch",
     "build": "tspc -b tsconfig.packages.json && pnpm --recursive --parallel --filter \"./packages/**/*\" run build",
@@ -15,34 +15,29 @@
     "lint:fix": "oxlint --fix && dprint fmt",
     "test": "vitest"
   },
-  "pnpm": {
-    "overrides": {
-      "typescript": "^5.9.3"
-    }
-  },
   "devDependencies": {
     "@amp/oxc": "workspace:^",
     "@babel/cli": "^7.28.6",
-    "@babel/core": "^7.28.6",
+    "@babel/core": "^7.29.0",
     "@babel/plugin-transform-export-namespace-from": "^7.27.1",
     "@babel/plugin-transform-modules-commonjs": "^7.28.6",
     "@effect/language-service": "catalog:",
     "@effect/vitest": "catalog:",
-    "@types/node": "^25.2.3",
+    "@types/node": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260130.1",
-    "@vitest/coverage-v8": "^4.0.18",
-    "@vitest/ui": "^4.0.18",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "catalog:",
     "babel-plugin-annotate-pure-calls": "^0.5.0",
-    "dprint": "^0.51.1",
-    "glob": "^13.0.0",
-    "globals": "^17.2.0",
+    "dprint": "^0.54.0",
+    "glob": "^13.0.6",
+    "globals": "^17.6.0",
     "madge": "^8.0.0",
-    "oxlint": "^1.42.0",
-    "rulesync": "^6.7.0",
-    "ts-patch": "^3.3.0",
-    "typescript": "^5.9.3",
-    "vite-tsconfig-paths": "^6.0.5",
-    "vitest": "^4.0.18",
+    "oxlint": "^1.64.0",
+    "rulesync": "^8.17.0",
+    "ts-patch": "^4.0.1",
+    "typescript": "^6.0.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "catalog:",
     "vitest-mock-express": "^2.2.0"
   }
 }

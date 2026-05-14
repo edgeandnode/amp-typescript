@@ -16,6 +16,7 @@
     "**/build",
     "**/docs",
     "**/coverage",
+    "contracts/**",
     "!scratchpad/**/*",
     // TODO: move to nested configuration if possible
     "packages/amp/src/Protobuf/**"

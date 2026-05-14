@@ -35,6 +35,7 @@
     // Code quality
     "eslint/no-console": "error",
     "eslint/no-var": "error",
+    "eslint/no-underscore-dangle": "allow",
     "eslint/no-useless-constructor": "error",
     "unicorn/no-abusive-eslint-disable": "error",
     "eslint/no-unneeded-ternary": "error",

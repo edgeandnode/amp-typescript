@@ -267,10 +267,10 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
     baseUrl: options.url,
     transformClient: Option.match(auth, {
       onNone: constUndefined,
-      onSome: (auth) =>
+      onSome: (authService) =>
         HttpClient.mapRequestEffect(
           Effect.fnUntraced(function*(request) {
-            const authInfo = yield* auth.getCachedAuthInfo.pipe(
+            const authInfo = yield* authService.getCachedAuthInfo.pipe(
               // Treat cache errors as "no auth available"
               Effect.catch(() => Effect.succeed(Option.none()))
             )
@@ -285,12 +285,12 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
   // Dataset Operations
 
   const deployDataset: Service["deployDataset"] = Effect.fn("AdminApi.deployDataset")(
-    function*(namespace, name, revision, options) {
+    function*(namespace, name, revision, deployOptions) {
       const params = { namespace, name, revision }
       const payload = {
-        endBlock: options?.endBlock,
-        parallelism: options?.parallelism,
-        workerId: options?.workerId
+        endBlock: deployOptions?.endBlock,
+        parallelism: deployOptions?.parallelism,
+        workerId: deployOptions?.workerId
       }
       yield* Effect.annotateCurrentSpan({ params, payload })
       return yield* client.dataset.deployDataset({ params, payload })
@@ -353,11 +353,11 @@ const make = Effect.fnUntraced(function*(options: MakeOptions) {
   // Job Operations
 
   const getJobs: Service["getJobs"] = Effect.fn("AdminApi.getJobs")(
-    function*(options) {
+    function*(jobsOptions) {
       const query = {
-        limit: options?.limit,
-        lastJobId: options?.lastJobId,
-        status: options?.status
+        limit: jobsOptions?.limit,
+        lastJobId: jobsOptions?.lastJobId,
+        status: jobsOptions?.status
       }
       yield* Effect.annotateCurrentSpan({ query })
       return yield* client.job.getJobs({ query })
