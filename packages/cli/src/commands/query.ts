@@ -22,22 +22,22 @@ export class QueryCommandError extends Data.TaggedError("QueryCommandError")<{
 }
 
 // TODO(Chris): we should re-evaluate this format option
-const format = Flag.choice("format", ResultFormats).pipe(
+const formatFlag = Flag.choice("format", ResultFormats).pipe(
   Flag.withAlias("f"),
   Flag.withDescription("The format to output the results in."),
   Flag.withDefault("table")
 )
 
-const limit = Flag.integer("limit").pipe(
+const limitFlag = Flag.integer("limit").pipe(
   Flag.withDescription("The number of rows to return from the query."),
   Flag.optional
 )
 
-const query = Argument.string("query").pipe(
+const queryArg = Argument.string("query").pipe(
   Argument.withDescription("The SQL query to execute.")
 )
 
-const token = Flag.redacted("token").pipe(
+const tokenFlag = Flag.redacted("token").pipe(
   Flag.withAlias("t"),
   Flag.withDescription("The bearer token to use for authentication."),
   Flag.optional
@@ -51,40 +51,45 @@ const queryCommandHandler = Effect.fnUntraced(function*(params: {
 }) {
   const flight = yield* ArrowFlight.ArrowFlight
 
-  const query = Option.match(params.limit, {
+  const sql = Option.match(params.limit, {
     onNone: () => params.query,
     onSome: (limit) => `${params.query} LIMIT ${limit}`
   })
 
-  const results = yield* flight.query(query)
+  const results = yield* flight.query(sql)
 
-  const data = results
+  const rows = results
     .filter(({ data }) => data.length > 0)
     .flatMap(({ data }) => data)
 
   switch (params.format) {
     case "json": {
-      return yield* Console.log(JSON.stringify(data, null, 2))
+      return yield* Console.log(JSON.stringify(rows, null, 2))
     }
     case "jsonl": {
-      return yield* Console.log(JSON.stringify(data))
+      return yield* Console.log(JSON.stringify(rows))
     }
     case "pretty": {
-      return yield* Console.log(data)
+      return yield* Console.log(rows)
     }
     case "table": {
-      return yield* Console.table(data)
+      return yield* Console.table(rows)
     }
   }
 }, Effect.mapError((cause) => new QueryCommandError({ cause })))
 
-export const QueryCommand = Command.make("query", { format, limit, query, token }).pipe(
+export const QueryCommand = Command.make("query", {
+  format: formatFlag,
+  limit: limitFlag,
+  query: queryArg,
+  token: tokenFlag
+}).pipe(
   Command.withDescription("Execute a SQL query with Amp"),
   Command.withHandler(queryCommandHandler),
   Command.provide(({ token }) => {
     const layerInterceptorAuth = Option
       .match(token, {
-        onSome: (token) => ArrowFlight.layerInterceptorToken(token),
+        onSome: (bearer) => ArrowFlight.layerInterceptorToken(bearer),
         onNone: () => ArrowFlight.layerInterceptorBearerAuth
       })
     return ArrowFlight.layer.pipe(

@@ -1,4 +1,4 @@
-import type { CreateRule, ESTree, Fixer, Visitor } from "oxlint"
+import type { CreateRule, ESTree, Fixer, Visitor } from "../types.ts"
 
 const jsExtensions = [".js", ".jsx", ".mjs", ".cjs"]
 const extensionMap: Record<string, string> = {

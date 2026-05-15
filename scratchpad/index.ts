@@ -1,2 +1,2 @@
-// oxlint-disable-next-line eslint-plugin-unicorn(require-module-specifiers)
+// oxlint-disable-next-line unicorn/require-module-specifiers
 export {}

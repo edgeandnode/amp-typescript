@@ -26,7 +26,7 @@ export class TokenCommandError extends Data.TaggedError("TokenCommandError")<{
   override readonly [Runtime.errorReported] = false
 }
 
-const audience = Flag.string("audience").pipe(
+const audienceFlag = Flag.string("audience").pipe(
   Flag.withAlias("a"),
   Flag.withDescription(
     "URLs that are valid to use the generated access token. " +
@@ -35,7 +35,7 @@ const audience = Flag.string("audience").pipe(
   Flag.atLeast(0)
 )
 
-const duration = Argument.string("duration").pipe(
+const durationArg = Argument.string("duration").pipe(
   Argument.withDescription(
     "Duration of the generated access token before it expires. " +
       "Ex: \"7 days\", \"30 days\", \"1 hour\""
@@ -106,7 +106,7 @@ const handleTokenCommand = Effect.fnUntraced(function*({ audience, duration }: {
   yield* Console.error(message)
 }, Effect.catchTag("AuthCacheError", (cause) => Effect.fail(new TokenCommandError({ cause }))))
 
-export const TokenCommand = Command.make("token", { audience, duration }).pipe(
+export const TokenCommand = Command.make("token", { audience: audienceFlag, duration: durationArg }).pipe(
   Command.withDescription(
     "Generates an access token (Bearer JWT) to be used by your applictaion to interact with Amp"
   ),

@@ -126,7 +126,7 @@ const make = Effect.gen(function*() {
       const flightDataStream = Stream.unwrap(Effect.gen(function*() {
         const controller = yield* Effect.acquireRelease(
           Effect.sync(() => new AbortController()),
-          (controller) => Effect.sync(() => controller.abort())
+          (abort) => Effect.sync(() => abort.abort())
         )
         return Stream.fromAsyncIterable(
           client.doGet(ticket, { signal: controller.signal, contextValues }),
@@ -200,8 +200,8 @@ const make = Effect.gen(function*() {
     ) as any
 
   const query = Effect.fn("ArrowFlight.query")(
-    function*(query: string, options?: QueryOptions) {
-      const chunk = yield* Stream.runCollect(streamQuery(query, options))
+    function*(sql: string, options?: QueryOptions) {
+      const chunk = yield* Stream.runCollect(streamQuery(sql, options))
       return Array.from(chunk)
     }
   ) as any
