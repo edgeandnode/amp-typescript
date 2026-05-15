@@ -1,14 +1,17 @@
-import { create } from "@bufbuild/protobuf"
+import { create, fromBinary } from "@bufbuild/protobuf"
+import { AnySchema, anyUnpack } from "@bufbuild/protobuf/wkt"
 import { createRouterTransport } from "@connectrpc/connect"
 import * as ArrowFlight from "@edgeandnode/amp/arrow-flight"
 import {
   type FlightData,
   FlightDataSchema,
+  FlightDescriptor_DescriptorType,
   FlightEndpointSchema,
   FlightInfoSchema,
   FlightService,
   TicketSchema
 } from "@edgeandnode/amp/protobuf/Flight_pb"
+import { CommandStatementQuerySchema } from "@edgeandnode/amp/protobuf/FlightSql_pb"
 import { describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -62,7 +65,76 @@ const toProtoFlightData = (
     dataHeader: flightData.dataHeader
   })
 
+const makeCapturingTransport = (capturedSql: { value: string }) =>
+  createRouterTransport((router) => {
+    const ticket = create(TicketSchema, { ticket: encoder.encode("ticket") })
+    const endpoint = create(FlightEndpointSchema, {
+      appMetadata: new Uint8Array(0),
+      location: [],
+      ticket
+    })
+    const flightInfo = create(FlightInfoSchema, {
+      appMetadata: new Uint8Array(0),
+      endpoint: [endpoint],
+      ordered: true,
+      schema: new Uint8Array(0),
+      totalBytes: 0n,
+      totalRecords: 0n
+    })
+
+    router.service(FlightService, {
+      doGet() {
+        async function* messages(): AsyncGenerator<FlightData> {
+          // Yield no flight data — `explain` should return an empty table.
+        }
+        return messages()
+      },
+      getFlightInfo(req) {
+        if (req.type === FlightDescriptor_DescriptorType.CMD) {
+          const any = fromBinary(AnySchema, req.cmd)
+          const cmd = anyUnpack(any, CommandStatementQuerySchema)
+          if (cmd !== undefined) capturedSql.value = cmd.query
+        }
+        return flightInfo
+      }
+    })
+  })
+
 describe("ArrowFlight", () => {
+  it.effect("explain prepends EXPLAIN to the SQL by default", ({ expect }) =>
+    Effect.gen(function*() {
+      const captured = { value: "" }
+      const transport = makeCapturingTransport(captured)
+      const layer = ArrowFlight.layer.pipe(
+        Layer.provide(Layer.succeed(ArrowFlight.Transport, transport))
+      )
+
+      const rows = yield* Effect.gen(function*() {
+        const flight = yield* ArrowFlight.ArrowFlight
+        return yield* flight.explain("SELECT * FROM foo LIMIT 10")
+      }).pipe(Effect.provide(layer))
+
+      expect(captured.value).toBe("EXPLAIN SELECT * FROM foo LIMIT 10")
+      expect(rows).toEqual([])
+    }))
+
+  it.effect("explain prepends EXPLAIN ANALYZE when analyze is true", ({ expect }) =>
+    Effect.gen(function*() {
+      const captured = { value: "" }
+      const transport = makeCapturingTransport(captured)
+      const layer = ArrowFlight.layer.pipe(
+        Layer.provide(Layer.succeed(ArrowFlight.Transport, transport))
+      )
+
+      const rows = yield* Effect.gen(function*() {
+        const flight = yield* ArrowFlight.ArrowFlight
+        return yield* flight.explain("SELECT 1", { analyze: true })
+      }).pipe(Effect.provide(layer))
+
+      expect(captured.value).toBe("EXPLAIN ANALYZE SELECT 1")
+      expect(rows).toEqual([])
+    }))
+
   it.effect("passes binaryHandling to query output conversion", ({ expect }) =>
     Effect.gen(function*() {
       const testSchema = SchemaBuilder.schema()
