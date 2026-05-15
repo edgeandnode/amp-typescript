@@ -23,7 +23,7 @@ import {
   MessageHeaderType,
   parseSchema
 } from "../internal/arrow-flight-ipc/Schema.ts"
-import { ExplainResultRow, parsePlan, planToTable } from "../internal/explain/parser.ts"
+import { ExplainResultRow, parsePlan, planToTable, prefixExplain } from "../internal/explain/parser.ts"
 import { FlightDescriptor_DescriptorType, FlightDescriptorSchema, FlightService } from "../protobuf/Flight_pb.ts"
 import { CommandStatementQuerySchema } from "../protobuf/FlightSql_pb.ts"
 import {
@@ -272,8 +272,8 @@ const make = Effect.gen(function*() {
     sql: string,
     options?: { readonly analyze?: boolean | undefined }
   ) {
-    const prefix = options?.analyze ? "EXPLAIN ANALYZE " : "EXPLAIN "
-    const head = yield* streamQuery(prefix + sql, {
+    const prepared = prefixExplain(sql, options?.analyze ?? false)
+    const head = yield* streamQuery(prepared, {
       schema: ExplainResultRow
     }).pipe(Stream.runHead)
     const planText = head.pipe(

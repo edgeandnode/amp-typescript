@@ -1,5 +1,5 @@
 import type { ExplainRow, PlanNode } from "@edgeandnode/amp/arrow-flight"
-import { parsePlan, planToTable } from "@edgeandnode/amp/internal/explain/parser"
+import { parsePlan, planToTable, prefixExplain } from "@edgeandnode/amp/internal/explain/parser"
 import { describe, expect, it } from "vitest"
 
 const cell = (row: ExplainRow, key: string): unknown => (row as Record<string, unknown>)[key]
@@ -178,5 +178,37 @@ describe("planToTable", () => {
   it("falls back to the raw string for an unparseable metric", () => {
     const result = planToTable(parsePlan("Foo: x=1, metrics=[shape=triangle]\n"))
     expect(cell(result.rows[0]!, "shape")).toBe("triangle")
+  })
+})
+
+describe("prefixExplain", () => {
+  it("prepends EXPLAIN when the SQL has no leading EXPLAIN", () => {
+    expect(prefixExplain("SELECT 1", false)).toBe("EXPLAIN SELECT 1")
+  })
+
+  it("prepends EXPLAIN ANALYZE when analyze is true", () => {
+    expect(prefixExplain("SELECT 1", true)).toBe("EXPLAIN ANALYZE SELECT 1")
+  })
+
+  it("returns the SQL unchanged if it already starts with EXPLAIN", () => {
+    expect(prefixExplain("EXPLAIN SELECT 1", false)).toBe("EXPLAIN SELECT 1")
+    // The user's own EXPLAIN wins, even when analyze is requested — we don't
+    // try to upgrade EXPLAIN to EXPLAIN ANALYZE silently.
+    expect(prefixExplain("EXPLAIN SELECT 1", true)).toBe("EXPLAIN SELECT 1")
+  })
+
+  it("returns the SQL unchanged if it already starts with EXPLAIN ANALYZE", () => {
+    expect(prefixExplain("EXPLAIN ANALYZE SELECT 1", true)).toBe("EXPLAIN ANALYZE SELECT 1")
+    expect(prefixExplain("EXPLAIN ANALYZE SELECT 1", false)).toBe("EXPLAIN ANALYZE SELECT 1")
+  })
+
+  it("matches case-insensitively and tolerates leading whitespace", () => {
+    expect(prefixExplain("explain analyze select 1", false)).toBe("explain analyze select 1")
+    expect(prefixExplain("  ExPlAiN SELECT 1", true)).toBe("  ExPlAiN SELECT 1")
+  })
+
+  it("does not match identifiers that merely start with the letters EXPLAIN", () => {
+    // No word boundary after EXPLAIN — should be treated as a normal query.
+    expect(prefixExplain("EXPLAINER FROM foo", false)).toBe("EXPLAIN EXPLAINER FROM foo")
   })
 })

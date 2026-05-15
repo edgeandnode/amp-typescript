@@ -48,6 +48,24 @@ const MULTIPLIER_UNITS: Record<string, number> = {
 }
 
 // =============================================================================
+// SQL Prefix
+// =============================================================================
+
+const LEADING_EXPLAIN_RE = /^\s*EXPLAIN\b/i
+
+/**
+ * Prepend `EXPLAIN` (or `EXPLAIN ANALYZE` when `analyze` is true) to the
+ * given SQL, unless the SQL already starts with `EXPLAIN` (in any case),
+ * in which case it is returned unchanged. This avoids producing invalid
+ * statements like `EXPLAIN EXPLAIN ANALYZE SELECT ...` when callers paste
+ * a query that was already prefixed.
+ */
+export const prefixExplain = (sql: string, analyze: boolean): string => {
+  if (LEADING_EXPLAIN_RE.test(sql)) return sql
+  return (analyze ? "EXPLAIN ANALYZE " : "EXPLAIN ") + sql
+}
+
+// =============================================================================
 // Plan Parsing
 // =============================================================================
 
