@@ -109,13 +109,14 @@ describe("ArrowFlight", () => {
         Layer.provide(Layer.succeed(ArrowFlight.Transport, transport))
       )
 
-      const rows = yield* Effect.gen(function*() {
+      const result = yield* Effect.gen(function*() {
         const flight = yield* ArrowFlight.ArrowFlight
         return yield* flight.explain("SELECT * FROM foo LIMIT 10")
       }).pipe(Effect.provide(layer))
 
       expect(captured.value).toBe("EXPLAIN SELECT * FROM foo LIMIT 10")
-      expect(rows).toEqual([])
+      expect(result.rows).toEqual([])
+      expect(result.columns).toEqual([])
     }))
 
   it.effect("explain prepends EXPLAIN ANALYZE when analyze is true", ({ expect }) =>
@@ -126,13 +127,14 @@ describe("ArrowFlight", () => {
         Layer.provide(Layer.succeed(ArrowFlight.Transport, transport))
       )
 
-      const rows = yield* Effect.gen(function*() {
+      const result = yield* Effect.gen(function*() {
         const flight = yield* ArrowFlight.ArrowFlight
         return yield* flight.explain("SELECT 1", { analyze: true })
       }).pipe(Effect.provide(layer))
 
       expect(captured.value).toBe("EXPLAIN ANALYZE SELECT 1")
-      expect(rows).toEqual([])
+      expect(result.rows).toEqual([])
+      expect(result.columns).toEqual([])
     }))
 
   it.effect("passes binaryHandling to query output conversion", ({ expect }) =>

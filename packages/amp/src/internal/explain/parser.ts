@@ -1,5 +1,5 @@
 import * as Schema from "effect/Schema"
-import { type ExplainCell, type ExplainRow, PlanNode } from "../../arrow-flight/types.ts"
+import { type ExplainCell, ExplainResult, PlanNode } from "../../arrow-flight/types.ts"
 
 // =============================================================================
 // Internal Schemas
@@ -82,30 +82,43 @@ export const parsePlan = (planText: string): ReadonlyArray<PlanNode> => {
 }
 
 /**
- * Convert a list of `PlanNode`s into a flat table of rows (one row per node)
- * with normalized units. Mirrors the Python `ExplainResult.to_dataframe()`
+ * Convert a list of `PlanNode`s into the table form returned by
+ * `ArrowFlight.explain`. Mirrors the Python `ExplainResult.to_dataframe()`
  * shape: numeric properties only, expanded metrics, durations in seconds with
  * `_secs` suffix, `total → matched` split into two columns.
+ *
+ * `columns` is the union of all keys across rows, in first-appearance order
+ * (`node`, `depth`, then properties, then metric columns).
  */
-export const planToTable = (
-  nodes: ReadonlyArray<PlanNode>
-): ReadonlyArray<ExplainRow> => {
+export const planToTable = (nodes: ReadonlyArray<PlanNode>): ExplainResult => {
   const rows: Array<Record<string, ExplainCell>> = []
+  const seen = new Set<string>()
+  const columns: Array<string> = []
+  const recordKey = (key: string): void => {
+    if (seen.has(key)) return
+    seen.add(key)
+    columns.push(key)
+  }
+
   for (const node of nodes) {
-    const row: Record<string, ExplainCell> = {
-      node: node.name,
-      depth: node.depth
-    }
+    const row: Record<string, ExplainCell> = {}
+    row["node"] = node.name
+    recordKey("node")
+    row["depth"] = node.depth
+    recordKey("depth")
     for (const key in node.properties) {
       const num = extractNumeric(node.properties[key]!)
-      if (num !== null) row[key] = num
+      if (num !== null) {
+        row[key] = num
+        recordKey(key)
+      }
     }
     for (const key in node.metrics) {
-      expandMetric(key, node.metrics[key]!, row)
+      expandMetric(key, node.metrics[key]!, row, recordKey)
     }
     rows.push(row)
   }
-  return rows
+  return ExplainResult.make({ columns, rows })
 }
 
 // =============================================================================
@@ -187,7 +200,9 @@ const extractNumeric = (raw: string): number | null => {
 }
 
 /**
- * Expand a single metric into one or more cells written into `row`.
+ * Expand a single metric into one or more cells written into `row`, recording
+ * each emitted column key via `recordKey` so the caller can build a stable,
+ * first-appearance ordering of the table's columns.
  *
  * Mirrors Python `_expand_metric` plus the `_secs` rename that Python applies
  * post-hoc via `df.rename`. We rename inline because the per-row Record we
@@ -196,39 +211,50 @@ const extractNumeric = (raw: string): number | null => {
 const expandMetric = (
   key: string,
   raw: string,
-  row: Record<string, ExplainCell>
+  row: Record<string, ExplainCell>,
+  recordKey: (key: string) => void
 ): void => {
   const value = raw.trim()
 
   if (value.startsWith("N/A")) {
     row[key] = null
+    recordKey(key)
     return
   }
 
   const tm = TOTAL_MATCHED_RE.exec(value)
   if (tm !== null) {
-    row[`${key}_total`] = parseNumberWithUnit(tm[1]!)
-    row[`${key}_matched`] = parseNumberWithUnit(tm[2]!)
+    const totalKey = `${key}_total`
+    const matchedKey = `${key}_matched`
+    row[totalKey] = parseNumberWithUnit(tm[1]!)
+    row[matchedKey] = parseNumberWithUnit(tm[2]!)
+    recordKey(totalKey)
+    recordKey(matchedKey)
     return
   }
 
   const pct = PCT_RATIO_RE.exec(value)
   if (pct !== null) {
     row[key] = parseFloat(pct[1]!)
+    recordKey(key)
     return
   }
 
   const dur = DURATION_RE.exec(value)
   if (dur !== null) {
-    row[`${key}_secs`] = parseFloat(dur[1]!) * DURATION_UNITS[dur[2]!]!
+    const secsKey = `${key}_secs`
+    row[secsKey] = parseFloat(dur[1]!) * DURATION_UNITS[dur[2]!]!
+    recordKey(secsKey)
     return
   }
 
   const num = parseNumberWithUnit(value)
   if (num !== null) {
     row[key] = num
+    recordKey(key)
     return
   }
 
   row[key] = value
+  recordKey(key)
 }

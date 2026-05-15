@@ -96,3 +96,16 @@ export const PlanNode = Schema.Struct({
   metrics: Schema.Record(Schema.String, Schema.String)
 }).annotate({ identifier: "PlanNode" })
 export type PlanNode = typeof PlanNode.Type
+
+/**
+ * The result returned by `ArrowFlight.explain` — a tabular view of the parsed
+ * plan suitable for direct rendering or serialization. `columns` is the union
+ * of all keys across `rows` in first-appearance order (`node`, `depth`, then
+ * properties, then metric columns), so callers can drive a table render
+ * without recomputing the header set themselves.
+ */
+export const ExplainResult = Schema.Struct({
+  columns: Schema.Array(Schema.String),
+  rows: Schema.Array(ExplainRow)
+}).annotate({ identifier: "ExplainResult" })
+export type ExplainResult = typeof ExplainResult.Type

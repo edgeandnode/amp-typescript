@@ -2,6 +2,8 @@ import type { ExplainRow, PlanNode } from "@edgeandnode/amp/arrow-flight"
 import { parsePlan, planToTable } from "@edgeandnode/amp/internal/explain/parser"
 import { describe, expect, it } from "vitest"
 
+const cell = (row: ExplainRow, key: string): unknown => (row as Record<string, unknown>)[key]
+
 // Real EXPLAIN ANALYZE output captured from Amp. Two nodes:
 // `CoalescePartitionsExec` at depth 0, `DataSourceExec` at depth 1.
 const REAL_PLAN =
@@ -62,88 +64,119 @@ describe("parsePlan", () => {
 })
 
 describe("planToTable", () => {
-  it("normalizes the real plan into a table with expected cells", () => {
-    const table = planToTable(parsePlan(REAL_PLAN))
-    expect(table).toHaveLength(2)
+  it("returns empty rows + columns for an empty plan", () => {
+    const result = planToTable([])
+    expect(result.rows).toEqual([])
+    expect(result.columns).toEqual([])
+  })
 
-    const row0 = table[0] as ExplainRow & Record<string, unknown>
-    expect(row0["node"]).toBe("CoalescePartitionsExec")
-    expect(row0["depth"]).toBe(0)
-    expect(row0["fetch"]).toBe(10)
-    expect(row0["output_rows"]).toBe(10)
-    expect(row0["elapsed_compute_secs"]).toBeCloseTo(9.59e-6, 12)
-    expect(row0["output_bytes"]).toBe("1376.0 B")
-    expect(row0["output_batches"]).toBe(1)
+  it("normalizes the real plan into a table with expected cells", () => {
+    const result = planToTable(parsePlan(REAL_PLAN))
+    expect(result.rows).toHaveLength(2)
+
+    const row0 = result.rows[0]!
+    expect(cell(row0, "node")).toBe("CoalescePartitionsExec")
+    expect(cell(row0, "depth")).toBe(0)
+    expect(cell(row0, "fetch")).toBe(10)
+    expect(cell(row0, "output_rows")).toBe(10)
+    expect(cell(row0, "elapsed_compute_secs")).toBeCloseTo(9.59e-6, 12)
+    expect(cell(row0, "output_bytes")).toBe("1376.0 B")
+    expect(cell(row0, "output_batches")).toBe(1)
     // Duration was renamed; the unsuffixed key must not also be present.
     expect("elapsed_compute" in row0).toBe(false)
 
-    const row1 = table[1] as ExplainRow & Record<string, unknown>
-    expect(row1["node"]).toBe("DataSourceExec")
-    expect(row1["depth"]).toBe(1)
-    expect(row1["limit"]).toBe(10)
+    const row1 = result.rows[1]!
+    expect(cell(row1, "node")).toBe("DataSourceExec")
+    expect(cell(row1, "depth")).toBe(1)
+    expect(cell(row1, "limit")).toBe(10)
     // file_groups is "{4 groups: ..." — leading-number extraction yields 4.
-    expect(row1["file_groups"]).toBe(4)
+    expect(cell(row1, "file_groups")).toBe(4)
     // Non-numeric properties are dropped from the table.
     expect("file_type" in row1).toBe(false)
     expect("projection" in row1).toBe(false)
 
-    expect(row1["output_rows"]).toBe(10)
-    expect(row1["output_bytes"]).toBe("1376.0 B")
-    expect(row1["output_batches"]).toBe(1)
-    expect(row1["elapsed_compute_secs"]).toBeCloseTo(4e-9, 18)
+    expect(cell(row1, "output_rows")).toBe(10)
+    expect(cell(row1, "output_bytes")).toBe("1376.0 B")
+    expect(cell(row1, "output_batches")).toBe(1)
+    expect(cell(row1, "elapsed_compute_secs")).toBeCloseTo(4e-9, 18)
 
     // total → matched expansions
-    expect(row1["files_ranges_pruned_statistics_total"]).toBe(6)
-    expect(row1["files_ranges_pruned_statistics_matched"]).toBe(6)
-    expect(row1["row_groups_pruned_statistics_total"]).toBe(74)
-    expect(row1["row_groups_pruned_statistics_matched"]).toBe(74)
-    expect(row1["row_groups_pruned_bloom_filter_total"]).toBe(74)
-    expect(row1["row_groups_pruned_bloom_filter_matched"]).toBe(74)
-    expect(row1["page_index_pages_pruned_total"]).toBe(0)
-    expect(row1["page_index_pages_pruned_matched"]).toBe(0)
-    expect(row1["page_index_rows_pruned_total"]).toBe(0)
-    expect(row1["page_index_rows_pruned_matched"]).toBe(0)
-    expect(row1["limit_pruned_row_groups_total"]).toBe(0)
-    expect(row1["limit_pruned_row_groups_matched"]).toBe(0)
+    expect(cell(row1, "files_ranges_pruned_statistics_total")).toBe(6)
+    expect(cell(row1, "files_ranges_pruned_statistics_matched")).toBe(6)
+    expect(cell(row1, "row_groups_pruned_statistics_total")).toBe(74)
+    expect(cell(row1, "row_groups_pruned_statistics_matched")).toBe(74)
+    expect(cell(row1, "row_groups_pruned_bloom_filter_total")).toBe(74)
+    expect(cell(row1, "row_groups_pruned_bloom_filter_matched")).toBe(74)
+    expect(cell(row1, "page_index_pages_pruned_total")).toBe(0)
+    expect(cell(row1, "page_index_pages_pruned_matched")).toBe(0)
+    expect(cell(row1, "page_index_rows_pruned_total")).toBe(0)
+    expect(cell(row1, "page_index_rows_pruned_matched")).toBe(0)
+    expect(cell(row1, "limit_pruned_row_groups_total")).toBe(0)
+    expect(cell(row1, "limit_pruned_row_groups_matched")).toBe(0)
 
     // Plain numbers
-    expect(row1["batches_split"]).toBe(0)
-    expect(row1["file_open_errors"]).toBe(0)
-    expect(row1["file_scan_errors"]).toBe(0)
-    expect(row1["num_predicate_creation_errors"]).toBe(0)
-    expect(row1["predicate_evaluation_errors"]).toBe(0)
-    expect(row1["pushdown_rows_matched"]).toBe(0)
-    expect(row1["pushdown_rows_pruned"]).toBe(0)
-    expect(row1["predicate_cache_inner_records"]).toBe(0)
-    expect(row1["predicate_cache_records"]).toBe(0)
+    expect(cell(row1, "batches_split")).toBe(0)
+    expect(cell(row1, "file_open_errors")).toBe(0)
+    expect(cell(row1, "file_scan_errors")).toBe(0)
+    expect(cell(row1, "num_predicate_creation_errors")).toBe(0)
+    expect(cell(row1, "predicate_evaluation_errors")).toBe(0)
+    expect(cell(row1, "pushdown_rows_matched")).toBe(0)
+    expect(cell(row1, "pushdown_rows_pruned")).toBe(0)
+    expect(cell(row1, "predicate_cache_inner_records")).toBe(0)
+    expect(cell(row1, "predicate_cache_records")).toBe(0)
 
     // M-suffix expansion
-    expect(row1["bytes_scanned"]).toBe(13.37e6)
+    expect(cell(row1, "bytes_scanned")).toBe(13.37e6)
 
     // Duration metrics
-    expect(row1["bloom_filter_eval_time_secs"]).toBeCloseTo(12e-9, 18)
-    expect(row1["metadata_load_time_secs"]).toBeCloseTo(288.01e-6, 12)
-    expect(row1["page_index_eval_time_secs"]).toBeCloseTo(12e-9, 18)
-    expect(row1["row_pushdown_eval_time_secs"]).toBeCloseTo(12e-9, 18)
-    expect(row1["statistics_eval_time_secs"]).toBeCloseTo(12e-9, 18)
-    expect(row1["time_elapsed_opening_secs"]).toBeCloseTo(415.35e-6, 12)
-    expect(row1["time_elapsed_processing_secs"]).toBeCloseTo(43.9e-3, 9)
-    expect(row1["time_elapsed_scanning_total_secs"]).toBeCloseTo(230.61e-3, 9)
-    expect(row1["time_elapsed_scanning_until_data_secs"]).toBeCloseTo(230.6e-3, 9)
+    expect(cell(row1, "bloom_filter_eval_time_secs")).toBeCloseTo(12e-9, 18)
+    expect(cell(row1, "metadata_load_time_secs")).toBeCloseTo(288.01e-6, 12)
+    expect(cell(row1, "page_index_eval_time_secs")).toBeCloseTo(12e-9, 18)
+    expect(cell(row1, "row_pushdown_eval_time_secs")).toBeCloseTo(12e-9, 18)
+    expect(cell(row1, "statistics_eval_time_secs")).toBeCloseTo(12e-9, 18)
+    expect(cell(row1, "time_elapsed_opening_secs")).toBeCloseTo(415.35e-6, 12)
+    expect(cell(row1, "time_elapsed_processing_secs")).toBeCloseTo(43.9e-3, 9)
+    expect(cell(row1, "time_elapsed_scanning_total_secs")).toBeCloseTo(230.61e-3, 9)
+    expect(cell(row1, "time_elapsed_scanning_until_data_secs")).toBeCloseTo(230.6e-3, 9)
 
     // N/A → null
-    expect(row1["scan_efficiency_ratio"]).toBeNull()
+    expect(cell(row1, "scan_efficiency_ratio")).toBeNull()
+  })
+
+  it("emits columns in first-appearance order across rows", () => {
+    const result = planToTable(parsePlan(REAL_PLAN))
+    // Root-only columns come first, then DataSourceExec-only columns appear
+    // when they're first introduced by row 1.
+    expect(result.columns.slice(0, 7)).toEqual([
+      "node",
+      "depth",
+      "fetch",
+      "output_rows",
+      "elapsed_compute_secs",
+      "output_bytes",
+      "output_batches"
+    ])
+    // `limit` is the first row-1-only property, immediately after the shared
+    // root metric columns.
+    const limitIdx = result.columns.indexOf("limit")
+    expect(limitIdx).toBeGreaterThan(6)
+    // No duplicates.
+    expect(result.columns.length).toBe(new Set(result.columns).size)
+    // Every row's keys are a subset of `columns`.
+    for (const row of result.rows) {
+      for (const key of Object.keys(row)) {
+        expect(result.columns).toContain(key)
+      }
+    }
   })
 
   it("parses 'P% (out/in)' selectivity metrics as plain percent floats", () => {
-    const nodes = parsePlan("Foo: x=1, metrics=[selectivity=12.5% (1/8)]\n")
-    const table = planToTable(nodes)
-    expect(table[0]!["selectivity"]).toBe(12.5)
+    const result = planToTable(parsePlan("Foo: x=1, metrics=[selectivity=12.5% (1/8)]\n"))
+    expect(cell(result.rows[0]!, "selectivity")).toBe(12.5)
   })
 
   it("falls back to the raw string for an unparseable metric", () => {
-    const nodes = parsePlan("Foo: x=1, metrics=[shape=triangle]\n")
-    const table = planToTable(nodes)
-    expect(table[0]!["shape"]).toBe("triangle")
+    const result = planToTable(parsePlan("Foo: x=1, metrics=[shape=triangle]\n"))
+    expect(cell(result.rows[0]!, "shape")).toBe("triangle")
   })
 })

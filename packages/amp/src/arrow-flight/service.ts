@@ -36,7 +36,7 @@ import {
   TicketNotFoundError
 } from "./errors.ts"
 import { AuthInfoContextKey, Transport } from "./transport.ts"
-import type { ExplainRow, ExtractQueryResult, QueryOptions } from "./types.ts"
+import type { ExplainResult, ExtractQueryResult, QueryOptions } from "./types.ts"
 
 // =============================================================================
 // Arrow Flight Service
@@ -83,7 +83,7 @@ export class ArrowFlight extends Context.Service<
     readonly explain: (
       sql: string,
       options?: { readonly analyze?: boolean | undefined }
-    ) => Effect.Effect<ReadonlyArray<ExplainRow>, ArrowFlightError>
+    ) => Effect.Effect<ExplainResult, ArrowFlightError>
   }
 >()("Amp/ArrowFlight") {}
 
