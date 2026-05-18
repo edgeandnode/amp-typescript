@@ -33,6 +33,7 @@ export {
 // Types
 // =============================================================================
 
+export { ExplainCell, ExplainResult, ExplainRow, PlanNode } from "./arrow-flight/types.ts"
 export { type ExtractQueryResult, type QueryOptions, type QueryResult } from "./arrow-flight/types.ts"
 
 // =============================================================================
