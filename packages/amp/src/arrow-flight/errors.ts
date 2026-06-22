@@ -28,7 +28,7 @@ export class RpcError extends Schema.TaggedErrorClass<RpcError>(
   /**
    * The underlying reason for the failed RPC request.
    */
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {}
 
 /**
@@ -84,7 +84,7 @@ export class ParseRecordBatchError extends Schema.TaggedErrorClass<ParseRecordBa
   /**
    * The underlying reason for the failure to parse a record batch.
    */
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {}
 
 /**
@@ -97,7 +97,7 @@ export class ParseDictionaryBatchError extends Schema.TaggedErrorClass<ParseDict
   /**
    * The underlying reason for the failure to parse a dictionary batch.
    */
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {}
 
 /**
@@ -110,5 +110,5 @@ export class ParseSchemaError extends Schema.TaggedErrorClass<ParseSchemaError>(
   /**
    * The underlying reason for the failure to parse a schema.
    */
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {}

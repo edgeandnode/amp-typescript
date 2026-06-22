@@ -190,7 +190,7 @@ export type RefreshTokenResponse = typeof RefreshTokenResponse.Type
 
 export class VerifySignedAccessTokenError extends Schema.TaggedErrorClass<VerifySignedAccessTokenError>(
   "Amp/Auth/VerifySignedAccessTokenError"
-)("VerifySignedAccessTokenError", { cause: Schema.Defect }) {}
+)("VerifySignedAccessTokenError", { cause: Schema.Defect() }) {}
 
 // =============================================================================
 // Service
