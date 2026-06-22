@@ -42,17 +42,17 @@
     "coverage": "vitest --coverage"
   },
   "peerDependencies": {
-    "@bufbuild/protobuf": "^2.12.0",
-    "@connectrpc/connect": "^2.1.1",
-    "@connectrpc/connect-node": "^2.1.1",
+    "@bufbuild/protobuf": "^2.12.1",
+    "@connectrpc/connect": "^2.1.2",
+    "@connectrpc/connect-node": "^2.1.2",
     "effect": "catalog:"
   },
   "devDependencies": {
-    "@bufbuild/buf": "^1.69.0",
-    "@bufbuild/protobuf": "^2.12.0",
-    "@bufbuild/protoc-gen-es": "^2.12.0",
-    "@connectrpc/connect": "^2.1.1",
-    "@connectrpc/connect-node": "^2.1.1",
+    "@bufbuild/buf": "^1.71.0",
+    "@bufbuild/protobuf": "^2.12.1",
+    "@bufbuild/protoc-gen-es": "^2.12.1",
+    "@connectrpc/connect": "^2.1.2",
+    "@connectrpc/connect-node": "^2.1.2",
     "effect": "catalog:"
   },
   "dependencies": {

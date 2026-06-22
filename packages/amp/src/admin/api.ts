@@ -71,7 +71,7 @@ const getDatasets = HttpApiEndpoint.get("getDatasets", "/datasets", {
   success: Domain.GetDatasetsResponse
 })
 
-export type GetDatasetsError = typeof getDatasets["~Error"]
+export type GetDatasetsError = typeof getDatasets["~Error"]["Type"]
 
 // POST /datasets - Register a dataset
 const registerDataset = HttpApiEndpoint.post("registerDataset", "/datasets", {
@@ -90,7 +90,7 @@ const registerDataset = HttpApiEndpoint.post("registerDataset", "/datasets", {
   success: Schema.Void
 })
 
-export type RegisterDatasetError = typeof registerDataset["~Error"]
+export type RegisterDatasetError = typeof registerDataset["~Error"]["Type"]
 
 // GET /datasets/{namespace}/{name}/versions - List versions
 const getDatasetVersions = HttpApiEndpoint.get(
@@ -111,7 +111,7 @@ const getDatasetVersions = HttpApiEndpoint.get(
   }
 )
 
-export type GetDatasetVersionsError = typeof getDatasetVersions["~Error"]
+export type GetDatasetVersionsError = typeof getDatasetVersions["~Error"]["Type"]
 
 // GET /datasets/{namespace}/{name}/versions/{revision} - Get dataset version
 const getDatasetVersion = HttpApiEndpoint.get(
@@ -137,7 +137,7 @@ const getDatasetVersion = HttpApiEndpoint.get(
   }
 )
 
-export type GetDatasetVersionError = typeof getDatasetVersion["~Error"]
+export type GetDatasetVersionError = typeof getDatasetVersion["~Error"]["Type"]
 
 // POST /datasets/{namespace}/{name}/versions/{revision}/deploy - Deploy dataset
 const deployDataset = HttpApiEndpoint.post(
@@ -166,7 +166,7 @@ const deployDataset = HttpApiEndpoint.post(
   }
 )
 
-export type DeployDatasetError = typeof deployDataset["~Error"]
+export type DeployDatasetError = typeof deployDataset["~Error"]["Type"]
 
 // GET /datasets/{namespace}/{name}/versions/{revision}/manifest - Get manifest
 const getDatasetManifest = HttpApiEndpoint.get(
@@ -191,7 +191,7 @@ const getDatasetManifest = HttpApiEndpoint.get(
   }
 )
 
-export type GetDatasetManifestError = typeof getDatasetManifest["~Error"]
+export type GetDatasetManifestError = typeof getDatasetManifest["~Error"]["Type"]
 
 // GET /datasets/{namespace}/{name}/versions/{revision}/sync-progress - Get sync progress
 const getDatasetSyncProgress = HttpApiEndpoint.get(
@@ -215,7 +215,7 @@ const getDatasetSyncProgress = HttpApiEndpoint.get(
   }
 )
 
-export type GetDatasetSyncProgressError = typeof getDatasetSyncProgress["~Error"]
+export type GetDatasetSyncProgressError = typeof getDatasetSyncProgress["~Error"]["Type"]
 
 // =============================================================================
 // Job Endpoints
@@ -233,7 +233,7 @@ const getJobs = HttpApiEndpoint.get("getJobs", "/jobs", {
   success: Domain.GetJobsResponse
 })
 
-export type GetJobsError = typeof getJobs["~Error"]
+export type GetJobsError = typeof getJobs["~Error"]["Type"]
 
 // GET /jobs/{jobId} - Get job by ID
 const getJobById = HttpApiEndpoint.get("getJobById", "/jobs/:id", {
@@ -248,7 +248,7 @@ const getJobById = HttpApiEndpoint.get("getJobById", "/jobs/:id", {
   success: Models.JobInfo
 })
 
-export type GetJobByIdError = typeof getJobById["~Error"]
+export type GetJobByIdError = typeof getJobById["~Error"]["Type"]
 
 // PUT /jobs/{jobId}/stop - Stop job
 const stopJob = HttpApiEndpoint.put("stopJob", "/jobs/:id/stop", {
@@ -264,7 +264,7 @@ const stopJob = HttpApiEndpoint.put("stopJob", "/jobs/:id/stop", {
   success: Schema.Void.pipe(HttpApiSchema.status(200))
 })
 
-export type StopJobError = typeof stopJob["~Error"]
+export type StopJobError = typeof stopJob["~Error"]["Type"]
 
 // DELETE /jobs/{jobId} - Delete job
 const deleteJob = HttpApiEndpoint.delete("deleteJob", "/jobs/:id", {
@@ -280,7 +280,7 @@ const deleteJob = HttpApiEndpoint.delete("deleteJob", "/jobs/:id", {
   success: Schema.Void.pipe(HttpApiSchema.status(204))
 })
 
-export type DeleteJobError = typeof deleteJob["~Error"]
+export type DeleteJobError = typeof deleteJob["~Error"]["Type"]
 
 // =============================================================================
 // Worker Endpoints
@@ -292,7 +292,7 @@ const getWorkers = HttpApiEndpoint.get("getWorkers", "/workers", {
   success: Domain.GetWorkersResponse
 })
 
-export type GetWorkersError = typeof getWorkers["~Error"]
+export type GetWorkersError = typeof getWorkers["~Error"]["Type"]
 
 // =============================================================================
 // Schema Endpoints
@@ -328,7 +328,7 @@ const getOutputSchema = HttpApiEndpoint.post("getOutputSchema", "/schema", {
   success: Domain.GetOutputSchemaResponse
 })
 
-export type GetOutputSchemaError = typeof getOutputSchema["~Error"]
+export type GetOutputSchemaError = typeof getOutputSchema["~Error"]["Type"]
 
 // =============================================================================
 // Manifest Endpoints
@@ -348,7 +348,7 @@ const registerManifest = HttpApiEndpoint.post("registerManifest", "/manifests", 
   success: Domain.RegisterManifestResponse.pipe(HttpApiSchema.status(201))
 })
 
-export type RegisterManifestError = typeof registerManifest["~Error"]
+export type RegisterManifestError = typeof registerManifest["~Error"]["Type"]
 
 // =============================================================================
 // Provider Endpoints
@@ -359,7 +359,7 @@ const getProviders = HttpApiEndpoint.get("getProviders", "/providers", {
   success: Domain.GetProvidersResponse
 })
 
-export type GetProvidersError = typeof getProviders["~Error"]
+export type GetProvidersError = typeof getProviders["~Error"]["Type"]
 
 // =============================================================================
 // Admin API Groups

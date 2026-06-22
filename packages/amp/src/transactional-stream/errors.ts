@@ -18,7 +18,7 @@ export class StateStoreError extends Schema.TaggedErrorClass<StateStoreError>(
 )("StateStoreError", {
   reason: Schema.String,
   operation: Schema.Literals(["advance", "commit", "truncate", "load"]),
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 // =============================================================================

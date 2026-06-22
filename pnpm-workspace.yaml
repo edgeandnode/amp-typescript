@@ -16,11 +16,38 @@ allowBuilds:
 
 catalog:
   "@effect/language-service": ^0.86.1
-  "@effect/platform-node": ^4.0.0-beta.66
-  "@effect/vitest": ^4.0.0-beta.66
-  "@vitest/coverage-v8": ^4.1.6
-  "@vitest/ui": ^4.1.6
-  "@types/node": ^25.8.0
-  "effect": ^4.0.0-beta.66
-  "viem": ^2.46.1
-  "vitest": ^4.1.6
+  "@effect/platform-node": ^4.0.0-beta.85
+  "@effect/vitest": ^4.0.0-beta.85
+  "@vitest/coverage-v8": ^4.1.9
+  "@vitest/ui": ^4.1.9
+  "@types/node": ^26.0.0
+  "effect": ^4.0.0-beta.85
+  "viem": ^2.53.1
+  "vitest": ^4.1.9
+
+minimumReleaseAgeExclude:
+  - '@bufbuild/protobuf@2.12.1'
+  - '@bufbuild/protoc-gen-es@2.12.1'
+  - '@bufbuild/protoplugin@2.12.1'
+  - '@oxlint/binding-android-arm-eabi@1.71.0'
+  - '@oxlint/binding-android-arm64@1.71.0'
+  - '@oxlint/binding-darwin-arm64@1.71.0'
+  - '@oxlint/binding-darwin-x64@1.71.0'
+  - '@oxlint/binding-freebsd-x64@1.71.0'
+  - '@oxlint/binding-linux-arm-gnueabihf@1.71.0'
+  - '@oxlint/binding-linux-arm-musleabihf@1.71.0'
+  - '@oxlint/binding-linux-arm64-gnu@1.71.0'
+  - '@oxlint/binding-linux-arm64-musl@1.71.0'
+  - '@oxlint/binding-linux-ppc64-gnu@1.71.0'
+  - '@oxlint/binding-linux-riscv64-gnu@1.71.0'
+  - '@oxlint/binding-linux-riscv64-musl@1.71.0'
+  - '@oxlint/binding-linux-s390x-gnu@1.71.0'
+  - '@oxlint/binding-linux-x64-gnu@1.71.0'
+  - '@oxlint/binding-linux-x64-musl@1.71.0'
+  - '@oxlint/binding-openharmony-arm64@1.71.0'
+  - '@oxlint/binding-win32-arm64-msvc@1.71.0'
+  - '@oxlint/binding-win32-ia32-msvc@1.71.0'
+  - '@oxlint/binding-win32-x64-msvc@1.71.0'
+  - globals@17.7.0
+  - oxlint@1.71.0
+  - rulesync@8.31.0

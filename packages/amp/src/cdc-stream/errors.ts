@@ -18,7 +18,7 @@ export class BatchStoreError extends Schema.TaggedErrorClass<BatchStoreError>(
 )("BatchStoreError", {
   reason: Schema.String,
   operation: Schema.Literals(["append", "seek", "load", "prune"]),
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 // =============================================================================

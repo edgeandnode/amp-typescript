@@ -209,7 +209,7 @@ export class ProtocolValidationError extends Schema.TaggedErrorClass<ProtocolVal
   /**
    * The underlying validation error.
    */
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   override get message(): string {
     const cause = this.cause as ValidationError
@@ -226,7 +226,7 @@ export class ProtocolArrowFlightError extends Schema.TaggedErrorClass<ProtocolAr
   /**
    * The underlying Arrow Flight error.
    */
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {}
 
 /**

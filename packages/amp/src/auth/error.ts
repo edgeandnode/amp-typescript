@@ -125,7 +125,7 @@ export const AuthRefreshError = makeError(
   "AuthRefreshError",
   {
     status: Schema.OptionFromOptional(Schema.Int),
-    cause: Schema.OptionFromOptional(Schema.Defect)
+    cause: Schema.OptionFromOptional(Schema.Defect())
   }
 )
 
@@ -167,7 +167,7 @@ export const AuthCacheError = makeError(
   "AuthCacheError",
   {
     operation: CacheOperation,
-    cause: Schema.OptionFromOptional(Schema.Defect)
+    cause: Schema.OptionFromOptional(Schema.Defect())
   }
 )
 
@@ -182,7 +182,7 @@ export const AuthNetworkError = makeError(
   {
     endpoint: Schema.OptionFromOptional(Schema.String),
     isTimeout: Schema.Boolean,
-    cause: Schema.OptionFromOptional(Schema.Defect)
+    cause: Schema.OptionFromOptional(Schema.Defect())
   }
 )
 
@@ -196,7 +196,7 @@ export const AuthRequestError = makeError(
   "AuthRequestError",
   {
     endpoint: Schema.OptionFromOptional(Schema.String),
-    cause: Schema.OptionFromOptional(Schema.Defect)
+    cause: Schema.OptionFromOptional(Schema.Defect())
   }
 )
 
@@ -211,7 +211,7 @@ export const AuthProtocolError = makeError(
   {
     endpoint: Schema.OptionFromOptional(Schema.String),
     status: Schema.OptionFromOptional(Schema.Int),
-    cause: Schema.OptionFromOptional(Schema.Defect)
+    cause: Schema.OptionFromOptional(Schema.Defect())
   }
 )
 
@@ -226,7 +226,7 @@ export const AuthVerifyTokenError = makeError(
   {
     reason: VerifyTokenFailureReason,
     claim: Schema.OptionFromOptional(Schema.String),
-    cause: Schema.OptionFromOptional(Schema.Defect)
+    cause: Schema.OptionFromOptional(Schema.Defect())
   }
 )
 
