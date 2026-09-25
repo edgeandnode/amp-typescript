@@ -1,10 +1,13 @@
 import * as AdminApi from "@edgeandnode/amp/admin/service"
+import * as Auth from "@edgeandnode/amp/auth/service"
 import type * as Models from "@edgeandnode/amp/core/domain"
 import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Redacted from "effect/Redacted"
 import * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
 
 // Response payloads mirror the serialized shapes of the Amp admin API
 // (see `docs/schemas/openapi/admin.spec.json` in the Amp repository).
@@ -336,4 +339,96 @@ describe("AdminApi", () => {
       )
     )
   )
+})
+
+describe("AdminApi authentication", () => {
+  const makeRecordingClient = (authorization: Array<string | undefined>) =>
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) => {
+        authorization.push(request.headers["authorization"])
+        const body = JSON.stringify({ workers: [] })
+        const response = new Response(body, { status: 200, headers: { "content-type": "application/json" } })
+        return Effect.succeed(HttpClientResponse.fromWeb(request, response))
+      })
+    )
+
+  // Uses `layerAuth` alongside a separate `Auth` instance sharing the same
+  // in-memory store, so the test can seed the cached auth info.
+  const makeAuthLayer = (options: AdminApi.MakeOptions, authorization: Array<string | undefined>) =>
+    Layer.mergeAll(AdminApi.layerAuth(options), Auth.layer).pipe(
+      Layer.provide(KeyValueStore.layerMemory),
+      Layer.provide(makeRecordingClient(authorization))
+    )
+
+  const seedCachedAuthInfo = Effect.gen(function* () {
+    const auth = yield* Auth.Auth
+    yield* auth.setCachedAuthInfo({
+      accessToken: Redacted.make("cached-token" as Models.AccessToken),
+      refreshToken: Redacted.make("refresh-token" as Models.RefreshToken),
+      userId: "c0123456789abcdefghijklmn" as Models.UserId,
+      accounts: [],
+      // Far enough in the future that the cached token is not refreshed
+      expiry: Date.now() + 60 * 60 * 1000
+    })
+  })
+
+  it.effect("sends the provided jwt without the Auth service", () => {
+    const authorization: Array<string | undefined> = []
+    return Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      yield* admin.getWorkers
+      assert.deepStrictEqual(authorization, ["Bearer provided-jwt"])
+    }).pipe(
+      Effect.provide(
+        AdminApi.layer({ url: "http://localhost:1610", jwt: "provided-jwt" }).pipe(
+          Layer.provide(makeRecordingClient(authorization))
+        )
+      )
+    )
+  })
+
+  it.effect("sends no authorization without a jwt or the Auth service", () => {
+    const authorization: Array<string | undefined> = []
+    return Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      yield* admin.getWorkers
+      assert.deepStrictEqual(authorization, [undefined])
+    }).pipe(
+      Effect.provide(
+        AdminApi.layer({ url: "http://localhost:1610", jwt: null }).pipe(
+          Layer.provide(makeRecordingClient(authorization))
+        )
+      )
+    )
+  })
+
+  it.effect("prefers the provided jwt over the cached auth info", () => {
+    const authorization: Array<string | undefined> = []
+    return Effect.gen(function* () {
+      yield* seedCachedAuthInfo
+      const admin = yield* AdminApi.AdminApi
+      yield* admin.getWorkers
+      assert.deepStrictEqual(authorization, ["Bearer provided-jwt"])
+    }).pipe(Effect.provide(makeAuthLayer({ url: "http://localhost:1610", jwt: "provided-jwt" }, authorization)))
+  })
+
+  it.effect("falls back to the cached auth info without a jwt", () => {
+    const authorization: Array<string | undefined> = []
+    return Effect.gen(function* () {
+      yield* seedCachedAuthInfo
+      const admin = yield* AdminApi.AdminApi
+      yield* admin.getWorkers
+      assert.deepStrictEqual(authorization, ["Bearer cached-token"])
+    }).pipe(Effect.provide(makeAuthLayer({ url: "http://localhost:1610" }, authorization)))
+  })
+
+  it.effect("sends no authorization when nothing is cached and no jwt is provided", () => {
+    const authorization: Array<string | undefined> = []
+    return Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      yield* admin.getWorkers
+      assert.deepStrictEqual(authorization, [undefined])
+    }).pipe(Effect.provide(makeAuthLayer({ url: "http://localhost:1610" }, authorization)))
+  })
 })

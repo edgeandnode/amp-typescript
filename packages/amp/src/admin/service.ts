@@ -185,6 +185,7 @@ export class AdminApi extends Context.Service<
 
 export interface MakeOptions {
   readonly url: string | URL
+  readonly jwt?: string | null | undefined
 }
 
 const make = Effect.fnUntraced(function* (options: MakeOptions) {
@@ -192,23 +193,30 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
 
   const auth = yield* Effect.serviceOption(Auth.Auth)
 
+  // An explicitly provided JWT takes precedence over the cached auth info, and
+  // is applied even when the Auth service is not available
+  const jwt = options.jwt
+  const transformClient = jwt
+    ? HttpClient.mapRequest(HttpClientRequest.bearerToken(jwt))
+    : Option.match(auth, {
+        onNone: constUndefined,
+        onSome: (authService) =>
+          HttpClient.mapRequestEffect(
+            Effect.fnUntraced(function* (request) {
+              const authInfo = yield* authService.getCachedAuthInfo.pipe(
+                // Treat cache errors as "no auth available"
+                Effect.catch(() => Effect.succeed(Option.none()))
+              )
+              if (Option.isNone(authInfo)) return request
+              const token = authInfo.value.accessToken
+              return HttpClientRequest.bearerToken(request, token)
+            })
+          )
+      })
+
   const client = yield* HttpApiClient.make(Api.Api, {
     baseUrl: options.url,
-    transformClient: Option.match(auth, {
-      onNone: constUndefined,
-      onSome: (authService) =>
-        HttpClient.mapRequestEffect(
-          Effect.fnUntraced(function* (request) {
-            const authInfo = yield* authService.getCachedAuthInfo.pipe(
-              // Treat cache errors as "no auth available"
-              Effect.catch(() => Effect.succeed(Option.none()))
-            )
-            if (Option.isNone(authInfo)) return request
-            const token = authInfo.value.accessToken
-            return HttpClientRequest.bearerToken(request, token)
-          })
-        )
-    })
+    transformClient
   })
 
   // Dataset Operations
