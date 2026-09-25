@@ -2,7 +2,7 @@
  * This module provides the AdminApi service for interacting with the Amp Admin API.
  *
  * The Admin API allows managing:
- * - Datasets (registration, versioning, manifests)
+ * - Datasets (registration, versioning, manifests, lineage)
  * - Jobs (listing, stopping, deletion)
  * - Workers (listing)
  * - Providers (listing)
@@ -107,6 +107,34 @@ export class AdminApi extends Context.Service<
       name: Models.DatasetName,
       revision: Models.DatasetRevision
     ) => Effect.Effect<Models.DatasetManifest, HttpError | Api.GetDatasetManifestError>
+
+    /**
+     * Get the lineage graph of a dataset version.
+     *
+     * Edges in the returned graph always point from upstream sources to
+     * downstream consumers, regardless of the traversal direction.
+     *
+     * @param namespace The namespace of the dataset.
+     * @param name The name of the dataset.
+     * @param revision The version/revision of the dataset.
+     * @param options The traversal options.
+     * @param options.direction The traversal direction (defaults to `"upstream"`).
+     * @param options.maxDepth The maximum traversal depth from the dataset (unlimited if omitted).
+     * @param options.maxNodes The maximum number of nodes per direction (unlimited if omitted).
+     * @return The dataset lineage graph.
+     */
+    readonly getDatasetLineage: (
+      namespace: Models.DatasetNamespace,
+      name: Models.DatasetName,
+      revision: Models.DatasetRevision,
+      options?:
+        | {
+            readonly direction?: Domain.LineageDirection | undefined
+            readonly maxDepth?: number | undefined
+            readonly maxNodes?: number | undefined
+          }
+        | undefined
+    ) => Effect.Effect<Domain.GetDatasetLineageResponse, HttpError | Api.GetDatasetLineageError>
 
     /**
      * Get all jobs with optional pagination and filtering.
@@ -230,6 +258,20 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
     Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
   )
 
+  const getDatasetLineage: Service["getDatasetLineage"] = Effect.fn("AdminApi.getDatasetLineage")(
+    function* (namespace, name, revision, lineageOptions) {
+      const params = { namespace, name, revision }
+      const query = {
+        direction: lineageOptions?.direction,
+        maxDepth: lineageOptions?.maxDepth,
+        maxNodes: lineageOptions?.maxNodes
+      }
+      yield* Effect.annotateCurrentSpan({ params, query })
+      return yield* client.dataset.getDatasetLineage({ params, query })
+    },
+    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+  )
+
   const getDatasets: Service["getDatasets"] = client.dataset
     .getDatasets({})
     .pipe(Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die), Effect.withSpan("AdminApi.getDatasets"))
@@ -334,6 +376,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
   )
 
   return AdminApi.of({
+    getDatasetLineage,
     getDatasetManifest,
     getDatasets,
     getDatasetVersion,

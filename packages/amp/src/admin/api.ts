@@ -2,7 +2,7 @@
  * This module contains the HttpApi definitions for the Amp Admin API.
  *
  * The Admin API provides operations for managing:
- * - Datasets (registration, versioning, manifests)
+ * - Datasets (registration, versioning, manifests, lineage)
  * - Jobs (listing, stopping, deletion)
  * - Workers (listing)
  * - Providers (listing)
@@ -54,6 +54,20 @@ const JobsQueryParams = Schema.Struct({
   lastJobId: Schema.optional(Schema.NumberFromString),
   status: Schema.String.pipe(Schema.optional)
 }).pipe(Schema.encodeKeys({ lastJobId: "last_job_id" }))
+
+/**
+ * A non-negative integer query parameter.
+ */
+const NonNegativeIntFromString = Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))
+
+/**
+ * Query parameters for getting the lineage graph of a dataset.
+ */
+const LineageQueryParams = Schema.Struct({
+  direction: Schema.optional(Domain.LineageDirection),
+  maxDepth: Schema.optional(NonNegativeIntFromString),
+  maxNodes: Schema.optional(NonNegativeIntFromString)
+}).pipe(Schema.encodeKeys({ maxDepth: "max_depth", maxNodes: "max_nodes" }))
 
 // =============================================================================
 // Dataset Endpoints
@@ -165,6 +179,24 @@ const getDatasetManifest = HttpApiEndpoint.get(
 )
 
 export type GetDatasetManifestError = (typeof getDatasetManifest)["~Error"]["Type"]
+
+// GET /datasets/{namespace}/{name}/versions/{revision}/lineage - Get dataset lineage
+const getDatasetLineage = HttpApiEndpoint.get(
+  "getDatasetLineage",
+  "/datasets/:namespace/:name/versions/:revision/lineage",
+  {
+    params: {
+      namespace: DatasetNamespaceParam,
+      name: DatasetNameParam,
+      revision: DatasetRevisionParam
+    },
+    query: LineageQueryParams,
+    error: [Error.InvalidPathError, Error.DatasetNotFoundError, Error.ResolveRevisionError, Error.BuildLineageError],
+    success: Domain.GetDatasetLineageResponse
+  }
+)
+
+export type GetDatasetLineageError = (typeof getDatasetLineage)["~Error"]["Type"]
 
 // =============================================================================
 // Job Endpoints
@@ -333,7 +365,8 @@ export class DatasetGroup extends HttpApiGroup.make("dataset")
   .add(getDatasets)
   .add(getDatasetVersions)
   .add(getDatasetVersion)
-  .add(getDatasetManifest) {}
+  .add(getDatasetManifest)
+  .add(getDatasetLineage) {}
 
 /**
  * The api group for the job endpoints.

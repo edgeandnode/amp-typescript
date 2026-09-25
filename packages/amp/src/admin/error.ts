@@ -169,6 +169,16 @@ export const GetManifestPathError = makeError("GET_MANIFEST_PATH_ERROR", "GetMan
 export type GetManifestPathError = typeof GetManifestPathError.Type
 
 /**
+ * BuildLineageError - Failed to build the lineage graph of a dataset.
+ *
+ * Causes:
+ * - Registry or manifest store errors while traversing dataset dependencies
+ */
+export const BuildLineageError = makeError("BUILD_LINEAGE_ERROR", "BuildLineageError").annotate({ httpApiStatus: 500 })
+
+export type BuildLineageError = typeof BuildLineageError.Type
+
+/**
  * InvalidStoredDatasetNamespace - A stored dataset namespace is malformed.
  */
 export const InvalidStoredDatasetNamespaceError = makeError(

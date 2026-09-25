@@ -432,3 +432,110 @@ describe("AdminApi authentication", () => {
     }).pipe(Effect.provide(makeAuthLayer({ url: "http://localhost:1610" }, authorization)))
   })
 })
+
+describe("AdminApi lineage", () => {
+  const makeLineageLayer = (requests: Array<URL>, response: StubResponse) =>
+    AdminApi.layer({ url: "http://localhost:1610" }).pipe(
+      Layer.provide(
+        Layer.succeed(
+          HttpClient.HttpClient,
+          HttpClient.make((request, url) => {
+            requests.push(url)
+            const body = new Response(JSON.stringify(response.body), {
+              status: response.status,
+              headers: { "content-type": "application/json" }
+            })
+            return Effect.succeed(HttpClientResponse.fromWeb(request, body))
+          })
+        )
+      )
+    )
+
+  const lineage = {
+    anchor: "edgeandnode/transfers@1.0.0",
+    nodes: [
+      { dataset: "edgeandnode/transfers@1.0.0", kind: "manifest", status: "ok", resolved_hash: hash, depth: 0 },
+      { dataset: "edgeandnode/eth_mainnet@latest", kind: "evm-rpc", status: "ok", resolved_hash: hash, depth: 1 },
+      { dataset: "edgeandnode/removed@1.0.0", kind: null, status: "missing", resolved_hash: null, depth: 1 }
+    ],
+    edges: [
+      {
+        source: "edgeandnode/eth_mainnet@latest",
+        target: "edgeandnode/transfers@1.0.0",
+        alias: "eth",
+        resolved_source: `edgeandnode/eth_mainnet@${hash}`
+      },
+      {
+        source: "edgeandnode/removed@1.0.0",
+        target: "edgeandnode/transfers@1.0.0",
+        alias: "removed",
+        resolved_source: null
+      }
+    ],
+    depth: 1,
+    truncated: false,
+    cycles: ["edgeandnode/transfers@1.0.0"]
+  }
+
+  it.effect("getDatasetLineage decodes the lineage graph", () => {
+    const requests: Array<URL> = []
+    return Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      const response = yield* admin.getDatasetLineage(
+        "edgeandnode" as Models.DatasetNamespace,
+        "transfers" as Models.DatasetName,
+        "1.0.0" as Models.DatasetRevision
+      )
+      assert.strictEqual(requests[0].pathname, "/datasets/edgeandnode/transfers/versions/1.0.0/lineage")
+      assert.strictEqual(requests[0].search, "")
+      assert.deepStrictEqual(response.anchor, { namespace: "edgeandnode", name: "transfers", revision: "1.0.0" })
+      assert.strictEqual(response.nodes.length, 3)
+      assert.strictEqual(response.nodes[1].kind, "evm-rpc")
+      assert.strictEqual(response.nodes[2].status, "missing")
+      assert.strictEqual(response.nodes[2].kind, null)
+      assert.strictEqual(response.nodes[2].resolvedHash, null)
+      assert.strictEqual(response.edges[0].resolvedSource?.revision, hash)
+      assert.strictEqual(response.edges[1].resolvedSource, null)
+      assert.strictEqual(response.cycles[0].name, "transfers")
+    }).pipe(Effect.provide(makeLineageLayer(requests, { status: 200, body: lineage })))
+  })
+
+  it.effect("getDatasetLineage encodes the traversal options as query parameters", () => {
+    const requests: Array<URL> = []
+    return Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      yield* admin.getDatasetLineage(
+        "edgeandnode" as Models.DatasetNamespace,
+        "transfers" as Models.DatasetName,
+        "latest" as Models.DatasetRevision,
+        { direction: "both", maxDepth: 2, maxNodes: 50 }
+      )
+      const params = requests[0].searchParams
+      assert.strictEqual(params.get("direction"), "both")
+      assert.strictEqual(params.get("max_depth"), "2")
+      assert.strictEqual(params.get("max_nodes"), "50")
+    }).pipe(Effect.provide(makeLineageLayer(requests, { status: 200, body: lineage })))
+  })
+
+  it.effect("getDatasetLineage decodes a lineage build failure", () => {
+    const requests: Array<URL> = []
+    return Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      const error = yield* admin
+        .getDatasetLineage(
+          "edgeandnode" as Models.DatasetNamespace,
+          "transfers" as Models.DatasetName,
+          "1.0.0" as Models.DatasetRevision
+        )
+        .pipe(Effect.flip)
+      assert.strictEqual(error._tag, "BuildLineageError")
+    }).pipe(
+      Effect.provide(
+        makeLineageLayer(requests, {
+          status: 500,
+          body: { error_code: "BUILD_LINEAGE_ERROR", error_message: "failed to build lineage graph" }
+        })
+      )
+    )
+  })
+})
