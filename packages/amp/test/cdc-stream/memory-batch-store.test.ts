@@ -14,7 +14,7 @@ import * as Effect from "effect/Effect"
 
 describe("BatchStore.append + load", () => {
   it.effect("stores data retrievable by load", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
       const data = [{ block: 1, address: "0xabc" }]
 
@@ -22,18 +22,20 @@ describe("BatchStore.append + load", () => {
 
       const result = yield* store.load(1 as TransactionId)
       expect(result).toEqual(data)
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 
   it.effect("load returns undefined for missing IDs", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
 
       const result = yield* store.load(999 as TransactionId)
       expect(result).toBeUndefined()
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 
   it.effect("stores multiple batches independently", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
       const data1 = [{ block: 1 }]
       const data2 = [{ block: 2 }]
@@ -43,7 +45,8 @@ describe("BatchStore.append + load", () => {
 
       expect(yield* store.load(1 as TransactionId)).toEqual(data1)
       expect(yield* store.load(2 as TransactionId)).toEqual(data2)
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 })
 
 // =============================================================================
@@ -52,7 +55,7 @@ describe("BatchStore.append + load", () => {
 
 describe("BatchStore.seek", () => {
   it.effect("returns sorted IDs within range", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
 
       yield* store.append([{ a: 1 }], 3 as TransactionId)
@@ -66,10 +69,11 @@ describe("BatchStore.seek", () => {
       }
       const result = yield* store.seek(range)
       expect(result).toEqual([1, 2, 3])
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 
   it.effect("returns empty array for empty range", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
 
       yield* store.append([{ a: 1 }], 1 as TransactionId)
@@ -80,10 +84,11 @@ describe("BatchStore.seek", () => {
       }
       const result = yield* store.seek(range)
       expect(result).toEqual([])
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 
   it.effect("includes boundary IDs", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
 
       yield* store.append([{ a: 1 }], 1 as TransactionId)
@@ -96,7 +101,8 @@ describe("BatchStore.seek", () => {
       }
       const result = yield* store.seek(range)
       expect(result).toEqual([1, 5, 10])
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 })
 
 // =============================================================================
@@ -105,7 +111,7 @@ describe("BatchStore.seek", () => {
 
 describe("BatchStore.prune", () => {
   it.effect("removes batches up to cutoff (inclusive)", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
 
       yield* store.append([{ a: 1 }], 1 as TransactionId)
@@ -117,10 +123,11 @@ describe("BatchStore.prune", () => {
       expect(yield* store.load(1 as TransactionId)).toBeUndefined()
       expect(yield* store.load(2 as TransactionId)).toBeUndefined()
       expect(yield* store.load(3 as TransactionId)).toEqual([{ a: 3 }])
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 
   it.effect("is idempotent", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* BatchStore
 
       yield* store.append([{ a: 1 }], 1 as TransactionId)
@@ -131,5 +138,6 @@ describe("BatchStore.prune", () => {
 
       expect(yield* store.load(1 as TransactionId)).toBeUndefined()
       expect(yield* store.load(2 as TransactionId)).toEqual([{ a: 2 }])
-    }).pipe(Effect.provide(InMemoryBatchStore.layer)))
+    }).pipe(Effect.provide(InMemoryBatchStore.layer))
+  )
 })

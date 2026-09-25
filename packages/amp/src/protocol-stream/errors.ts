@@ -18,7 +18,7 @@ import * as Schema from "effect/Schema"
  *
  * Each batch should contain at most one range per network.
  */
-export class DuplicateNetworkError extends Schema.TaggedErrorClass<DuplicateNetworkError>(
+export class DuplicateNetworkError extends Schema.TaggedError<DuplicateNetworkError>(
   "Amp/ProtocolStream/DuplicateNetworkError"
 )("DuplicateNetworkError", {
   /**
@@ -36,7 +36,7 @@ export class DuplicateNetworkError extends Schema.TaggedErrorClass<DuplicateNetw
  *
  * The network set must remain stable across all batches in a stream.
  */
-export class NetworkCountChangedError extends Schema.TaggedErrorClass<NetworkCountChangedError>(
+export class NetworkCountChangedError extends Schema.TaggedError<NetworkCountChangedError>(
   "Amp/ProtocolStream/NetworkCountChangedError"
 )("NetworkCountChangedError", {
   /**
@@ -58,7 +58,7 @@ export class NetworkCountChangedError extends Schema.TaggedErrorClass<NetworkCou
  *
  * All networks must be established in the first batch and remain consistent.
  */
-export class UnexpectedNetworkError extends Schema.TaggedErrorClass<UnexpectedNetworkError>(
+export class UnexpectedNetworkError extends Schema.TaggedError<UnexpectedNetworkError>(
   "Amp/ProtocolStream/UnexpectedNetworkError"
 )("UnexpectedNetworkError", {
   /**
@@ -76,7 +76,7 @@ export class UnexpectedNetworkError extends Schema.TaggedErrorClass<UnexpectedNe
  *
  * Non-genesis blocks (start > 0) must have a prevHash to enable hash chain validation.
  */
-export class MissingPrevHashError extends Schema.TaggedErrorClass<MissingPrevHashError>(
+export class MissingPrevHashError extends Schema.TaggedError<MissingPrevHashError>(
   "Amp/ProtocolStream/MissingPrevHashError"
 )("MissingPrevHashError", {
   /**
@@ -98,7 +98,7 @@ export class MissingPrevHashError extends Schema.TaggedErrorClass<MissingPrevHas
  *
  * Genesis blocks (start = 0) must have either no prevHash or a zero hash.
  */
-export class InvalidPrevHashError extends Schema.TaggedErrorClass<InvalidPrevHashError>(
+export class InvalidPrevHashError extends Schema.TaggedError<InvalidPrevHashError>(
   "Amp/ProtocolStream/InvalidPrevHashError"
 )("InvalidPrevHashError", {
   /**
@@ -117,7 +117,7 @@ export class InvalidPrevHashError extends Schema.TaggedErrorClass<InvalidPrevHas
  * For consecutive blocks (incoming.start === prev.end + 1), the incoming prevHash
  * must match the previous block's hash.
  */
-export class HashMismatchOnConsecutiveBlocksError extends Schema.TaggedErrorClass<HashMismatchOnConsecutiveBlocksError>(
+export class HashMismatchOnConsecutiveBlocksError extends Schema.TaggedError<HashMismatchOnConsecutiveBlocksError>(
   "Amp/ProtocolStream/HashMismatchOnConsecutiveBlocksError"
 )("HashMismatchOnConsecutiveBlocksError", {
   /**
@@ -144,14 +144,15 @@ export class HashMismatchOnConsecutiveBlocksError extends Schema.TaggedErrorClas
  * A backwards jump (incoming.start < prev.end + 1) indicates a reorg, which
  * requires different hashes. If hashes match, it's an invalid protocol state.
  */
-export class InvalidReorgError extends Schema.TaggedErrorClass<InvalidReorgError>(
-  "Amp/ProtocolStream/InvalidReorgError"
-)("InvalidReorgError", {
-  /**
-   * The network where the invalid reorg was detected.
-   */
-  network: Schema.String
-}) {
+export class InvalidReorgError extends Schema.TaggedError<InvalidReorgError>("Amp/ProtocolStream/InvalidReorgError")(
+  "InvalidReorgError",
+  {
+    /**
+     * The network where the invalid reorg was detected.
+     */
+    network: Schema.String
+  }
+) {
   override get message(): string {
     return `Invalid reorg detected on network ${this.network}: backwards jump with matching hashes`
   }
@@ -162,9 +163,7 @@ export class InvalidReorgError extends Schema.TaggedErrorClass<InvalidReorgError
  *
  * Forward gaps (incoming.start > prev.end + 1) are always protocol violations.
  */
-export class GapError extends Schema.TaggedErrorClass<GapError>(
-  "Amp/ProtocolStream/GapError"
-)("GapError", {
+export class GapError extends Schema.TaggedError<GapError>("Amp/ProtocolStream/GapError")("GapError", {
   /**
    * The network where the gap was detected.
    */
@@ -203,7 +202,7 @@ export type ValidationError =
 /**
  * Represents a validation error wrapped for the ProtocolStream service.
  */
-export class ProtocolValidationError extends Schema.TaggedErrorClass<ProtocolValidationError>(
+export class ProtocolValidationError extends Schema.TaggedError<ProtocolValidationError>(
   "Amp/ProtocolStream/ProtocolValidationError"
 )("ProtocolValidationError", {
   /**
@@ -220,7 +219,7 @@ export class ProtocolValidationError extends Schema.TaggedErrorClass<ProtocolVal
 /**
  * Represents an error from the underlying Arrow Flight stream.
  */
-export class ProtocolArrowFlightError extends Schema.TaggedErrorClass<ProtocolArrowFlightError>(
+export class ProtocolArrowFlightError extends Schema.TaggedError<ProtocolArrowFlightError>(
   "Amp/ProtocolStream/ProtocolArrowFlightError"
 )("ProtocolArrowFlightError", {
   /**
@@ -232,6 +231,4 @@ export class ProtocolArrowFlightError extends Schema.TaggedErrorClass<ProtocolAr
 /**
  * Union type representing all possible ProtocolStream errors.
  */
-export type ProtocolStreamError =
-  | ProtocolValidationError
-  | ProtocolArrowFlightError
+export type ProtocolStreamError = ProtocolValidationError | ProtocolArrowFlightError

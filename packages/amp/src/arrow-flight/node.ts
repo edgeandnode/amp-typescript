@@ -9,7 +9,7 @@ import { Interceptors, Transport } from "./transport.ts"
 export const layerTransportGrpc = (options: GrpcTransportOptions): Layer.Layer<Transport> =>
   Layer.effect(
     Transport,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const interceptors = yield* Interceptors
       return createGrpcTransport({
         ...options,

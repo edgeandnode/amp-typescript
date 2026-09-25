@@ -96,10 +96,7 @@ describe("findRecoveryPoint", () => {
     ]
 
     // Reorg on eth at block 21, polygon at block 201
-    const result = findRecoveryPoint(buffer, [
-      makeInvalidation("eth", 21, 35),
-      makeInvalidation("polygon", 201, 350)
-    ])
+    const result = findRecoveryPoint(buffer, [makeInvalidation("eth", 21, 35), makeInvalidation("polygon", 201, 350)])
     expect(result?.[0]).toBe(2)
   })
 
@@ -111,10 +108,7 @@ describe("findRecoveryPoint", () => {
   })
 
   it("handles invalidation that doesn't affect any watermark", () => {
-    const buffer = [
-      makeWatermark(1, [makeBlockRange("eth", 0, 10)]),
-      makeWatermark(2, [makeBlockRange("eth", 11, 20)])
-    ]
+    const buffer = [makeWatermark(1, [makeBlockRange("eth", 0, 10)]), makeWatermark(2, [makeBlockRange("eth", 11, 20)])]
 
     // Invalidation starts at block 100, well beyond our watermarks
     // But watermarks with start >= 100 would be affected
@@ -252,15 +246,9 @@ describe("checkPartialReorg", () => {
   })
 
   it("returns first partial network in multi-network scenario", () => {
-    const recoveryRanges = [
-      makeBlockRange("eth", 0, 10),
-      makeBlockRange("polygon", 0, 100)
-    ]
+    const recoveryRanges = [makeBlockRange("eth", 0, 10), makeBlockRange("polygon", 0, 100)]
     // Both have partial reorg
-    const invalidation = [
-      makeInvalidation("eth", 5, 20),
-      makeInvalidation("polygon", 50, 150)
-    ]
+    const invalidation = [makeInvalidation("eth", 5, 20), makeInvalidation("polygon", 50, 150)]
 
     const result = checkPartialReorg(recoveryRanges, invalidation)
     // Returns first one found (eth)
@@ -292,12 +280,7 @@ describe("compressCommits", () => {
   })
 
   it("collects single commit", () => {
-    const pending = [
-      [
-        1 as TransactionId,
-        { ranges: [makeBlockRange("eth", 0, 10)], prune: undefined }
-      ] as const
-    ]
+    const pending = [[1 as TransactionId, { ranges: [makeBlockRange("eth", 0, 10)], prune: undefined }] as const]
 
     const result = compressCommits(pending)
     expect(result.insert).toHaveLength(1)

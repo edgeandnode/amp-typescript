@@ -1,5 +1,5 @@
 ---
-description: 'Review a pull request'
+description: "Review a pull request"
 targets: ["*"]
 ---
 

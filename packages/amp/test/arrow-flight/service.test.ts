@@ -23,7 +23,9 @@ const encoder = new TextEncoder()
 const recordBatchMetadata = encoder.encode(JSON.stringify({ ranges: [], ranges_complete: false }))
 
 const toHex = (bytes: Uint8Array): string =>
-  Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("")
+  Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
 
 const makeTransport = (flightData: ReadonlyArray<FlightData>) =>
   createRouterTransport((router) => {
@@ -102,14 +104,12 @@ const makeCapturingTransport = (capturedSql: { value: string }) =>
 
 describe("ArrowFlight", () => {
   it.effect("explain prepends EXPLAIN to the SQL by default", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const captured = { value: "" }
       const transport = makeCapturingTransport(captured)
-      const layer = ArrowFlight.layer.pipe(
-        Layer.provide(Layer.succeed(ArrowFlight.Transport, transport))
-      )
+      const layer = ArrowFlight.layer.pipe(Layer.provide(Layer.succeed(ArrowFlight.Transport, transport)))
 
-      const result = yield* Effect.gen(function*() {
+      const result = yield* Effect.gen(function* () {
         const flight = yield* ArrowFlight.ArrowFlight
         return yield* flight.explain("SELECT * FROM foo LIMIT 10")
       }).pipe(Effect.provide(layer))
@@ -117,17 +117,16 @@ describe("ArrowFlight", () => {
       expect(captured.value).toBe("EXPLAIN SELECT * FROM foo LIMIT 10")
       expect(result.rows).toEqual([])
       expect(result.columns).toEqual([])
-    }))
+    })
+  )
 
   it.effect("explain prepends EXPLAIN ANALYZE when analyze is true", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const captured = { value: "" }
       const transport = makeCapturingTransport(captured)
-      const layer = ArrowFlight.layer.pipe(
-        Layer.provide(Layer.succeed(ArrowFlight.Transport, transport))
-      )
+      const layer = ArrowFlight.layer.pipe(Layer.provide(Layer.succeed(ArrowFlight.Transport, transport)))
 
-      const result = yield* Effect.gen(function*() {
+      const result = yield* Effect.gen(function* () {
         const flight = yield* ArrowFlight.ArrowFlight
         return yield* flight.explain("SELECT 1", { analyze: true })
       }).pipe(Effect.provide(layer))
@@ -135,13 +134,12 @@ describe("ArrowFlight", () => {
       expect(captured.value).toBe("EXPLAIN ANALYZE SELECT 1")
       expect(result.rows).toEqual([])
       expect(result.columns).toEqual([])
-    }))
+    })
+  )
 
   it.effect("passes binaryHandling to query output conversion", ({ expect }) =>
-    Effect.gen(function*() {
-      const testSchema = SchemaBuilder.schema()
-        .binary("bin")
-        .build()
+    Effect.gen(function* () {
+      const testSchema = SchemaBuilder.schema().binary("bin").build()
 
       const generated = yield* FlightDataGenerator.generateFlightData(testSchema, {
         defaultNullRate: 0,
@@ -159,16 +157,15 @@ describe("ArrowFlight", () => {
         toProtoFlightData(generated.schemaFlightData, new Uint8Array(0)),
         toProtoFlightData(generated.recordBatchFlightData, recordBatchMetadata)
       ])
-      const layer = ArrowFlight.layer.pipe(
-        Layer.provide(Layer.succeed(ArrowFlight.Transport, transport))
-      )
+      const layer = ArrowFlight.layer.pipe(Layer.provide(Layer.succeed(ArrowFlight.Transport, transport)))
 
-      const results = yield* Effect.gen(function*() {
+      const results = yield* Effect.gen(function* () {
         const flight = yield* ArrowFlight.ArrowFlight
         return yield* flight.query("SELECT bin FROM test", { binaryHandling: "hex" })
       }).pipe(Effect.provide(layer))
 
       expect(results).toHaveLength(1)
       expect(results[0]?.data).toEqual([{ bin: toHex(firstExpected) }])
-    }))
+    })
+  )
 })

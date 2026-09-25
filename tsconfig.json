@@ -1,12 +1,7 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.base.json",
-  "include": [
-    "**/vitest.*.ts",
-    "./packages/**/*.ts",
-    "./packages/*/test/**/*.ts",
-    "./packages/*/package.json"
-  ],
+  "include": ["**/vitest.*.ts", "./packages/**/*.ts", "./packages/*/test/**/*.ts", "./packages/*/package.json"],
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
@@ -22,9 +17,11 @@
       "@edgeandnode/amp-cli": ["./packages/cli/src/index.ts"],
       "@edgeandnode/amp-cli/*": ["./packages/cli/src/*.ts"]
     },
-    "plugins": [{
-      "name": "@effect/language-service",
-      "namespaceImportPackages": []
-    }]
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "namespaceImportPackages": []
+      }
+    ]
   }
 }

@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "endOfLine": "lf",
+  "semi": false,
+  "singleQuote": false,
+  "jsxSingleQuote": false,
+  "quoteProps": "preserve",
+  "trailingComma": "none",
+  "arrowParens": "always",
+  "experimentalOperatorPosition": "start",
+  "proseWrap": "preserve",
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "**/dist",
+    "**/build",
+    "**/docs",
+    "**/coverage",
+    "contracts/**",
+    "packages/amp/src/protobuf/**",
+    "*.yml",
+    "*.yaml",
+    "*.toml",
+    "*.css",
+    "*.html",
+    "*.jsonc"
+  ]
+}

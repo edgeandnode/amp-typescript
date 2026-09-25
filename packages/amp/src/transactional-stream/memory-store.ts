@@ -55,7 +55,7 @@ const makeServiceFromRef = (stateRef: Ref.Ref<StateSnapshot>): StateStoreService
 /**
  * Create InMemoryStateStore service implementation.
  */
-const makeWithInitialState = Effect.fnUntraced(function*(initial: StateSnapshot): Effect.fn.Return<StateStoreService> {
+const makeWithInitialState = Effect.fnUntraced(function* (initial: StateSnapshot): Effect.fn.Return<StateStoreService> {
   const stateRef = yield* Ref.make<StateSnapshot>(initial)
   return makeServiceFromRef(stateRef)
 })
@@ -123,10 +123,9 @@ export const layerWithState = (initial: StateSnapshot): Layer.Layer<StateStore> 
  * expect(snapshot.next).toBe(5)
  * ```
  */
-export class TestState extends Context.Service<
-  TestState,
-  { readonly get: Effect.Effect<StateSnapshot> }
->()("Amp/TransactionalStream/TestState") {}
+export class TestState extends Context.Service<TestState, { readonly get: Effect.Effect<StateSnapshot> }>()(
+  "Amp/TransactionalStream/TestState"
+) {}
 
 /**
  * Test layer providing both `StateStore` and `TestState`.
@@ -151,7 +150,7 @@ export class TestState extends Context.Service<
  * ```
  */
 export const layerTest: Layer.Layer<TestState | StateStore> = Layer.effectContext(
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const ref = yield* Ref.make(emptySnapshot)
 
     const state = TestState.of({
@@ -160,9 +159,6 @@ export const layerTest: Layer.Layer<TestState | StateStore> = Layer.effectContex
 
     const store = StateStore.of(makeServiceFromRef(ref))
 
-    return Context.mergeAll(
-      Context.make(StateStore, store),
-      Context.make(TestState, state)
-    )
+    return Context.mergeAll(Context.make(StateStore, store), Context.make(TestState, state))
   })
 )

@@ -51,9 +51,7 @@ interface StateContainer {
 /**
  * Action union for execute().
  */
-export type Action =
-  | { readonly _tag: "Message"; readonly message: ProtocolMessage }
-  | { readonly _tag: "Rewind" }
+export type Action = { readonly _tag: "Message"; readonly message: ProtocolMessage } | { readonly _tag: "Rewind" }
 
 /**
  * StateActor interface - manages transactional stream state.
@@ -88,121 +86,120 @@ export interface StateActor {
  * @param retention - Retention window in blocks for pruning
  * @returns Effect that creates a StateActor
  */
-export const makeStateActor = Effect.fnUntraced(
-  function*(store: StateStoreService, retention: number): Effect.fn.Return<StateActor, StateStoreError> {
-    // Load initial state from store
-    const snapshot = yield* store.load
+export const makeStateActor = Effect.fnUntraced(function* (
+  store: StateStoreService,
+  retention: number
+): Effect.fn.Return<StateActor, StateStoreError> {
+  // Load initial state from store
+  const snapshot = yield* store.load
 
-    // Create mutable state container wrapped in Ref
-    const containerRef = yield* Ref.make<StateContainer>({
-      next: snapshot.next,
-      buffer: [...snapshot.buffer],
-      uncommitted: []
-    })
+  // Create mutable state container wrapped in Ref
+  const containerRef = yield* Ref.make<StateContainer>({
+    next: snapshot.next,
+    buffer: [...snapshot.buffer],
+    uncommitted: []
+  })
 
-    // =========================================================================
-    // watermark()
-    // =========================================================================
+  // =========================================================================
+  // watermark()
+  // =========================================================================
 
-    const watermark = Ref.get(containerRef).pipe(
-      Effect.map((state) =>
-        state.buffer.length > 0
-          ? state.buffer[state.buffer.length - 1]
-          : undefined
-      )
-    )
+  const watermark = Ref.get(containerRef).pipe(
+    Effect.map((state) => (state.buffer.length > 0 ? state.buffer[state.buffer.length - 1] : undefined))
+  )
 
-    // =========================================================================
-    // peek()
-    // =========================================================================
+  // =========================================================================
+  // peek()
+  // =========================================================================
 
-    const peek = Ref.get(containerRef).pipe(Effect.map((state) => state.next))
+  const peek = Ref.get(containerRef).pipe(Effect.map((state) => state.next))
 
-    // =========================================================================
-    // execute()
-    // =========================================================================
+  // =========================================================================
+  // execute()
+  // =========================================================================
 
-    const execute = Effect.fnUntraced(function*(action: Action): Effect.fn.Return<
-      readonly [TransactionEvent, CommitHandle],
-      StateStoreError | UnrecoverableReorgError | PartialReorgError
-    > {
-      // 1. Pre-allocate monotonic ID
-      const id = yield* Ref.getAndUpdate(containerRef, (state) => ({
-        ...state,
-        next: (state.next + 1) as TransactionId
-      })).pipe(Effect.map((state) => state.next))
+  const execute = Effect.fnUntraced(function* (
+    action: Action
+  ): Effect.fn.Return<
+    readonly [TransactionEvent, CommitHandle],
+    StateStoreError | UnrecoverableReorgError | PartialReorgError
+  > {
+    // 1. Pre-allocate monotonic ID
+    const id = yield* Ref.getAndUpdate(containerRef, (state) => ({
+      ...state,
+      next: (state.next + 1) as TransactionId
+    })).pipe(Effect.map((state) => state.next))
 
-      const nextId = (id + 1) as TransactionId
+    const nextId = (id + 1) as TransactionId
 
-      // Persist the new next ID immediately (ensures monotonicity survives crashes)
-      yield* store.advance(nextId)
+    // Persist the new next ID immediately (ensures monotonicity survives crashes)
+    yield* store.advance(nextId)
 
-      // 2. Execute action based on type
-      const event: TransactionEvent = yield* (() => {
-        switch (action._tag) {
-          case "Rewind":
-            return executeRewind(id, containerRef)
+    // 2. Execute action based on type
+    const event: TransactionEvent = yield* (() => {
+      switch (action._tag) {
+        case "Rewind":
+          return executeRewind(id, containerRef)
 
-          case "Message":
-            return executeMessage(id, action.message, containerRef, store, retention)
+        case "Message":
+          return executeMessage(id, action.message, containerRef, store, retention)
+      }
+    })()
+
+    // 3. Return event with commit handle
+    const handle = makeCommitHandle(id, commit)
+
+    return [event, handle] as const
+  })
+
+  // =========================================================================
+  // commit()
+  // =========================================================================
+
+  const commit = Effect.fnUntraced(function* (id: TransactionId): Effect.fn.Return<void, StateStoreError> {
+    const state = yield* Ref.get(containerRef)
+
+    // Find position where IDs become > id (all before this are <= id)
+    const pos = state.uncommitted.findIndex(([currentId]) => currentId > id)
+    const endIndex = pos === -1 ? state.uncommitted.length : pos
+
+    if (endIndex === 0) {
+      // Nothing to commit
+      return
+    }
+
+    // Collect commits [0..endIndex)
+    const pending = state.uncommitted.slice(0, endIndex)
+
+    // Compress and persist
+    const compressed = compressCommits(pending)
+
+    if (compressed.insert.length > 0 || compressed.prune !== undefined) {
+      // Apply pruning to in-memory buffer
+      yield* Ref.update(containerRef, (s) => {
+        let buffer = s.buffer
+        if (compressed.prune !== undefined) {
+          buffer = buffer.filter(([bufferId]) => bufferId > compressed.prune!)
         }
-      })()
+        return { ...s, buffer }
+      })
 
-      // 3. Return event with commit handle
-      const handle = makeCommitHandle(id, commit)
+      // Persist to store
+      yield* store.commit({
+        insert: compressed.insert,
+        prune: compressed.prune
+      })
+    }
 
-      return [event, handle] as const
-    })
+    // Remove committed from uncommitted queue
+    yield* Ref.update(containerRef, (s) => ({
+      ...s,
+      uncommitted: s.uncommitted.slice(endIndex)
+    }))
+  })
 
-    // =========================================================================
-    // commit()
-    // =========================================================================
-
-    const commit = Effect.fnUntraced(function*(id: TransactionId): Effect.fn.Return<void, StateStoreError> {
-      const state = yield* Ref.get(containerRef)
-
-      // Find position where IDs become > id (all before this are <= id)
-      const pos = state.uncommitted.findIndex(([currentId]) => currentId > id)
-      const endIndex = pos === -1 ? state.uncommitted.length : pos
-
-      if (endIndex === 0) {
-        // Nothing to commit
-        return
-      }
-
-      // Collect commits [0..endIndex)
-      const pending = state.uncommitted.slice(0, endIndex)
-
-      // Compress and persist
-      const compressed = compressCommits(pending)
-
-      if (compressed.insert.length > 0 || compressed.prune !== undefined) {
-        // Apply pruning to in-memory buffer
-        yield* Ref.update(containerRef, (s) => {
-          let buffer = s.buffer
-          if (compressed.prune !== undefined) {
-            buffer = buffer.filter(([bufferId]) => bufferId > compressed.prune!)
-          }
-          return { ...s, buffer }
-        })
-
-        // Persist to store
-        yield* store.commit({
-          insert: compressed.insert,
-          prune: compressed.prune
-        })
-      }
-
-      // Remove committed from uncommitted queue
-      yield* Ref.update(containerRef, (s) => ({
-        ...s,
-        uncommitted: s.uncommitted.slice(endIndex)
-      }))
-    })
-
-    return { watermark, peek, execute, commit }
-  }
-)
+  return { watermark, peek, execute, commit }
+})
 
 // =============================================================================
 // Helpers
@@ -214,10 +211,7 @@ export const makeStateActor = Effect.fnUntraced(
  * @param afterId - The anchor transaction ID (invalidation starts at afterId + 1), or undefined to start from 0
  * @param currentId - The current transaction ID being assigned to the undo event
  */
-const computeInvalidationRange = (
-  afterId: TransactionId | undefined,
-  currentId: TransactionId
-): TransactionIdRange => {
+const computeInvalidationRange = (afterId: TransactionId | undefined, currentId: TransactionId): TransactionIdRange => {
   const start = (afterId !== undefined ? afterId + 1 : 0) as TransactionId
   const end = Math.max(start, currentId - 1) as TransactionId
   return { start, end }
@@ -230,15 +224,13 @@ const computeInvalidationRange = (
 /**
  * Execute a Rewind action.
  */
-const executeRewind = Effect.fnUntraced(function*(
+const executeRewind = Effect.fnUntraced(function* (
   id: TransactionId,
   containerRef: Ref.Ref<StateContainer>
 ): Effect.fn.Return<TransactionEvent> {
   const state = yield* Ref.get(containerRef)
 
-  const anchor = state.buffer.length > 0
-    ? state.buffer[state.buffer.length - 1]![0]
-    : undefined
+  const anchor = state.buffer.length > 0 ? state.buffer[state.buffer.length - 1]![0] : undefined
 
   return undoEvent(id, rewindCause(), computeInvalidationRange(anchor, id))
 })
@@ -246,7 +238,7 @@ const executeRewind = Effect.fnUntraced(function*(
 /**
  * Execute a Message action.
  */
-const executeMessage = Effect.fnUntraced(function*(
+const executeMessage = Effect.fnUntraced(function* (
   id: TransactionId,
   message: ProtocolMessage,
   containerRef: Ref.Ref<StateContainer>,
@@ -269,7 +261,7 @@ const executeMessage = Effect.fnUntraced(function*(
 /**
  * Execute a Watermark message.
  */
-const executeWatermark = Effect.fnUntraced(function*(
+const executeWatermark = Effect.fnUntraced(function* (
   id: TransactionId,
   ranges: ReadonlyArray<BlockRange>,
   containerRef: Ref.Ref<StateContainer>,
@@ -297,7 +289,7 @@ const executeWatermark = Effect.fnUntraced(function*(
 /**
  * Execute a Reorg message.
  */
-const executeReorg = Effect.fnUntraced(function*(
+const executeReorg = Effect.fnUntraced(function* (
   id: TransactionId,
   message: Extract<ProtocolMessage, { _tag: "Reorg" }>,
   containerRef: Ref.Ref<StateContainer>,

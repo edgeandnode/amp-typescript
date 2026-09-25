@@ -62,42 +62,57 @@ const reorgMessage = (
 
 describe("StateActor.watermark", () => {
   it.effect("returns undefined for empty buffer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const result = yield* actor.watermark
       expect(result).toBeUndefined()
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 0 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 0 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("returns last watermark from buffer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const result = yield* actor.watermark
       expect(result?.[0]).toBe(2)
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [
-        [1 as TransactionId, [makeBlockRange("eth", 0, 10)]],
-        [2 as TransactionId, [makeBlockRange("eth", 11, 20)]]
-      ],
-      next: 3 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [
+            [1 as TransactionId, [makeBlockRange("eth", 0, 10)]],
+            [2 as TransactionId, [makeBlockRange("eth", 11, 20)]]
+          ],
+          next: 3 as TransactionId
+        })
+      )
+    )
+  )
 })
 
 describe("StateActor.peek", () => {
   it.effect("returns next transaction ID", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const result = yield* actor.peek
       expect(result).toBe(10)
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 10 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 10 as TransactionId
+        })
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -106,7 +121,7 @@ describe("StateActor.peek", () => {
 
 describe("StateActor.execute - Data", () => {
   it.effect("passes through data events with transaction ID", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event] = yield* actor.execute({
@@ -118,13 +133,18 @@ describe("StateActor.execute - Data", () => {
       if (event._tag === "Data") {
         expect(event.data).toEqual([{ value: 1 }])
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 5 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 5 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("increments transaction ID for each event", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event1] = yield* actor.execute({
@@ -136,10 +156,15 @@ describe("StateActor.execute - Data", () => {
         message: dataMessage([{ value: 2 }], [makeBlockRange("eth", 11, 20)])
       })
       expect([event1.id, event2.id]).toEqual([0, 1])
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 0 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 0 as TransactionId
+        })
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -148,7 +173,7 @@ describe("StateActor.execute - Data", () => {
 
 describe("StateActor.execute - Watermark", () => {
   it.effect("emits watermark event with transaction ID", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event] = yield* actor.execute({
@@ -157,13 +182,18 @@ describe("StateActor.execute - Watermark", () => {
       })
       expect(event._tag).toBe("Watermark")
       expect(event.id).toBe(3)
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 3 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 3 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("adds watermark to internal buffer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       yield* actor.execute({
@@ -172,13 +202,18 @@ describe("StateActor.execute - Watermark", () => {
       })
       const watermark = yield* actor.watermark
       expect(watermark?.[0]).toBe(0)
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 0 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 0 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("computes prune point based on retention", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 50)
       // Add a watermark at block 200, which should prune old watermarks
@@ -192,13 +227,18 @@ describe("StateActor.execute - Watermark", () => {
         // Watermarks 0 and 1 end at 10 and 20, both < 150, so prune up to 1
         expect(event.prune._tag).toBe("Some")
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [
-        [0 as TransactionId, [makeBlockRange("eth", 0, 10)]],
-        [1 as TransactionId, [makeBlockRange("eth", 11, 20)]]
-      ],
-      next: 2 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [
+            [0 as TransactionId, [makeBlockRange("eth", 0, 10)]],
+            [1 as TransactionId, [makeBlockRange("eth", 11, 20)]]
+          ],
+          next: 2 as TransactionId
+        })
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -207,7 +247,7 @@ describe("StateActor.execute - Watermark", () => {
 
 describe("StateActor.execute - Rewind", () => {
   it.effect("emits Undo event with Rewind cause", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event] = yield* actor.execute({ _tag: "Rewind" })
@@ -215,13 +255,18 @@ describe("StateActor.execute - Rewind", () => {
       if (event._tag === "Undo") {
         expect(event.cause._tag).toBe("Rewind")
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 5 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 5 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("computes invalidation range for empty buffer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event] = yield* actor.execute({ _tag: "Rewind" })
@@ -230,13 +275,18 @@ describe("StateActor.execute - Rewind", () => {
         expect(event.invalidate.start).toBe(0)
         expect(event.invalidate.end).toBe(4)
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 5 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 5 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("computes invalidation range from last watermark", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event] = yield* actor.execute({ _tag: "Rewind" })
@@ -246,10 +296,15 @@ describe("StateActor.execute - Rewind", () => {
         expect(event.invalidate.start).toBe(4)
         expect(event.invalidate.end).toBe(6)
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [[3 as TransactionId, [makeBlockRange("eth", 0, 10)]]],
-      next: 7 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [[3 as TransactionId, [makeBlockRange("eth", 0, 10)]]],
+          next: 7 as TransactionId
+        })
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -258,7 +313,7 @@ describe("StateActor.execute - Rewind", () => {
 
 describe("StateActor.execute - Reorg", () => {
   it.effect("emits Undo event with Reorg cause", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event] = yield* actor.execute({
@@ -273,13 +328,18 @@ describe("StateActor.execute - Reorg", () => {
       if (event._tag === "Undo") {
         expect(event.cause._tag).toBe("Reorg")
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 10)]]],
-      next: 2 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 10)]]],
+          next: 2 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("finds recovery point and truncates buffer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       // Reorg at block 21 affects watermark id=3
@@ -296,17 +356,22 @@ describe("StateActor.execute - Reorg", () => {
       const result = yield* actor.watermark
       // Recovery point is id=2 (last unaffected), buffer truncated to keep only id=1,2
       expect(result?.[0]).toBe(2)
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [
-        [1 as TransactionId, [makeBlockRange("eth", 0, 10)]],
-        [2 as TransactionId, [makeBlockRange("eth", 11, 20)]],
-        [3 as TransactionId, [makeBlockRange("eth", 21, 30)]]
-      ],
-      next: 4 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [
+            [1 as TransactionId, [makeBlockRange("eth", 0, 10)]],
+            [2 as TransactionId, [makeBlockRange("eth", 11, 20)]],
+            [3 as TransactionId, [makeBlockRange("eth", 21, 30)]]
+          ],
+          next: 4 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("handles reorg with empty buffer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [event] = yield* actor.execute({
@@ -321,15 +386,20 @@ describe("StateActor.execute - Reorg", () => {
       if (event._tag === "Undo") {
         expect(event.invalidate.start).toBe(0)
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 5 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 5 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("fails with UnrecoverableReorgError when all watermarks affected", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const result = yield* Effect.exit(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const store = yield* StateStore
           const actor = yield* makeStateActor(store, 128)
 
@@ -350,18 +420,23 @@ describe("StateActor.execute - Reorg", () => {
         // Check that it's an UnrecoverableReorgError
         expect(error).toBeDefined()
       }
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [
-        [1 as TransactionId, [makeBlockRange("eth", 100, 110)]],
-        [2 as TransactionId, [makeBlockRange("eth", 111, 120)]]
-      ],
-      next: 3 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [
+            [1 as TransactionId, [makeBlockRange("eth", 100, 110)]],
+            [2 as TransactionId, [makeBlockRange("eth", 111, 120)]]
+          ],
+          next: 3 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("fails with PartialReorgError when reorg point falls within watermark range", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const result = yield* Effect.exit(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const store = yield* StateStore
           const actor = yield* makeStateActor(store, 128)
 
@@ -377,10 +452,15 @@ describe("StateActor.execute - Reorg", () => {
         })
       )
       expect(result._tag).toBe("Failure")
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 20)]]],
-      next: 2 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 20)]]],
+          next: 2 as TransactionId
+        })
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -389,7 +469,7 @@ describe("StateActor.execute - Reorg", () => {
 
 describe("StateActor.commit", () => {
   it.effect("commits watermarks via commit handle", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       const [, handle] = yield* actor.execute({
@@ -402,13 +482,18 @@ describe("StateActor.commit", () => {
       // The watermark should now be committed
       const result = yield* actor.watermark
       expect(result?.[0]).toBe(0)
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 0 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 0 as TransactionId
+        })
+      )
+    )
+  )
 
   it.effect("batches multiple commits", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
       // Execute multiple watermarks without committing
@@ -426,8 +511,13 @@ describe("StateActor.commit", () => {
 
       const watermark = yield* actor.watermark
       expect(watermark?.[0]).toBe(1)
-    }).pipe(Effect.provide(InMemoryStateStore.layerWithState({
-      buffer: [],
-      next: 0 as TransactionId
-    }))))
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [],
+          next: 0 as TransactionId
+        })
+      )
+    )
+  )
 })

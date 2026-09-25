@@ -68,11 +68,7 @@ const getReadiness = HttpApiEndpoint.get("getReadiness", "/health/ready", {
 /**
  * Api group for checking API health.
  */
-export class HealthApiGroup extends HttpApiGroup.make("health")
-  .add(getHealth)
-  .add(getLiveness)
-  .add(getReadiness)
-{}
+export class HealthApiGroup extends HttpApiGroup.make("health").add(getHealth).add(getLiveness).add(getReadiness) {}
 
 // =============================================================================
 // Datasets
@@ -166,11 +162,7 @@ const searchDatasets = HttpApiEndpoint.get("searchDatasets", "/datasets/search",
 const aiSearchDatasets = HttpApiEndpoint.get("aiSearchDatasets", "/datasets/search/ai", {
   query: Domain.AiSearchDatasetsParams,
   success: Domain.DatasetAiSearchResponse,
-  error: [
-    Errors.DatasetConversionError,
-    Errors.InvalidQueryParametersError,
-    Errors.RegistryDatabaseError
-  ]
+  error: [Errors.DatasetConversionError, Errors.InvalidQueryParametersError, Errors.RegistryDatabaseError]
 })
 
 // -----------------------------------------------------------------------------
@@ -183,11 +175,7 @@ const listDatasetVersions = HttpApiEndpoint.get("listDatasetVersions", "/dataset
     name: DatasetNameParam
   },
   success: Domain.DatasetListVersionsResponse,
-  error: [
-    Errors.DatasetVersionConversionError,
-    Errors.InvalidSelectorError,
-    Errors.RegistryDatabaseError
-  ]
+  error: [Errors.DatasetVersionConversionError, Errors.InvalidSelectorError, Errors.RegistryDatabaseError]
 })
 
 // -----------------------------------------------------------------------------
@@ -272,11 +260,7 @@ const listDatasetQueries = HttpApiEndpoint.get(
       revision: DatasetRevisionParam
     },
     success: Domain.DatasetListQueriesResponse,
-    error: [
-      Errors.InvalidSelectorError,
-      Errors.RegistryDatabaseError,
-      Errors.SavedQueryConversionError
-    ]
+    error: [Errors.InvalidSelectorError, Errors.RegistryDatabaseError, Errors.SavedQueryConversionError]
   }
 )
 
@@ -350,8 +334,7 @@ export class DatasetsApiGroup extends HttpApiGroup.make("datasets")
   .add(listLatestDatasetQueries)
   .add(listDatasetQueries)
   .add(getLatestDatasetManifest)
-  .add(getDatasetManifest)
-{}
+  .add(getDatasetManifest) {}
 
 // =============================================================================
 // Owned Datasets
@@ -361,49 +344,41 @@ export class DatasetsApiGroup extends HttpApiGroup.make("datasets")
 // GET /api/vX/owners/{owner}/datasets
 // -----------------------------------------------------------------------------
 
-const listOwnedDatasets = HttpApiEndpoint.get(
-  "listOwnedDatasets",
-  "/owners/:owner/datasets",
-  {
-    params: {
-      owner: DatasetOwnerParam
-    },
-    query: Domain.ListOwnedDatasetsParams,
-    success: Domain.ListMyDatasetsResponse,
-    error: [
-      Errors.DatasetConversionError,
-      Errors.InvalidDatasetOwnerPathError,
-      Errors.InvalidQueryParametersError,
-      Errors.LimitInvalidError,
-      Errors.LimitTooLargeError,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const listOwnedDatasets = HttpApiEndpoint.get("listOwnedDatasets", "/owners/:owner/datasets", {
+  params: {
+    owner: DatasetOwnerParam
+  },
+  query: Domain.ListOwnedDatasetsParams,
+  success: Domain.ListMyDatasetsResponse,
+  error: [
+    Errors.DatasetConversionError,
+    Errors.InvalidDatasetOwnerPathError,
+    Errors.InvalidQueryParametersError,
+    Errors.LimitInvalidError,
+    Errors.LimitTooLargeError,
+    Errors.RegistryDatabaseError
+  ]
+})
 
 // -----------------------------------------------------------------------------
 // GET /api/vX/owners/{owner}/datasets/search
 // -----------------------------------------------------------------------------
 
-const searchOwnedDatasets = HttpApiEndpoint.get(
-  "searchOwnedDatasets",
-  "/owners/:owner/datasets/search",
-  {
-    params: {
-      owner: DatasetOwnerParam
-    },
-    query: Domain.SearchOwnedDatasetsParams,
-    success: Domain.DatasetSearchResponse,
-    error: [
-      Errors.DatasetConversionError,
-      Errors.InvalidDatasetOwnerPathError,
-      Errors.InvalidQueryParametersError,
-      Errors.LimitInvalidError,
-      Errors.LimitTooLargeError,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const searchOwnedDatasets = HttpApiEndpoint.get("searchOwnedDatasets", "/owners/:owner/datasets/search", {
+  params: {
+    owner: DatasetOwnerParam
+  },
+  query: Domain.SearchOwnedDatasetsParams,
+  success: Domain.DatasetSearchResponse,
+  error: [
+    Errors.DatasetConversionError,
+    Errors.InvalidDatasetOwnerPathError,
+    Errors.InvalidQueryParametersError,
+    Errors.LimitInvalidError,
+    Errors.LimitTooLargeError,
+    Errors.RegistryDatabaseError
+  ]
+})
 
 // -----------------------------------------------------------------------------
 // Group Definition
@@ -414,8 +389,7 @@ const searchOwnedDatasets = HttpApiEndpoint.get(
  */
 export class OwnedDatasetsApiGroup extends HttpApiGroup.make("ownedDatasets")
   .add(listOwnedDatasets)
-  .add(searchOwnedDatasets)
-{}
+  .add(searchOwnedDatasets) {}
 
 // =============================================================================
 // My Datasets
@@ -425,81 +399,59 @@ export class OwnedDatasetsApiGroup extends HttpApiGroup.make("ownedDatasets")
 // GET /api/vX/owners/@me/datasets
 // -----------------------------------------------------------------------------
 
-const listMyDatasets = HttpApiEndpoint.get(
-  "listMyDatasets",
-  "/datasets",
-  {
-    query: Domain.ListOwnedDatasetsParams,
-    headers: Domain.BearerAuthHeader,
-    success: Domain.AuthUserOwnedDatasetListResponse,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.DatasetConversionError,
-      Errors.InvalidQueryParametersError,
-      Errors.LimitInvalidError,
-      Errors.LimitTooLargeError,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const listMyDatasets = HttpApiEndpoint.get("listMyDatasets", "/datasets", {
+  query: Domain.ListOwnedDatasetsParams,
+  headers: Domain.BearerAuthHeader,
+  success: Domain.AuthUserOwnedDatasetListResponse,
+  error: [
+    HttpApiError.Unauthorized,
+    Errors.DatasetConversionError,
+    Errors.InvalidQueryParametersError,
+    Errors.LimitInvalidError,
+    Errors.LimitTooLargeError,
+    Errors.RegistryDatabaseError
+  ]
+})
 
 // -----------------------------------------------------------------------------
 // GET /api/vX/owners/@me/datasets/{namespace}/{name}
 // -----------------------------------------------------------------------------
 
-const getMyDatasetByFqdn = HttpApiEndpoint.get(
-  "getMyDatasetByFqdn",
-  "/datasets/:namespace/:name",
-  {
-    params: {
-      namespace: DatasetNamespaceParam,
-      name: DatasetNameParam
-    },
-    headers: Domain.BearerAuthHeader,
-    success: Domain.Dataset,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.DatasetConversionError,
-      Errors.DatasetNotFoundError,
-      Errors.InvalidDatasetSelectorError,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const getMyDatasetByFqdn = HttpApiEndpoint.get("getMyDatasetByFqdn", "/datasets/:namespace/:name", {
+  params: {
+    namespace: DatasetNamespaceParam,
+    name: DatasetNameParam
+  },
+  headers: Domain.BearerAuthHeader,
+  success: Domain.Dataset,
+  error: [
+    HttpApiError.Unauthorized,
+    Errors.DatasetConversionError,
+    Errors.DatasetNotFoundError,
+    Errors.InvalidDatasetSelectorError,
+    Errors.RegistryDatabaseError
+  ]
+})
 
 // -----------------------------------------------------------------------------
 // GET /api/v1/owners/@me/datasets/counts/by-chain
 // -----------------------------------------------------------------------------
 
-const getMyDatasetCountsByChain = HttpApiEndpoint.get(
-  "getMyDatasetCountsByChain",
-  "/datasets/counts/by-chain",
-  {
-    headers: Domain.BearerAuthHeader,
-    success: Domain.OwnedDatasetCountsByChainResponse,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const getMyDatasetCountsByChain = HttpApiEndpoint.get("getMyDatasetCountsByChain", "/datasets/counts/by-chain", {
+  headers: Domain.BearerAuthHeader,
+  success: Domain.OwnedDatasetCountsByChainResponse,
+  error: [HttpApiError.Unauthorized, Errors.RegistryDatabaseError]
+})
 
 // -----------------------------------------------------------------------------
 // GET /api/v1/owners/@me/datasets/counts/by-keyword
 // -----------------------------------------------------------------------------
 
-const getMyDatasetCountsByKeyword = HttpApiEndpoint.get(
-  "getMyDatasetCountsByKeyword",
-  "/datasets/counts/by-keyword",
-  {
-    headers: Domain.BearerAuthHeader,
-    success: Domain.OwnedDatasetCountsByKeywordResponse,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const getMyDatasetCountsByKeyword = HttpApiEndpoint.get("getMyDatasetCountsByKeyword", "/datasets/counts/by-keyword", {
+  headers: Domain.BearerAuthHeader,
+  success: Domain.OwnedDatasetCountsByKeywordResponse,
+  error: [HttpApiError.Unauthorized, Errors.RegistryDatabaseError]
+})
 
 // -----------------------------------------------------------------------------
 // GET /api/v1/owners/@me/datasets/counts/by-last-updated
@@ -511,10 +463,7 @@ const getMyDatasetCountsByLastUpdated = HttpApiEndpoint.get(
   {
     headers: Domain.BearerAuthHeader,
     success: Domain.OwnedDatasetsCountByLastUpdatedResponse,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.RegistryDatabaseError
-    ]
+    error: [HttpApiError.Unauthorized, Errors.RegistryDatabaseError]
   }
 )
 
@@ -522,18 +471,11 @@ const getMyDatasetCountsByLastUpdated = HttpApiEndpoint.get(
 // GET /api/v1/owners/@me/datasets/counts/by-status
 // -----------------------------------------------------------------------------
 
-const getMyDatasetCountsByStatus = HttpApiEndpoint.get(
-  "getMyDatasetCountsByStatus",
-  "/datasets/counts/by-status",
-  {
-    headers: Domain.BearerAuthHeader,
-    success: Domain.OwnedDatasetCountsByStatusResponse,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const getMyDatasetCountsByStatus = HttpApiEndpoint.get("getMyDatasetCountsByStatus", "/datasets/counts/by-status", {
+  headers: Domain.BearerAuthHeader,
+  success: Domain.OwnedDatasetCountsByStatusResponse,
+  error: [HttpApiError.Unauthorized, Errors.RegistryDatabaseError]
+})
 
 // -----------------------------------------------------------------------------
 // GET /api/v1/owners/@me/datasets/counts/by-visibility
@@ -545,10 +487,7 @@ const getMyDatasetCountsByVisibility = HttpApiEndpoint.get(
   {
     headers: Domain.BearerAuthHeader,
     success: Domain.OwnedDatasetCountsByVisibilityResponse,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.RegistryDatabaseError
-    ]
+    error: [HttpApiError.Unauthorized, Errors.RegistryDatabaseError]
   }
 )
 
@@ -556,23 +495,19 @@ const getMyDatasetCountsByVisibility = HttpApiEndpoint.get(
 // GET /api/vX/owners/@me/datasets/search
 // -----------------------------------------------------------------------------
 
-const searchMyDatasets = HttpApiEndpoint.get(
-  "searchMyDatasets",
-  "/datasets/search",
-  {
-    query: Domain.SearchOwnedDatasetsParams,
-    headers: Domain.BearerAuthHeader,
-    success: Domain.DatasetSearchResponse,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.DatasetConversionError,
-      Errors.InvalidQueryParametersError,
-      Errors.LimitInvalidError,
-      Errors.LimitTooLargeError,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const searchMyDatasets = HttpApiEndpoint.get("searchMyDatasets", "/datasets/search", {
+  query: Domain.SearchOwnedDatasetsParams,
+  headers: Domain.BearerAuthHeader,
+  success: Domain.DatasetSearchResponse,
+  error: [
+    HttpApiError.Unauthorized,
+    Errors.DatasetConversionError,
+    Errors.InvalidQueryParametersError,
+    Errors.LimitInvalidError,
+    Errors.LimitTooLargeError,
+    Errors.RegistryDatabaseError
+  ]
+})
 
 // -----------------------------------------------------------------------------
 // GET /api/v1/owners/@me/datasets/{namespace}/{name}/versions/{version}/queries
@@ -603,24 +538,20 @@ const listMyDatasetQueries = HttpApiEndpoint.get(
 // POST /api/v1/owners/@me/datasets/publish
 // -----------------------------------------------------------------------------
 
-const publishMyDataset = HttpApiEndpoint.post(
-  "publishMyDataset",
-  "/datasets/publish",
-  {
-    headers: Domain.BearerAuthHeader,
-    payload: Domain.InsertDatasetPayload,
-    success: Schema.Void.pipe(HttpApiSchema.status(201)),
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.DatasetConversionError,
-      Errors.InvalidManifestError,
-      Errors.InvalidRequestBodyError,
-      Errors.InvalidNamespaceError,
-      Errors.NamespaceAccessDeniedError,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const publishMyDataset = HttpApiEndpoint.post("publishMyDataset", "/datasets/publish", {
+  headers: Domain.BearerAuthHeader,
+  payload: Domain.InsertDatasetPayload,
+  success: Schema.Void.pipe(HttpApiSchema.status(201)),
+  error: [
+    HttpApiError.Unauthorized,
+    Errors.DatasetConversionError,
+    Errors.InvalidManifestError,
+    Errors.InvalidRequestBodyError,
+    Errors.InvalidNamespaceError,
+    Errors.NamespaceAccessDeniedError,
+    Errors.RegistryDatabaseError
+  ]
+})
 
 // -----------------------------------------------------------------------------
 // POST /api/v1/owners/@me/datasets/{namespace}/{name}/versions/publish
@@ -653,26 +584,22 @@ const publishMyDatasetVersion = HttpApiEndpoint.post(
 // PUT /api/v1/owners/@me/datasets/{namespace}/{name}
 // -----------------------------------------------------------------------------
 
-const updateMyDatasetMetadata = HttpApiEndpoint.put(
-  "updateMyDatasetMetadata",
-  "/datasets/:namespace/:name",
-  {
-    params: {
-      namespace: DatasetNamespaceParam,
-      name: DatasetNameParam
-    },
-    headers: Domain.BearerAuthHeader,
-    payload: Domain.UpdateDatasetMetadataPayload,
-    success: Domain.Dataset,
-    error: [
-      HttpApiError.Unauthorized,
-      Errors.DatasetConversionError,
-      Errors.InvalidPathParametersError,
-      Errors.InvalidRequestBodyError,
-      Errors.RegistryDatabaseError
-    ]
-  }
-)
+const updateMyDatasetMetadata = HttpApiEndpoint.put("updateMyDatasetMetadata", "/datasets/:namespace/:name", {
+  params: {
+    namespace: DatasetNamespaceParam,
+    name: DatasetNameParam
+  },
+  headers: Domain.BearerAuthHeader,
+  payload: Domain.UpdateDatasetMetadataPayload,
+  success: Domain.Dataset,
+  error: [
+    HttpApiError.Unauthorized,
+    Errors.DatasetConversionError,
+    Errors.InvalidPathParametersError,
+    Errors.InvalidRequestBodyError,
+    Errors.RegistryDatabaseError
+  ]
+})
 
 // -----------------------------------------------------------------------------
 // PATCH /api/v1/owners/@me/datasets/{namespace}/{name}/visibility
@@ -773,8 +700,7 @@ export class MyDatasetsApiGroup extends HttpApiGroup.make("myDatasets")
   .add(updateMyDatasetMetadata)
   .add(updateMyDatasetVersionStatus)
   .add(archiveMyDatasetVersion)
-  .prefix("/owners/@me")
-{}
+  .prefix("/owners/@me") {}
 
 // =============================================================================
 // API Definition
@@ -788,5 +714,4 @@ export class ApiV1 extends HttpApi.make("AmpRegistryApiV1")
   .add(DatasetsApiGroup)
   .add(OwnedDatasetsApiGroup)
   .add(MyDatasetsApiGroup)
-  .prefix("/api/v1")
-{}
+  .prefix("/api/v1") {}

@@ -15,7 +15,7 @@ import type * as Types from "../Types.ts"
 
 export const dateGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.DateType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
 
@@ -69,7 +69,7 @@ export const dateGenerator: Types.DataGenerator = {
 
 export const timeGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.TimeType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
 
@@ -125,7 +125,7 @@ export const timeGenerator: Types.DataGenerator = {
 
 export const timestampGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.TimestampType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
 
@@ -168,7 +168,7 @@ export const timestampGenerator: Types.DataGenerator = {
 
 export const durationGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.DurationType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
 
@@ -207,7 +207,7 @@ export const durationGenerator: Types.DataGenerator = {
 
 export const intervalGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.IntervalType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
 

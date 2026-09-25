@@ -46,14 +46,14 @@ export const AUTH_PLATFORM_BASE_URL = new URL("https://auth.amp.thegraph.com/")
 // Models
 // =============================================================================
 
-export const CodeChallenge = NonEmptyTrimmedString.pipe(
-  Schema.brand("Amp/Auth/CodeChallenge")
-).annotate({ identifier: "CodeChallenge" })
+export const CodeChallenge = NonEmptyTrimmedString.pipe(Schema.brand("Amp/Auth/CodeChallenge")).annotate({
+  identifier: "CodeChallenge"
+})
 export type CodeChallenge = Schema.Schema.Type<typeof CodeChallenge>
 
-export const CodeVerifier = NonEmptyTrimmedString.pipe(
-  Schema.brand("Amp/Auth/CodeVerifier")
-).annotate({ identifier: "CodeVerifier" })
+export const CodeVerifier = NonEmptyTrimmedString.pipe(Schema.brand("Amp/Auth/CodeVerifier")).annotate({
+  identifier: "CodeVerifier"
+})
 export type CodeVerifier = Schema.Schema.Type<typeof CodeVerifier>
 
 export const PKCEChallenge = Schema.Struct({
@@ -62,14 +62,14 @@ export const PKCEChallenge = Schema.Struct({
 }).annotate({ identifier: "PKCEChallenge" })
 export type PKCEChallenge = typeof PKCEChallenge.Type
 
-export const DeviceCode = NonEmptyTrimmedString.pipe(
-  Schema.brand("Amp/Auth/DeviceCode")
-).annotate({ identifier: "DeviceCode" })
+export const DeviceCode = NonEmptyTrimmedString.pipe(Schema.brand("Amp/Auth/DeviceCode")).annotate({
+  identifier: "DeviceCode"
+})
 export type DeviceCode = Schema.Schema.Type<typeof DeviceCode>
 
-export const UserCode = NonEmptyTrimmedString.pipe(
-  Schema.brand("Amp/Auth/UserCode")
-).annotate({ identifier: "UserCode" })
+export const UserCode = NonEmptyTrimmedString.pipe(Schema.brand("Amp/Auth/UserCode")).annotate({
+  identifier: "UserCode"
+})
 export type UserCode = Schema.Schema.Type<typeof UserCode>
 
 export const DeviceAuthorizationResponse = Schema.Struct({
@@ -88,12 +88,16 @@ export const DeviceAuthorizationResponse = Schema.Struct({
   interval: Schema.Int.check(Schema.isGreaterThan(0)).annotate({
     description: "Minimum polling interval in seconds"
   })
-}).pipe(Schema.encodeKeys({
-  deviceCode: "device_code",
-  userCode: "user_code",
-  verificationUri: "verification_uri",
-  expiresIn: "expires_in"
-})).annotate({ identifier: "DeviceAuthorizationResponse" })
+})
+  .pipe(
+    Schema.encodeKeys({
+      deviceCode: "device_code",
+      userCode: "user_code",
+      verificationUri: "verification_uri",
+      expiresIn: "expires_in"
+    })
+  )
+  .annotate({ identifier: "DeviceAuthorizationResponse" })
 export type DeviceAuthorizationResponse = typeof DeviceAuthorizationResponse.Type
 
 export const DeviceTokenResponse = Schema.Struct({
@@ -111,13 +115,17 @@ export const DeviceTokenResponse = Schema.Struct({
   expiresIn: Schema.Int.check(Schema.isGreaterThan(0)).annotate({
     description: "Seconds until the token expires from receipt"
   })
-}).pipe(Schema.encodeKeys({
-  accessToken: "access_token",
-  refreshToken: "refresh_token",
-  userId: "user_id",
-  userAccounts: "user_accounts",
-  expiresIn: "expires_in"
-})).annotate({ identifier: "DeviceTokenResponse" })
+})
+  .pipe(
+    Schema.encodeKeys({
+      accessToken: "access_token",
+      refreshToken: "refresh_token",
+      userId: "user_id",
+      userAccounts: "user_accounts",
+      expiresIn: "expires_in"
+    })
+  )
+  .annotate({ identifier: "DeviceTokenResponse" })
 export type DeviceTokenResponse = typeof DeviceTokenResponse.Type
 
 export const DeviceTokenPendingResponse = Schema.Struct({
@@ -157,10 +165,12 @@ export type GenerateTokenResponse = typeof GenerateTokenResponse.Type
 export const RefreshTokenRequest = Schema.Struct({
   refreshToken: Schema.Redacted(RefreshToken),
   userId: UserId
-}).pipe(Schema.encodeKeys({
-  refreshToken: "refresh_token",
-  userId: "user_id"
-}))
+}).pipe(
+  Schema.encodeKeys({
+    refreshToken: "refresh_token",
+    userId: "user_id"
+  })
+)
 export type RefreshTokenRequest = typeof RefreshTokenRequest.Type
 
 export const RefreshTokenResponse = Schema.Struct({
@@ -177,18 +187,20 @@ export const RefreshTokenResponse = Schema.Struct({
       examples: [["cmfd6bf6u006vjx0b7xb2eybx", "0x5c8fA0bDf68C915a88cD68291fC7CF011C126C29"]]
     })
   }).annotate({ description: "The user the access token belongs to" })
-}).pipe(Schema.encodeKeys({
-  refreshToken: "refresh_token",
-  sessionUpdateAction: "session_update_action",
-  expiresIn: "expires_in"
-}))
+}).pipe(
+  Schema.encodeKeys({
+    refreshToken: "refresh_token",
+    sessionUpdateAction: "session_update_action",
+    expiresIn: "expires_in"
+  })
+)
 export type RefreshTokenResponse = typeof RefreshTokenResponse.Type
 
 // =============================================================================
 // Legacy Errors (kept for backwards compatibility)
 // =============================================================================
 
-export class VerifySignedAccessTokenError extends Schema.TaggedErrorClass<VerifySignedAccessTokenError>(
+export class VerifySignedAccessTokenError extends Schema.TaggedError<VerifySignedAccessTokenError>(
   "Amp/Auth/VerifySignedAccessTokenError"
 )("VerifySignedAccessTokenError", { cause: Schema.Defect() }) {}
 
@@ -196,69 +208,72 @@ export class VerifySignedAccessTokenError extends Schema.TaggedErrorClass<Verify
 // Service
 // =============================================================================
 
-export class Auth extends Context.Service<Auth, {
-  readonly createChallenge: Effect.Effect<PKCEChallenge>
+export class Auth extends Context.Service<
+  Auth,
+  {
+    readonly createChallenge: Effect.Effect<PKCEChallenge>
 
-  readonly requestDeviceAuthorization: (codeChallenge: CodeChallenge) => Effect.Effect<
-    DeviceAuthorizationResponse,
-    | AuthNetworkError
-    | AuthProtocolError
-    | AuthRequestError
-    | AuthRefreshError
-  >
+    readonly requestDeviceAuthorization: (
+      codeChallenge: CodeChallenge
+    ) => Effect.Effect<
+      DeviceAuthorizationResponse,
+      AuthNetworkError | AuthProtocolError | AuthRequestError | AuthRefreshError
+    >
 
-  readonly pollDeviceToken: (deviceCode: DeviceCode, codeVerifier: CodeVerifier) => Effect.Effect<
-    AuthInfo,
-    | AuthCacheError
-    | AuthNetworkError
-    | AuthProtocolError
-    | AuthRequestError
-    | AuthDeviceFlowError
-  >
+    readonly pollDeviceToken: (
+      deviceCode: DeviceCode,
+      codeVerifier: CodeVerifier
+    ) => Effect.Effect<
+      AuthInfo,
+      AuthCacheError | AuthNetworkError | AuthProtocolError | AuthRequestError | AuthDeviceFlowError
+    >
 
-  readonly refreshAccessToken: (authInfo: AuthInfo) => Effect.Effect<
-    AuthInfo,
-    | AuthNetworkError
-    | AuthProtocolError
-    | AuthRequestError
-    | AuthCacheError
-    | AuthTokenExpiredError
-    | AuthRateLimitError
-    | AuthRefreshError
-    | AuthUserMismatchError
-  >
+    readonly refreshAccessToken: (
+      authInfo: AuthInfo
+    ) => Effect.Effect<
+      AuthInfo,
+      | AuthNetworkError
+      | AuthProtocolError
+      | AuthRequestError
+      | AuthCacheError
+      | AuthTokenExpiredError
+      | AuthRateLimitError
+      | AuthRefreshError
+      | AuthUserMismatchError
+    >
 
-  readonly generateAccessToken: (options: {
-    readonly authInfo: AuthInfo
-    readonly audience?: ReadonlyArray<string> | undefined
-    readonly duration?: TokenDuration | undefined
-  }) => Effect.Effect<
-    GenerateTokenResponse,
-    | AuthNetworkError
-    | AuthProtocolError
-    | AuthRequestError
-    | AuthTokenExpiredError
-    | AuthRateLimitError
-    | AuthRefreshError
-  >
+    readonly generateAccessToken: (options: {
+      readonly authInfo: AuthInfo
+      readonly audience?: ReadonlyArray<string> | undefined
+      readonly duration?: TokenDuration | undefined
+    }) => Effect.Effect<
+      GenerateTokenResponse,
+      | AuthNetworkError
+      | AuthProtocolError
+      | AuthRequestError
+      | AuthTokenExpiredError
+      | AuthRateLimitError
+      | AuthRefreshError
+    >
 
-  readonly verifyAccessToken: (
-    token: Redacted.Redacted<string>,
-    issuer: string
-  ) => Effect.Effect<Jose.JWTPayload, AuthVerifyTokenError>
+    readonly verifyAccessToken: (
+      token: Redacted.Redacted<string>,
+      issuer: string
+    ) => Effect.Effect<Jose.JWTPayload, AuthVerifyTokenError>
 
-  readonly getCachedAuthInfo: Effect.Effect<Option.Option<AuthInfo>, AuthCacheError>
+    readonly getCachedAuthInfo: Effect.Effect<Option.Option<AuthInfo>, AuthCacheError>
 
-  readonly setCachedAuthInfo: (authInfo: AuthInfo) => Effect.Effect<void, AuthCacheError>
+    readonly setCachedAuthInfo: (authInfo: AuthInfo) => Effect.Effect<void, AuthCacheError>
 
-  readonly clearCachedAuthInfo: Effect.Effect<void, AuthCacheError>
-}>()("Amp/Auth") {}
+    readonly clearCachedAuthInfo: Effect.Effect<void, AuthCacheError>
+  }
+>()("Amp/Auth") {}
 
 // =============================================================================
 // Service Implementation
 // =============================================================================
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
   const kvs = KeyValueStore.toSchemaStore(store, AuthInfo)
 
@@ -270,10 +285,7 @@ const make = Effect.gen(function*() {
   // Error Handling Helpers
   // ------------------------------------------------------------------------
 
-  const makeAuthNetworkTimeoutError = (
-    endpoint: string,
-    cause: unknown
-  ): AuthNetworkError =>
+  const makeAuthNetworkTimeoutError = (endpoint: string, cause: unknown): AuthNetworkError =>
     AuthNetworkError.make({
       code: "AUTH_NETWORK_ERROR",
       message: `Request to ${endpoint} timed out`,
@@ -282,10 +294,7 @@ const make = Effect.gen(function*() {
       cause: Option.some(cause)
     })
 
-  const makeAuthNetworkRequestError = (
-    endpoint: string,
-    cause: { readonly message: string }
-  ): AuthNetworkError =>
+  const makeAuthNetworkRequestError = (endpoint: string, cause: { readonly message: string }): AuthNetworkError =>
     AuthNetworkError.make({
       code: "AUTH_NETWORK_ERROR",
       message: `Connection failed to ${endpoint}: ${cause.message}`,
@@ -294,10 +303,7 @@ const make = Effect.gen(function*() {
       cause: Option.some(cause)
     })
 
-  const makeAuthRefreshSchemaError = (
-    endpoint: string,
-    cause: { readonly message: string }
-  ): AuthRefreshError =>
+  const makeAuthRefreshSchemaError = (endpoint: string, cause: { readonly message: string }): AuthRefreshError =>
     AuthRefreshError.make({
       code: "AUTH_REFRESH_FAILED",
       message: `Failed to parse ${endpoint} response: ${cause.message}`,
@@ -305,10 +311,7 @@ const make = Effect.gen(function*() {
       cause: Option.some(cause)
     })
 
-  const makeAuthProtocolDecodeError = (
-    endpoint: string,
-    cause: unknown
-  ): AuthProtocolError =>
+  const makeAuthProtocolDecodeError = (endpoint: string, cause: unknown): AuthProtocolError =>
     AuthProtocolError.make({
       code: "AUTH_PROTOCOL_ERROR",
       message: `Authentication service returned an unreadable response for ${endpoint}`,
@@ -317,10 +320,7 @@ const make = Effect.gen(function*() {
       cause: Option.some(cause)
     })
 
-  const makeAuthProtocolEmptyBodyError = (
-    endpoint: string,
-    cause: unknown
-  ): AuthProtocolError =>
+  const makeAuthProtocolEmptyBodyError = (endpoint: string, cause: unknown): AuthProtocolError =>
     AuthProtocolError.make({
       code: "AUTH_PROTOCOL_ERROR",
       message: `Authentication service returned an empty response for ${endpoint}`,
@@ -341,10 +341,7 @@ const make = Effect.gen(function*() {
       cause: Option.some(cause)
     })
 
-  const makeAuthRequestEncodeError = (
-    endpoint: string,
-    cause: unknown
-  ): AuthRequestError =>
+  const makeAuthRequestEncodeError = (endpoint: string, cause: unknown): AuthRequestError =>
     AuthRequestError.make({
       code: "AUTH_REQUEST_ERROR",
       message: `Failed to encode the authentication request for ${endpoint}`,
@@ -352,10 +349,7 @@ const make = Effect.gen(function*() {
       cause: Option.some(cause)
     })
 
-  const makeAuthRequestInvalidUrlError = (
-    endpoint: string,
-    cause: unknown
-  ): AuthRequestError =>
+  const makeAuthRequestInvalidUrlError = (endpoint: string, cause: unknown): AuthRequestError =>
     AuthRequestError.make({
       code: "AUTH_REQUEST_ERROR",
       message: `Authentication endpoint is invalid for ${endpoint}`,
@@ -406,10 +400,9 @@ const make = Effect.gen(function*() {
   const executeAuthenticatedRequest = <A>(
     request: HttpClientRequest.HttpClientRequest,
     endpoint: string,
-    decodeBody: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<
-      A,
-      Schema.SchemaError | HttpClientError.HttpClientError
-    >
+    decodeBody: (
+      response: HttpClientResponse.HttpClientResponse
+    ) => Effect.Effect<A, Schema.SchemaError | HttpClientError.HttpClientError>
   ) =>
     httpClient.execute(request).pipe(
       Effect.timeout("15 seconds"),
@@ -430,45 +423,49 @@ const make = Effect.gen(function*() {
                 message: "Access token lacks required permissions (403 Forbidden)"
               })
             ),
-          429: Effect.fnUntraced(function*(response) {
+          429: Effect.fnUntraced(function* (response) {
             const message = yield* extractErrorDescription(response)
             const retryAfter = Option.fromNullishOr(response.headers["retry-after"]).pipe(
               Option.flatMap((header) => {
                 const parsed = Number.parseInt(header, 10)
-                return Number.isNaN(parsed)
-                  ? Option.none()
-                  : Option.some(Duration.seconds(parsed))
+                return Number.isNaN(parsed) ? Option.none() : Option.some(Duration.seconds(parsed))
               }),
               Option.getOrElse(() => Duration.minutes(1))
             )
-            return yield* Effect.fail(AuthRateLimitError.make({
-              code: "AUTH_RATE_LIMITED",
-              message,
-              retryAfter
-            }))
+            return yield* Effect.fail(
+              AuthRateLimitError.make({
+                code: "AUTH_RATE_LIMITED",
+                message,
+                retryAfter
+              })
+            )
           }),
-          orElse: Effect.fnUntraced(function*(response) {
+          orElse: Effect.fnUntraced(function* (response) {
             const message = yield* extractErrorDescription(response)
-            return yield* Effect.fail(AuthRefreshError.make({
-              code: "AUTH_REFRESH_FAILED",
-              message,
-              status: Option.some(response.status),
-              cause: Option.none()
-            }))
+            return yield* Effect.fail(
+              AuthRefreshError.make({
+                code: "AUTH_REFRESH_FAILED",
+                message,
+                status: Option.some(response.status),
+                cause: Option.none()
+              })
+            )
           })
         })
       ),
       Effect.unwrapReason("HttpClientError"),
-      Effect.catchTags(makeUnwrappedHttpClientErrorHandlers(endpoint, {
-        onSchemaError: (cause) => makeAuthRefreshSchemaError(endpoint, cause)
-      }))
+      Effect.catchTags(
+        makeUnwrappedHttpClientErrorHandlers(endpoint, {
+          onSchemaError: (cause) => makeAuthRefreshSchemaError(endpoint, cause)
+        })
+      )
     )
 
   // ------------------------------------------------------------------------
   // OAuth2 Authorization Code Flow with PKCE
   // ------------------------------------------------------------------------
 
-  const createChallenge = Effect.gen(function*() {
+  const createChallenge = Effect.gen(function* () {
     const { codeChallenge, codeVerifier } = yield* pkceChallenge()
     return PKCEChallenge.make({
       codeChallenge: CodeChallenge.make(codeChallenge),
@@ -476,141 +473,156 @@ const make = Effect.gen(function*() {
     })
   }).pipe(Effect.withSpan("Auth.createChallenge"))
 
-  const requestDeviceAuthorization = Effect.fn("Auth.requestDeviceAuthorization")(
-    function*(codeChallenge: string) {
-      const endpoint = "/api/v1/device/authorize"
-      return yield* httpClient.post(endpoint, {
+  const requestDeviceAuthorization = Effect.fn("Auth.requestDeviceAuthorization")(function* (codeChallenge: string) {
+    const endpoint = "/api/v1/device/authorize"
+    return yield* httpClient
+      .post(endpoint, {
         acceptJson: true,
         body: HttpBody.jsonUnsafe({
           code_challenge: codeChallenge,
           code_challenge_method: "S256"
         })
-      }).pipe(
+      })
+      .pipe(
         Effect.timeout("30 seconds"),
         Effect.flatMap(HttpClientResponse.schemaBodyJson(DeviceAuthorizationResponse)),
         Effect.unwrapReason("HttpClientError"),
-        Effect.catchTags(makeUnwrappedHttpClientErrorHandlers(endpoint, {
-          onSchemaError: (cause) => makeAuthRefreshSchemaError(endpoint, cause)
-        }))
+        Effect.catchTags(
+          makeUnwrappedHttpClientErrorHandlers(endpoint, {
+            onSchemaError: (cause) => makeAuthRefreshSchemaError(endpoint, cause)
+          })
+        )
       )
-    }
-  )
+  })
 
-  const pollDeviceToken = Effect.fn("Auth.pollDeviceToken")(
-    function*(deviceCode: DeviceCode, codeVerifier: CodeVerifier) {
-      const endpoint = "/api/v1/device/token"
-      const response = yield* httpClient.get(endpoint, {
+  const pollDeviceToken = Effect.fn("Auth.pollDeviceToken")(function* (
+    deviceCode: DeviceCode,
+    codeVerifier: CodeVerifier
+  ) {
+    const endpoint = "/api/v1/device/token"
+    const response = yield* httpClient
+      .get(endpoint, {
         acceptJson: true,
         urlParams: UrlParams.fromInput({
           "device_code": deviceCode,
           "code_verifier": codeVerifier
         })
-      }).pipe(
+      })
+      .pipe(
         Effect.timeout("10 seconds"),
         Effect.flatMap(HttpClientResponse.schemaBodyJson(DeviceTokenPollingResponse)),
         Effect.unwrapReason("HttpClientError"),
-        Effect.catchTags(makeUnwrappedHttpClientErrorHandlers(endpoint, {
-          onSchemaError: () => makeAuthDeviceFlowSchemaError()
-        }))
+        Effect.catchTags(
+          makeUnwrappedHttpClientErrorHandlers(endpoint, {
+            onSchemaError: () => makeAuthDeviceFlowSchemaError()
+          })
+        )
       )
 
-      if (response._tag === "DeviceTokenPendingResponse") {
-        return yield* Effect.fail(AuthDeviceFlowError.make({
+    if (response._tag === "DeviceTokenPendingResponse") {
+      return yield* Effect.fail(
+        AuthDeviceFlowError.make({
           code: "AUTH_DEVICE_FLOW_ERROR",
           message: "Device authorization is still pending",
           reason: "pending",
           verificationUri: Option.none()
-        }))
-      }
+        })
+      )
+    }
 
-      if (response._tag === "DeviceTokenExpiredResponse") {
-        return yield* Effect.fail(AuthDeviceFlowError.make({
+    if (response._tag === "DeviceTokenExpiredResponse") {
+      return yield* Effect.fail(
+        AuthDeviceFlowError.make({
           code: "AUTH_DEVICE_FLOW_ERROR",
           message: "Device authorization code has expired",
           reason: "expired",
           verificationUri: Option.none()
-        }))
-      }
-
-      const authInfo = yield* makeAuthInfo({
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
-        expiresIn: response.expiresIn,
-        userId: response.userId,
-        accounts: response.userAccounts
-      })
-
-      yield* setCachedAuthInfo(authInfo)
-
-      return authInfo
+        })
+      )
     }
-  )
+
+    const authInfo = yield* makeAuthInfo({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      expiresIn: response.expiresIn,
+      userId: response.userId,
+      accounts: response.userAccounts
+    })
+
+    yield* setCachedAuthInfo(authInfo)
+
+    return authInfo
+  })
 
   // ------------------------------------------------------------------------
   // OAuth2 Generate / Refresh Token
   // ------------------------------------------------------------------------
 
-  const generateAccessToken = Effect.fn("Auth.generateAccessToken")(
-    function*({ authInfo, audience, duration }: {
-      readonly authInfo: AuthInfo
-      readonly audience?: ReadonlyArray<string> | undefined
-      readonly duration?: TokenDuration | undefined
-    }) {
-      const endpoint = "/api/v1/auth/generate"
-      const request = HttpClientRequest.post(endpoint, {
-        body: HttpBody.jsonUnsafe(GenerateTokenRequest.make({ audience, duration })),
-        acceptJson: true
-      }).pipe(HttpClientRequest.bearerToken(authInfo.accessToken))
+  const generateAccessToken = Effect.fn("Auth.generateAccessToken")(function* ({
+    authInfo,
+    audience,
+    duration
+  }: {
+    readonly authInfo: AuthInfo
+    readonly audience?: ReadonlyArray<string> | undefined
+    readonly duration?: TokenDuration | undefined
+  }) {
+    const endpoint = "/api/v1/auth/generate"
+    const request = HttpClientRequest.post(endpoint, {
+      body: HttpBody.jsonUnsafe(GenerateTokenRequest.make({ audience, duration })),
+      acceptJson: true
+    }).pipe(HttpClientRequest.bearerToken(authInfo.accessToken))
 
-      return yield* executeAuthenticatedRequest(
-        request,
-        endpoint,
-        HttpClientResponse.schemaBodyJson(GenerateTokenResponse)
-      )
-    }
-  )
+    return yield* executeAuthenticatedRequest(
+      request,
+      endpoint,
+      HttpClientResponse.schemaBodyJson(GenerateTokenResponse)
+    )
+  })
 
-  const refreshAccessToken = Effect.fn("Auth.refreshAccessToken")(
-    function*(authInfo: AuthInfo) {
-      const endpoint = "/api/v1/auth/refresh"
-      const request = HttpClientRequest.post(endpoint, {
-        body: HttpBody.jsonUnsafe(RefreshTokenRequest.make({
+  const refreshAccessToken = Effect.fn("Auth.refreshAccessToken")(function* (authInfo: AuthInfo) {
+    const endpoint = "/api/v1/auth/refresh"
+    const request = HttpClientRequest.post(endpoint, {
+      body: HttpBody.jsonUnsafe(
+        RefreshTokenRequest.make({
           userId: authInfo.userId,
           refreshToken: authInfo.refreshToken
-        })),
-        acceptJson: true
-      }).pipe(HttpClientRequest.bearerToken(authInfo.accessToken))
+        })
+      ),
+      acceptJson: true
+    }).pipe(HttpClientRequest.bearerToken(authInfo.accessToken))
 
-      const response = yield* executeAuthenticatedRequest(
-        request,
-        endpoint,
-        HttpClientResponse.schemaBodyJson(RefreshTokenResponse)
-      )
+    const response = yield* executeAuthenticatedRequest(
+      request,
+      endpoint,
+      HttpClientResponse.schemaBodyJson(RefreshTokenResponse)
+    )
 
-      // Validate that the received user ID matches the cached user ID
-      if (response.user.id !== authInfo.userId) {
-        return yield* Effect.fail(AuthUserMismatchError.make({
+    // Validate that the received user ID matches the cached user ID
+    if (response.user.id !== authInfo.userId) {
+      return yield* Effect.fail(
+        AuthUserMismatchError.make({
           code: "AUTH_USER_MISMATCH",
           message: `Expected user ID ${authInfo.userId} but received ${response.user.id}`,
           expectedUserId: authInfo.userId,
           receivedUserId: response.user.id
-        }))
-      }
-
-      const refreshedAuthInfo = yield* makeAuthInfo({
-        accessToken: response.token,
-        refreshToken: response.refreshToken ?? Redacted.value(authInfo.refreshToken),
-        expiresIn: response.expiresIn,
-        userId: response.user.id,
-        accounts: response.user.accounts
-      })
-
-      // Reset the cached tokens
-      yield* setCachedAuthInfo(refreshedAuthInfo)
-
-      return refreshedAuthInfo
+        })
+      )
     }
-  )
+
+    const refreshedAuthInfo = yield* makeAuthInfo({
+      accessToken: response.token,
+      refreshToken: response.refreshToken ?? Redacted.value(authInfo.refreshToken),
+      expiresIn: response.expiresIn,
+      userId: response.user.id,
+      accounts: response.user.accounts
+    })
+
+    // Reset the cached tokens
+    yield* setCachedAuthInfo(refreshedAuthInfo)
+
+    return refreshedAuthInfo
+  })
 
   // ------------------------------------------------------------------------
   // OAuth2 Token Verification
@@ -618,76 +630,77 @@ const make = Effect.gen(function*() {
 
   const JWKS = Jose.createRemoteJWKSet(new URL("./.well-known/jwks.json", AUTH_PLATFORM_BASE_URL))
 
-  const verifyAccessToken = Effect.fn("Auth.verifyAccessToken")(
-    function*(token: Redacted.Redacted<string>, issuer: string) {
-      const result = yield* Effect.tryPromise({
-        try: () => Jose.jwtVerify(Redacted.value(token), JWKS, { issuer }),
-        catch: (cause) => {
-          if (!(cause instanceof Jose.errors.JOSEError)) {
+  const verifyAccessToken = Effect.fn("Auth.verifyAccessToken")(function* (
+    token: Redacted.Redacted<string>,
+    issuer: string
+  ) {
+    const result = yield* Effect.tryPromise({
+      try: () => Jose.jwtVerify(Redacted.value(token), JWKS, { issuer }),
+      catch: (cause) => {
+        if (!(cause instanceof Jose.errors.JOSEError)) {
+          return AuthVerifyTokenError.make({
+            code: "AUTH_VERIFY_TOKEN_FAILED",
+            message: `Unknown verification error: ${String(cause)}`,
+            reason: "unknown",
+            claim: Option.none(),
+            cause: Option.some(cause)
+          })
+        }
+        switch (cause.code) {
+          case "ERR_JWT_EXPIRED":
             return AuthVerifyTokenError.make({
               code: "AUTH_VERIFY_TOKEN_FAILED",
-              message: `Unknown verification error: ${String(cause)}`,
+              message: `Token expired: ${cause.message}`,
+              reason: "expired",
+              claim: Option.fromNullishOr((cause as Jose.errors.JWTExpired).claim),
+              cause: Option.some(cause)
+            })
+          case "ERR_JWS_SIGNATURE_VERIFICATION_FAILED":
+            return AuthVerifyTokenError.make({
+              code: "AUTH_VERIFY_TOKEN_FAILED",
+              message: `Signature verification failed: ${cause.message}`,
+              reason: "invalid_signature",
+              claim: Option.none(),
+              cause: Option.some(cause)
+            })
+          case "ERR_JWT_CLAIM_VALIDATION_FAILED":
+            return AuthVerifyTokenError.make({
+              code: "AUTH_VERIFY_TOKEN_FAILED",
+              message: `Claim validation failed: ${(cause as Jose.errors.JWTClaimValidationFailed).claim} - ${
+                (cause as Jose.errors.JWTClaimValidationFailed).reason
+              }`,
+              reason: "invalid_claims",
+              claim: Option.fromNullishOr((cause as Jose.errors.JWTClaimValidationFailed).claim),
+              cause: Option.some(cause)
+            })
+          case "ERR_JWKS_NO_MATCHING_KEY":
+          case "ERR_JWKS_TIMEOUT":
+            return AuthVerifyTokenError.make({
+              code: "AUTH_VERIFY_TOKEN_FAILED",
+              message: `JWKS error: ${cause.message}`,
+              reason: "jwks_error",
+              claim: Option.none(),
+              cause: Option.some(cause)
+            })
+          default:
+            return AuthVerifyTokenError.make({
+              code: "AUTH_VERIFY_TOKEN_FAILED",
+              message: `Verification error: ${cause.message}`,
               reason: "unknown",
               claim: Option.none(),
               cause: Option.some(cause)
             })
-          }
-          switch (cause.code) {
-            case "ERR_JWT_EXPIRED":
-              return AuthVerifyTokenError.make({
-                code: "AUTH_VERIFY_TOKEN_FAILED",
-                message: `Token expired: ${cause.message}`,
-                reason: "expired",
-                claim: Option.fromNullishOr((cause as Jose.errors.JWTExpired).claim),
-                cause: Option.some(cause)
-              })
-            case "ERR_JWS_SIGNATURE_VERIFICATION_FAILED":
-              return AuthVerifyTokenError.make({
-                code: "AUTH_VERIFY_TOKEN_FAILED",
-                message: `Signature verification failed: ${cause.message}`,
-                reason: "invalid_signature",
-                claim: Option.none(),
-                cause: Option.some(cause)
-              })
-            case "ERR_JWT_CLAIM_VALIDATION_FAILED":
-              return AuthVerifyTokenError.make({
-                code: "AUTH_VERIFY_TOKEN_FAILED",
-                message: `Claim validation failed: ${(cause as Jose.errors.JWTClaimValidationFailed).claim} - ${
-                  (cause as Jose.errors.JWTClaimValidationFailed).reason
-                }`,
-                reason: "invalid_claims",
-                claim: Option.fromNullishOr((cause as Jose.errors.JWTClaimValidationFailed).claim),
-                cause: Option.some(cause)
-              })
-            case "ERR_JWKS_NO_MATCHING_KEY":
-            case "ERR_JWKS_TIMEOUT":
-              return AuthVerifyTokenError.make({
-                code: "AUTH_VERIFY_TOKEN_FAILED",
-                message: `JWKS error: ${cause.message}`,
-                reason: "jwks_error",
-                claim: Option.none(),
-                cause: Option.some(cause)
-              })
-            default:
-              return AuthVerifyTokenError.make({
-                code: "AUTH_VERIFY_TOKEN_FAILED",
-                message: `Verification error: ${cause.message}`,
-                reason: "unknown",
-                claim: Option.none(),
-                cause: Option.some(cause)
-              })
-          }
         }
-      })
-      return result.payload
-    }
-  )
+      }
+    })
+    return result.payload
+  })
 
   // ------------------------------------------------------------------------
   // Cache Operations
   // ------------------------------------------------------------------------
 
-  const getCachedAuthInfo = Effect.gen(function*() {
+  const getCachedAuthInfo = Effect.gen(function* () {
     const cacheResult = yield* kvs.get(AUTH_INFO_CACHE_KEY).pipe(
       // Treat "not found" as Option.none() before wrapping other errors
       Effect.catchIf(
@@ -707,13 +720,13 @@ const make = Effect.gen(function*() {
     // Check if we need to refresh the token
     const needsRefresh =
       // Missing expiry field - refresh to populate it
-      Predicate.isNullish(cache.expiry) ||
+      Predicate.isNullish(cache.expiry)
       // Missing accounts field - refresh to populate it
-      Predicate.isNullish(cache.accounts) ||
+      || Predicate.isNullish(cache.accounts)
       // Token is expired
-      cache.expiry < now ||
+      || cache.expiry < now
       // Token is expiring within 5 minutes
-      cache.expiry - now <= 5 * 60 * 1000
+      || cache.expiry - now <= 5 * 60 * 1000
 
     // If a refresh is required, perform the refresh request
     if (needsRefresh) {
@@ -725,25 +738,20 @@ const make = Effect.gen(function*() {
 
     // Token is still valid, return as is
     return Option.some(cache)
-  }).pipe(
-    Effect.withSpan("AuthService.getCachedAuthInfo")
-  )
+  }).pipe(Effect.withSpan("AuthService.getCachedAuthInfo"))
 
-  const setCachedAuthInfo = Effect.fn("Auth.setCachedAuthInfo")(
-    function*(authInfo: AuthInfo) {
-      yield* kvs.set(AUTH_INFO_CACHE_KEY, authInfo).pipe(
-        Effect.catchTags({
-          SchemaError: (cause) => Effect.fail(makeAuthCacheError("write", cause)),
-          KeyValueStoreError: (cause) => Effect.fail(makeAuthCacheError("write", cause))
-        })
-      )
-    }
-  )
+  const setCachedAuthInfo = Effect.fn("Auth.setCachedAuthInfo")(function* (authInfo: AuthInfo) {
+    yield* kvs.set(AUTH_INFO_CACHE_KEY, authInfo).pipe(
+      Effect.catchTags({
+        SchemaError: (cause) => Effect.fail(makeAuthCacheError("write", cause)),
+        KeyValueStoreError: (cause) => Effect.fail(makeAuthCacheError("write", cause))
+      })
+    )
+  })
 
-  const clearCachedAuthInfo = kvs.remove(AUTH_INFO_CACHE_KEY).pipe(
-    Effect.ignore,
-    Effect.withSpan("Auth.clearCachedAuthInfo")
-  )
+  const clearCachedAuthInfo = kvs
+    .remove(AUTH_INFO_CACHE_KEY)
+    .pipe(Effect.ignore, Effect.withSpan("Auth.clearCachedAuthInfo"))
 
   return {
     createChallenge,
@@ -758,11 +766,10 @@ const make = Effect.gen(function*() {
   } as const
 })
 
-export const layer: Layer.Layer<
+export const layer: Layer.Layer<Auth, never, HttpClient.HttpClient | KeyValueStore.KeyValueStore> = Layer.effect(
   Auth,
-  never,
-  HttpClient.HttpClient | KeyValueStore.KeyValueStore
-> = Layer.effect(Auth, make)
+  make
+)
 
 // =============================================================================
 // Internal Utilities
@@ -774,8 +781,10 @@ const extractErrorDescription = (response: HttpClientResponse.HttpClientResponse
     Effect.option,
     Effect.map(
       Option.flatMap((body) =>
-        typeof body === "object" && body !== null &&
-          "error_description" in body && typeof body.error_description === "string"
+        typeof body === "object"
+        && body !== null
+        && "error_description" in body
+        && typeof body.error_description === "string"
           ? Option.some(body.error_description)
           : Option.none()
       )
@@ -783,7 +792,7 @@ const extractErrorDescription = (response: HttpClientResponse.HttpClientResponse
     Effect.map(Option.getOrElse(() => "Failed to refresh token"))
   )
 
-const makeAuthInfo = Effect.fnUntraced(function*(params: {
+const makeAuthInfo = Effect.fnUntraced(function* (params: {
   readonly accessToken: string
   readonly refreshToken: string
   readonly expiresIn: number
@@ -791,9 +800,11 @@ const makeAuthInfo = Effect.fnUntraced(function*(params: {
   readonly accounts: ReadonlyArray<string | Address>
 }): Effect.fn.Return<AuthInfo> {
   const now = yield* DateTime.now
-  const expiry = DateTime.toEpochMillis(DateTime.add(now, {
-    seconds: params.expiresIn
-  }))
+  const expiry = DateTime.toEpochMillis(
+    DateTime.add(now, {
+      seconds: params.expiresIn
+    })
+  )
   const accessToken = AccessToken.make(params.accessToken)
   const refreshToken = RefreshToken.make(params.refreshToken)
   return AuthInfo.make({

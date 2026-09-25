@@ -204,14 +204,7 @@ export class SchemaBuilder {
     const valueField = valueBuilder(new FieldBuilder("value")).build()
 
     // Map's child is an "entries" struct with "key" and "value" fields
-    const entriesField = new ArrowField(
-      "entries",
-      StructType,
-      false,
-      new Map(),
-      [keyField, valueField],
-      undefined
-    )
+    const entriesField = new ArrowField("entries", StructType, false, new Map(), [keyField, valueField], undefined)
 
     return this.addField(name, new MapType(options?.keysSorted ?? false), { ...options, children: [entriesField] })
   }

@@ -22,7 +22,7 @@ type BatchMap = ReadonlyMap<TransactionId, ReadonlyArray<Record<string, unknown>
 // Implementation
 // =============================================================================
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const mapRef = yield* Ref.make<BatchMap>(new Map())
 
   const append = (data: ReadonlyArray<Record<string, unknown>>, id: TransactionId) =>
@@ -39,10 +39,7 @@ const make = Effect.gen(function*() {
       })
     )
 
-  const load = (id: TransactionId) =>
-    Ref.get(mapRef).pipe(
-      Effect.map((map) => map.get(id))
-    )
+  const load = (id: TransactionId) => Ref.get(mapRef).pipe(Effect.map((map) => map.get(id)))
 
   const prune = (cutoff: TransactionId) =>
     Ref.update(mapRef, (map) => {

@@ -27,15 +27,42 @@ export type GetDatasetsResponse = typeof GetDatasetsResponse.Type
 
 /**
  * Request payload for registering a dataset.
+ *
+ * The manifest can either be the full manifest content, or the hash of a
+ * manifest which was previously registered.
  */
 export const RegisterDatasetPayload = Schema.Struct({
   namespace: Schema.String,
   name: Schema.String,
   version: Schema.optional(Schema.String),
-  manifest: Models.DatasetManifest
+  manifest: Schema.Union([Models.DatasetHash, Models.DatasetManifest])
 }).annotate({ identifier: "RegisterDatasetPayload" })
 
 export type RegisterDatasetPayload = typeof RegisterDatasetPayload.Type
+
+/**
+ * Response schema for registering a dataset.
+ */
+export const RegisterDatasetResponse = Schema.Struct({
+  namespace: Models.DatasetNamespace,
+  name: Models.DatasetName,
+  version: Schema.optional(Models.DatasetVersion),
+  manifestHash: Models.DatasetHash,
+  kind: Models.DatasetKind,
+  startBlock: Models.NonNegativeInt,
+  finalizedBlocksOnly: Schema.Boolean,
+  tables: Schema.Array(Schema.String)
+})
+  .pipe(
+    Schema.encodeKeys({
+      manifestHash: "manifest_hash",
+      startBlock: "start_block",
+      finalizedBlocksOnly: "finalized_blocks_only"
+    })
+  )
+  .annotate({ identifier: "RegisterDatasetResponse" })
+
+export type RegisterDatasetResponse = typeof RegisterDatasetResponse.Type
 
 /**
  * Response schema for getting a dataset version.
@@ -45,82 +72,76 @@ export const GetDatasetVersionResponse = Schema.Struct({
   namespace: Models.DatasetNamespace,
   name: Models.DatasetName,
   revision: Models.DatasetRevision,
-  manifestHash: Models.DatasetHash
-}).pipe(Schema.encodeKeys({ manifestHash: "manifest_hash" })).annotate({ identifier: "GetDatasetVersionResponse" })
+  manifestHash: Models.DatasetHash,
+  startBlock: Models.NonNegativeInt,
+  finalizedBlocksOnly: Schema.Boolean,
+  tables: Schema.Array(Schema.String),
+  /**
+   * Tags pointing at this manifest, ordered versions first, then `"latest"`,
+   * then `"dev"`.
+   */
+  tags: Schema.Array(Schema.String)
+})
+  .pipe(
+    Schema.encodeKeys({
+      manifestHash: "manifest_hash",
+      startBlock: "start_block",
+      finalizedBlocksOnly: "finalized_blocks_only"
+    })
+  )
+  .annotate({ identifier: "GetDatasetVersionResponse" })
 
 export type GetDatasetVersionResponse = typeof GetDatasetVersionResponse.Type
+
+/**
+ * Information about a single version of a dataset.
+ */
+export const DatasetVersionInfo = Schema.Struct({
+  version: Models.DatasetVersion,
+  manifestHash: Models.DatasetHash,
+  createdAt: Schema.DateTimeUtc,
+  updatedAt: Schema.DateTimeUtc
+})
+  .pipe(
+    Schema.encodeKeys({
+      manifestHash: "manifest_hash",
+      createdAt: "created_at",
+      updatedAt: "updated_at"
+    })
+  )
+  .annotate({ identifier: "DatasetVersionInfo" })
+
+export type DatasetVersionInfo = typeof DatasetVersionInfo.Type
+
+/**
+ * The special `latest` and `dev` tags of a dataset.
+ */
+export const DatasetSpecialTags = Schema.Struct({
+  /**
+   * The latest semantic version, if any.
+   */
+  latest: Schema.optional(Models.DatasetVersion),
+  /**
+   * The manifest hash the dev tag points to, if any.
+   */
+  dev: Schema.optional(Models.DatasetHash)
+}).annotate({ identifier: "DatasetSpecialTags" })
+
+export type DatasetSpecialTags = typeof DatasetSpecialTags.Type
 
 /**
  * Response schema for listing dataset versions.
  */
 export const GetDatasetVersionsResponse = Schema.Struct({
-  versions: Schema.Array(Models.DatasetVersion)
-}).annotate({ identifier: "GetDatasetVersionsResponse" })
-
-export type GetDatasetVersionsResponse = typeof GetDatasetVersionsResponse.Type
-
-/**
- * Request payload for deploying a dataset.
- */
-export const DeployDatasetPayload = Schema.Struct({
-  endBlock: Schema.optional(Schema.NullOr(Schema.String)),
-  parallelism: Schema.optional(Schema.Number),
-  workerId: Schema.optional(Schema.String)
-}).pipe(Schema.encodeKeys({
-  endBlock: "end_block",
-  workerId: "worker_id"
-})).annotate({ identifier: "DeployDatasetPayload" })
-
-export type DeployDatasetPayload = typeof DeployDatasetPayload.Type
-
-/**
- * Response schema for deploying a dataset.
- */
-export const DeployDatasetResponse = Schema.Struct({
-  jobId: Models.JobId
-}).pipe(Schema.encodeKeys({ jobId: "job_id" })).annotate({ identifier: "DeployDatasetResponse" })
-
-export type DeployDatasetResponse = typeof DeployDatasetResponse.Type
-
-/**
- * Table sync progress information.
- */
-export const TableSyncProgress = Schema.Struct({
-  tableName: Schema.String,
-  currentBlock: Schema.optional(Schema.Int),
-  startBlock: Schema.optional(Schema.Int),
-  jobId: Schema.optional(Models.JobId),
-  jobStatus: Schema.optional(Models.JobStatus),
-  filesCount: Schema.Int,
-  totalSizeBytes: Schema.Int
-}).pipe(Schema.encodeKeys({
-  tableName: "table_name",
-  currentBlock: "current_block",
-  startBlock: "start_block",
-  jobId: "job_id",
-  jobStatus: "job_status",
-  filesCount: "files_count",
-  totalSizeBytes: "total_size_bytes"
-})).annotate({ identifier: "TableSyncProgress" })
-
-export type TableSyncProgress = typeof TableSyncProgress.Type
-
-/**
- * Response schema for getting dataset sync progress.
- */
-export const GetDatasetSyncProgressResponse = Schema.Struct({
   namespace: Models.DatasetNamespace,
   name: Models.DatasetName,
-  revision: Models.DatasetRevision,
-  manifestHash: Models.DatasetHash,
-  tables: Schema.Array(TableSyncProgress)
-}).pipe(Schema.encodeKeys({
-  namespace: "dataset_namespace",
-  name: "dataset_name",
-  manifestHash: "manifest_hash"
-})).annotate({ identifier: "GetDatasetSyncProgressResponse" })
+  versions: Schema.Array(DatasetVersionInfo),
+  specialTags: DatasetSpecialTags
+})
+  .pipe(Schema.encodeKeys({ specialTags: "special_tags" }))
+  .annotate({ identifier: "GetDatasetVersionsResponse" })
 
-export type GetDatasetSyncProgressResponse = typeof GetDatasetSyncProgressResponse.Type
+export type GetDatasetVersionsResponse = typeof GetDatasetVersionsResponse.Type
 
 // =============================================================================
 // Job Request/Response Schemas
@@ -132,7 +153,9 @@ export type GetDatasetSyncProgressResponse = typeof GetDatasetSyncProgressRespon
 export const GetJobsResponse = Schema.Struct({
   jobs: Schema.Array(Models.JobInfo),
   nextCursor: Schema.optional(Models.JobId)
-}).pipe(Schema.encodeKeys({ nextCursor: "next_cursor" })).annotate({ identifier: "GetJobsResponse" })
+})
+  .pipe(Schema.encodeKeys({ nextCursor: "next_cursor" }))
+  .annotate({ identifier: "GetJobsResponse" })
 
 export type GetJobsResponse = typeof GetJobsResponse.Type
 
@@ -144,15 +167,9 @@ export type GetJobsResponse = typeof GetJobsResponse.Type
  * Request payload for schema analysis.
  */
 export const GetOutputSchemaPayload = Schema.Struct({
-  tables: Schema.Record(Schema.String, Schema.String),
-  dependencies: Schema.optional(Schema.Record(
-    Schema.String,
-    Models.DatasetReferenceFromString
-  )),
-  functions: Schema.optional(Schema.Record(
-    Schema.String,
-    Models.FunctionDefinition
-  ))
+  tables: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+  dependencies: Schema.optional(Schema.Record(Schema.String, Models.DatasetReferenceFromString)),
+  functions: Schema.optional(Schema.Record(Schema.String, Models.FunctionDefinition))
 }).annotate({ identifier: "GetOutputSchemaPayload" })
 
 export type GetOutputSchemaPayload = typeof GetOutputSchemaPayload.Type
@@ -161,10 +178,7 @@ export type GetOutputSchemaPayload = typeof GetOutputSchemaPayload.Type
  * Response schema for schema analysis.
  */
 export const GetOutputSchemaResponse = Schema.Struct({
-  schemas: Schema.Record(
-    Schema.String,
-    Models.TableSchemaWithNetworks
-  )
+  schemas: Schema.Record(Schema.String, Models.TableSchema)
 }).annotate({ identifier: "GetOutputSchemaResponse" })
 
 export type GetOutputSchemaResponse = typeof GetOutputSchemaResponse.Type
@@ -179,10 +193,14 @@ export type GetOutputSchemaResponse = typeof GetOutputSchemaResponse.Type
 export const WorkerInfo = Schema.Struct({
   nodeId: Schema.String,
   heartbeatAt: Schema.String
-}).pipe(Schema.encodeKeys({
-  nodeId: "node_id",
-  heartbeatAt: "heartbeat_at"
-})).annotate({ identifier: "WorkerInfo" })
+})
+  .pipe(
+    Schema.encodeKeys({
+      nodeId: "node_id",
+      heartbeatAt: "heartbeat_at"
+    })
+  )
+  .annotate({ identifier: "WorkerInfo" })
 
 export type WorkerInfo = typeof WorkerInfo.Type
 
@@ -214,12 +232,17 @@ export type RegisterManifestResponse = typeof RegisterManifestResponse.Type
 
 /**
  * Provider information returned by the API.
+ *
+ * Contains the provider name and kind, along with any additional
+ * provider-specific configuration fields.
  */
-export const ProviderInfo = Schema.Struct({
-  name: Schema.String,
-  network: Models.Network,
-  config: Schema.Any
-}).annotate({ identifier: "ProviderInfo" })
+export const ProviderInfo = Schema.StructWithRest(
+  Schema.Struct({
+    name: Schema.String,
+    kind: Schema.String
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ identifier: "ProviderInfo" })
 export type ProviderInfo = typeof ProviderInfo.Type
 
 /**

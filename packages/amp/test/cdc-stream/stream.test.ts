@@ -37,10 +37,7 @@ const makeBlockRange = (network: string, start: number, end: number): BlockRange
 /**
  * Create a mock CommitHandle that tracks whether commit was called.
  */
-const makeMockCommitHandle = (
-  id: TransactionId,
-  commitRef: Ref.Ref<ReadonlyArray<TransactionId>>
-): CommitHandle => ({
+const makeMockCommitHandle = (id: TransactionId, commitRef: Ref.Ref<ReadonlyArray<TransactionId>>): CommitHandle => ({
   id,
   commit: Ref.update(commitRef, (ids) => [...ids, id])
 })
@@ -51,38 +48,25 @@ const makeMockCommitHandle = (
 const mockTransactionalStreamLayer = (
   events: ReadonlyArray<readonly [TransactionEvent, CommitHandle]>
 ): Layer.Layer<TransactionalStream> =>
-  Layer.succeed(
-    TransactionalStream,
-    {
-      streamTransactional: () => Stream.fromIterable(events),
-      forEach: () => Effect.void
-    } satisfies TransactionalStreamService
-  )
+  Layer.succeed(TransactionalStream, {
+    streamTransactional: () => Stream.fromIterable(events),
+    forEach: () => Effect.void
+  } satisfies TransactionalStreamService)
 
 /**
  * Standard test layer: provides CdcStream only.
  */
-const makeTestLayer = (
-  events: ReadonlyArray<readonly [TransactionEvent, CommitHandle]>
-) =>
-  cdcStreamLayer.pipe(
-    Layer.provide(mockTransactionalStreamLayer(events)),
-    Layer.provide(InMemoryBatchStore.layer)
-  )
+const makeTestLayer = (events: ReadonlyArray<readonly [TransactionEvent, CommitHandle]>) =>
+  cdcStreamLayer.pipe(Layer.provide(mockTransactionalStreamLayer(events)), Layer.provide(InMemoryBatchStore.layer))
 
 /**
  * Test layer that exposes both CdcStream AND BatchStore (for tests needing store access).
  * Uses Layer.merge so both services are available in the test context.
  */
-const makeTestLayerWithBatchStore = (
-  events: ReadonlyArray<readonly [TransactionEvent, CommitHandle]>
-) => {
+const makeTestLayerWithBatchStore = (events: ReadonlyArray<readonly [TransactionEvent, CommitHandle]>) => {
   const batchStoreLayer = InMemoryBatchStore.layer
   return Layer.merge(
-    cdcStreamLayer.pipe(
-      Layer.provide(mockTransactionalStreamLayer(events)),
-      Layer.provide(batchStoreLayer)
-    ),
+    cdcStreamLayer.pipe(Layer.provide(mockTransactionalStreamLayer(events)), Layer.provide(batchStoreLayer)),
     batchStoreLayer
   )
 }
@@ -93,7 +77,7 @@ const makeTestLayerWithBatchStore = (
 
 describe("CdcStream - Insert", () => {
   it.effect("Data events become Insert events with same data", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const data = [{ block: 1, address: "0xabc" }]
       const ranges = [makeBlockRange("eth", 0, 10)]
 
@@ -108,17 +92,23 @@ describe("CdcStream - Insert", () => {
         expect(cdcEvent.data).toEqual(data)
         expect(cdcEvent.ranges).toEqual(ranges)
       }
-    }).pipe(Effect.provide(
-      makeTestLayer([
-        [dataEvent(1 as TransactionId, [{ block: 1, address: "0xabc" }], [makeBlockRange("eth", 0, 10)]), {
-          id: 1 as TransactionId,
-          commit: Effect.void
-        }]
-      ])
-    )))
+    }).pipe(
+      Effect.provide(
+        makeTestLayer([
+          [
+            dataEvent(1 as TransactionId, [{ block: 1, address: "0xabc" }], [makeBlockRange("eth", 0, 10)]),
+            {
+              id: 1 as TransactionId,
+              commit: Effect.void
+            }
+          ]
+        ])
+      )
+    )
+  )
 
   it.effect("Insert stores batch before emitting", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const data = [{ block: 1 }]
 
       const cdc = yield* CdcStream
@@ -130,14 +120,20 @@ describe("CdcStream - Insert", () => {
       // Verify batch was stored
       const stored = yield* batchStore.load(1 as TransactionId)
       expect(stored).toEqual(data)
-    }).pipe(Effect.provide(
-      makeTestLayerWithBatchStore([
-        [dataEvent(1 as TransactionId, [{ block: 1 }], [makeBlockRange("eth", 0, 10)]), {
-          id: 1 as TransactionId,
-          commit: Effect.void
-        }]
-      ])
-    )))
+    }).pipe(
+      Effect.provide(
+        makeTestLayerWithBatchStore([
+          [
+            dataEvent(1 as TransactionId, [{ block: 1 }], [makeBlockRange("eth", 0, 10)]),
+            {
+              id: 1 as TransactionId,
+              commit: Effect.void
+            }
+          ]
+        ])
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -146,7 +142,7 @@ describe("CdcStream - Insert", () => {
 
 describe("CdcStream - Delete", () => {
   it.effect("Undo events become Delete events with batch data", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const data = [{ block: 1 }]
 
       const cdc = yield* CdcStream
@@ -171,39 +167,54 @@ describe("CdcStream - Delete", () => {
         const next = yield* deleteEvent.batches.next
         expect(next).toBeUndefined()
       }
-    }).pipe(Effect.provide(
-      makeTestLayer([
-        // First: Data event (stores batch)
-        [dataEvent(1 as TransactionId, [{ block: 1 }], [makeBlockRange("eth", 0, 10)]), {
-          id: 1 as TransactionId,
-          commit: Effect.void
-        }],
-        // Then: Undo event (should produce Delete with stored batch)
-        [undoEvent(2 as TransactionId, rewindCause(), { start: 1 as TransactionId, end: 1 as TransactionId }), {
-          id: 2 as TransactionId,
-          commit: Effect.void
-        }]
-      ])
-    )))
+    }).pipe(
+      Effect.provide(
+        makeTestLayer([
+          // First: Data event (stores batch)
+          [
+            dataEvent(1 as TransactionId, [{ block: 1 }], [makeBlockRange("eth", 0, 10)]),
+            {
+              id: 1 as TransactionId,
+              commit: Effect.void
+            }
+          ],
+          // Then: Undo event (should produce Delete with stored batch)
+          [
+            undoEvent(2 as TransactionId, rewindCause(), { start: 1 as TransactionId, end: 1 as TransactionId }),
+            {
+              id: 2 as TransactionId,
+              commit: Effect.void
+            }
+          ]
+        ])
+      )
+    )
+  )
 
   it.effect("Undo with no matching batches is skipped", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const cdc = yield* CdcStream
       const results = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
 
       // Undo for range with no stored batches should be filtered out
       expect(results.length).toBe(0)
-    }).pipe(Effect.provide(
-      makeTestLayer([
-        [undoEvent(1 as TransactionId, rewindCause(), { start: 10 as TransactionId, end: 20 as TransactionId }), {
-          id: 1 as TransactionId,
-          commit: Effect.void
-        }]
-      ])
-    )))
+    }).pipe(
+      Effect.provide(
+        makeTestLayer([
+          [
+            undoEvent(1 as TransactionId, rewindCause(), { start: 10 as TransactionId, end: 20 as TransactionId }),
+            {
+              id: 1 as TransactionId,
+              commit: Effect.void
+            }
+          ]
+        ])
+      )
+    )
+  )
 
   it.effect("Delete iterator loads lazily and skips missing", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const cdc = yield* CdcStream
       const results = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
 
@@ -227,22 +238,34 @@ describe("CdcStream - Delete", () => {
         const third = yield* deleteEvent.batches.next
         expect(third).toBeUndefined()
       }
-    }).pipe(Effect.provide(
-      makeTestLayer([
-        [dataEvent(1 as TransactionId, [{ a: 1 }], [makeBlockRange("eth", 0, 5)]), {
-          id: 1 as TransactionId,
-          commit: Effect.void
-        }],
-        [dataEvent(3 as TransactionId, [{ a: 3 }], [makeBlockRange("eth", 6, 10)]), {
-          id: 3 as TransactionId,
-          commit: Effect.void
-        }],
-        [undoEvent(4 as TransactionId, rewindCause(), { start: 1 as TransactionId, end: 3 as TransactionId }), {
-          id: 4 as TransactionId,
-          commit: Effect.void
-        }]
-      ])
-    )))
+    }).pipe(
+      Effect.provide(
+        makeTestLayer([
+          [
+            dataEvent(1 as TransactionId, [{ a: 1 }], [makeBlockRange("eth", 0, 5)]),
+            {
+              id: 1 as TransactionId,
+              commit: Effect.void
+            }
+          ],
+          [
+            dataEvent(3 as TransactionId, [{ a: 3 }], [makeBlockRange("eth", 6, 10)]),
+            {
+              id: 3 as TransactionId,
+              commit: Effect.void
+            }
+          ],
+          [
+            undoEvent(4 as TransactionId, rewindCause(), { start: 1 as TransactionId, end: 3 as TransactionId }),
+            {
+              id: 4 as TransactionId,
+              commit: Effect.void
+            }
+          ]
+        ])
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -251,52 +274,56 @@ describe("CdcStream - Delete", () => {
 
 describe("CdcStream - Watermark", () => {
   it.effect("Watermark events are not exposed to consumer", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const cdc = yield* CdcStream
       const results = yield* cdc.streamCdc("SELECT 1").pipe(Stream.runCollect)
 
       // Watermark should be filtered out
       expect(results.length).toBe(0)
-    }).pipe(Effect.provide(
-      makeTestLayer([
-        [watermarkEvent(1 as TransactionId, [makeBlockRange("eth", 0, 10)], null), {
-          id: 1 as TransactionId,
-          commit: Effect.void
-        }]
-      ])
-    )))
+    }).pipe(
+      Effect.provide(
+        makeTestLayer([
+          [
+            watermarkEvent(1 as TransactionId, [makeBlockRange("eth", 0, 10)], null),
+            {
+              id: 1 as TransactionId,
+              commit: Effect.void
+            }
+          ]
+        ])
+      )
+    )
+  )
 
   it.effect("Watermark auto-commits", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Create a shared commitRef that both the mock and test can access
       const commitRef = yield* Ref.make<ReadonlyArray<TransactionId>>([])
       const commit = makeMockCommitHandle(1 as TransactionId, commitRef)
 
       const testLayer = cdcStreamLayer.pipe(
-        Layer.provide(Layer.succeed(
-          TransactionalStream,
-          {
+        Layer.provide(
+          Layer.succeed(TransactionalStream, {
             streamTransactional: () =>
-              Stream.make(
-                [watermarkEvent(1 as TransactionId, [makeBlockRange("eth", 0, 10)], null), commit] as const
-              ),
+              Stream.make([watermarkEvent(1 as TransactionId, [makeBlockRange("eth", 0, 10)], null), commit] as const),
             forEach: () => Effect.void
-          } satisfies TransactionalStreamService
-        )),
+          } satisfies TransactionalStreamService)
+        ),
         Layer.provide(InMemoryBatchStore.layer)
       )
 
-      yield* Effect.gen(function*() {
+      yield* Effect.gen(function* () {
         const cdc = yield* CdcStream
         yield* cdc.streamCdc("SELECT 1").pipe(Stream.runDrain)
       }).pipe(Effect.provide(testLayer))
 
       const committed = yield* Ref.get(commitRef)
       expect(committed).toEqual([1])
-    }))
+    })
+  )
 
   it.effect("Watermark triggers prune when prune point present", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const batchStore = yield* BatchStore
       const cdc = yield* CdcStream
 
@@ -311,14 +338,20 @@ describe("CdcStream - Watermark", () => {
       expect(yield* batchStore.load(1 as TransactionId)).toBeUndefined()
       expect(yield* batchStore.load(2 as TransactionId)).toBeUndefined()
       expect(yield* batchStore.load(3 as TransactionId)).toEqual([{ a: 3 }])
-    }).pipe(Effect.provide(
-      makeTestLayerWithBatchStore([
-        [watermarkEvent(5 as TransactionId, [makeBlockRange("eth", 0, 10)], 2 as TransactionId), {
-          id: 5 as TransactionId,
-          commit: Effect.void
-        }]
-      ])
-    )))
+    }).pipe(
+      Effect.provide(
+        makeTestLayerWithBatchStore([
+          [
+            watermarkEvent(5 as TransactionId, [makeBlockRange("eth", 0, 10)], 2 as TransactionId),
+            {
+              id: 5 as TransactionId,
+              commit: Effect.void
+            }
+          ]
+        ])
+      )
+    )
+  )
 })
 
 // =============================================================================
@@ -327,31 +360,29 @@ describe("CdcStream - Watermark", () => {
 
 describe("CdcStream.forEach", () => {
   it.effect("auto-commits after handler succeeds", () =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const commitRef = yield* Ref.make<ReadonlyArray<TransactionId>>([])
       const commit = makeMockCommitHandle(1 as TransactionId, commitRef)
       const handlerEvents = yield* Ref.make<ReadonlyArray<string>>([])
 
       const testLayer = cdcStreamLayer.pipe(
-        Layer.provide(Layer.succeed(
-          TransactionalStream,
-          {
+        Layer.provide(
+          Layer.succeed(TransactionalStream, {
             streamTransactional: () =>
-              Stream.make(
-                [dataEvent(1 as TransactionId, [{ block: 1 }], [makeBlockRange("eth", 0, 10)]), commit] as const
-              ),
+              Stream.make([
+                dataEvent(1 as TransactionId, [{ block: 1 }], [makeBlockRange("eth", 0, 10)]),
+                commit
+              ] as const),
             forEach: () => Effect.void
-          } satisfies TransactionalStreamService
-        )),
+          } satisfies TransactionalStreamService)
+        ),
         Layer.provide(InMemoryBatchStore.layer)
       )
 
-      yield* Effect.gen(function*() {
+      yield* Effect.gen(function* () {
         const cdc = yield* CdcStream
-        yield* cdc.forEach(
-          "SELECT 1",
-          { retention: 128 },
-          (event) => Ref.update(handlerEvents, (events) => [...events, event._tag])
+        yield* cdc.forEach("SELECT 1", { retention: 128 }, (event) =>
+          Ref.update(handlerEvents, (events) => [...events, event._tag])
         )
       }).pipe(Effect.provide(testLayer))
 
@@ -361,5 +392,6 @@ describe("CdcStream.forEach", () => {
       // Verify commit was called (forEach auto-commits)
       const committed = yield* Ref.get(commitRef)
       expect(committed).toEqual([1])
-    }))
+    })
+  )
 })

@@ -5,7 +5,7 @@ import * as Schema from "effect/Schema"
  *
  * @internal
  */
-export class InvalidArrowDataTypeError extends Schema.TaggedErrorClass<InvalidArrowDataTypeError>(
+export class InvalidArrowDataTypeError extends Schema.TaggedError<InvalidArrowDataTypeError>(
   "Amp/InvalidArrowDataTypeError"
 )("InvalidArrowDataTypeError", {
   type: Schema.Number,
@@ -18,11 +18,12 @@ export class InvalidArrowDataTypeError extends Schema.TaggedErrorClass<InvalidAr
  *
  * @internal
  */
-export class InvalidMessageTypeError extends Schema.TaggedErrorClass<InvalidMessageTypeError>(
-  "Amp/InvalidMessageTypeError"
-)("InvalidMessageTypeError", {
-  value: Schema.Number
-}) {
+export class InvalidMessageTypeError extends Schema.TaggedError<InvalidMessageTypeError>("Amp/InvalidMessageTypeError")(
+  "InvalidMessageTypeError",
+  {
+    value: Schema.Number
+  }
+) {
   override get message(): string {
     return `Received invalid value for Arrow Flight message type: ${this.value} `
   }
@@ -34,13 +35,14 @@ export class InvalidMessageTypeError extends Schema.TaggedErrorClass<InvalidMess
  *
  * @internal
  */
-export class MissingFieldError extends Schema.TaggedErrorClass<MissingFieldError>(
-  "Amp/MissingFieldError"
-)("MissingFieldError", {
-  fieldName: Schema.String,
-  fieldIndex: Schema.Number,
-  tableOffset: Schema.Number
-}) {
+export class MissingFieldError extends Schema.TaggedError<MissingFieldError>("Amp/MissingFieldError")(
+  "MissingFieldError",
+  {
+    fieldName: Schema.String,
+    fieldIndex: Schema.Number,
+    tableOffset: Schema.Number
+  }
+) {
   override get message(): string {
     return `Failed to find message field '${this.fieldName}' at index ${this.fieldIndex} (offset: ${this.tableOffset})`
   }
@@ -52,7 +54,7 @@ export class MissingFieldError extends Schema.TaggedErrorClass<MissingFieldError
  *
  * @internal
  */
-export class UnexpectedMessageTypeError extends Schema.TaggedErrorClass<UnexpectedMessageTypeError>(
+export class UnexpectedMessageTypeError extends Schema.TaggedError<UnexpectedMessageTypeError>(
   "Amp/UnexpectedMessageTypeError"
 )("UnexpectedMessageTypeError", {
   expected: Schema.Number,

@@ -28,9 +28,7 @@ export const padToAlignment = (buffer: Uint8Array): Uint8Array => {
 // Validity Bitmaps
 // =============================================================================
 
-export const createValidityBitmap = <T>(
-  values: ReadonlyArray<T | null>
-): { bitmap: Uint8Array; nullCount: number } => {
+export const createValidityBitmap = <T>(values: ReadonlyArray<T | null>): { bitmap: Uint8Array; nullCount: number } => {
   let nullCount = 0
   for (const value of values) {
     if (value === null) nullCount++
@@ -247,8 +245,8 @@ export const createFloat64DataBuffer = (values: ReadonlyArray<number | null>): U
 const encodeFloat16 = (value: number): number => {
   if (value === 0) return 0
   if (!Number.isFinite(value)) {
-    if (Number.isNaN(value)) return 0x7E00
-    return value > 0 ? 0x7C00 : 0xFC00
+    if (Number.isNaN(value)) return 0x7e00
+    return value > 0 ? 0x7c00 : 0xfc00
   }
 
   const sign = value < 0 ? 1 : 0
@@ -263,8 +261,8 @@ const encodeFloat16 = (value: number): number => {
   let mantissa = absValue / Math.pow(2, exponent) - 1
 
   exponent += 15
-  if (exponent >= 31) return (sign << 15) | 0x7C00
-  if (exponent <= 0) return (sign << 15)
+  if (exponent >= 31) return (sign << 15) | 0x7c00
+  if (exponent <= 0) return sign << 15
 
   mantissa = Math.round(mantissa * 1024)
 
@@ -273,7 +271,7 @@ const encodeFloat16 = (value: number): number => {
     mantissa = 0
     exponent += 1
     // Check if exponent overflowed to infinity
-    if (exponent >= 31) return (sign << 15) | 0x7C00
+    if (exponent >= 31) return (sign << 15) | 0x7c00
   }
 
   return (sign << 15) | (exponent << 10) | mantissa
@@ -317,15 +315,15 @@ const bigIntToBytes = (value: bigint, byteWidth: number): Uint8Array => {
   const isNegative = value < 0n
 
   for (let i = 0; i < byteWidth; i++) {
-    bytes[i] = Number(v & 0xFFn)
+    bytes[i] = Number(v & 0xffn)
     v >>= 8n
   }
 
   if (isNegative) {
     let carry = 1
     for (let i = 0; i < byteWidth; i++) {
-      const inverted = (~bytes[i] & 0xFF) + carry
-      bytes[i] = inverted & 0xFF
+      const inverted = (~bytes[i] & 0xff) + carry
+      bytes[i] = inverted & 0xff
       carry = inverted >> 8
     }
   }
@@ -333,10 +331,7 @@ const bigIntToBytes = (value: bigint, byteWidth: number): Uint8Array => {
   return bytes
 }
 
-export const createDecimalDataBuffer = (
-  values: ReadonlyArray<bigint | null>,
-  bitWidth: 128 | 256
-): Uint8Array => {
+export const createDecimalDataBuffer = (values: ReadonlyArray<bigint | null>, bitWidth: 128 | 256): Uint8Array => {
   const byteWidth = bitWidth / 8
   const buffer = new Uint8Array(align8(values.length * byteWidth))
 

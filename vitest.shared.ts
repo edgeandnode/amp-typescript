@@ -10,9 +10,6 @@ const config: ViteUserConfig = {
   },
   test: {
     setupFiles: [path.join(__dirname, "vitest.setup.ts")],
-    fakeTimers: {
-      toFake: undefined
-    },
     sequence: {
       concurrent: true
     },

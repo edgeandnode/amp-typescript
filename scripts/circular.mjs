@@ -2,16 +2,13 @@
 import * as glob from "glob"
 import madge from "madge"
 
-madge(
-  glob.globSync(["packages/*/src/**/*.ts", "packages/ai/*/src/**/*.ts"]),
-  {
-    detectiveOptions: {
-      ts: {
-        skipTypeImports: true
-      }
+madge(glob.globSync(["packages/*/src/**/*.ts", "packages/ai/*/src/**/*.ts"]), {
+  detectiveOptions: {
+    ts: {
+      skipTypeImports: true
     }
   }
-).then((res) => {
+}).then((res) => {
   const circular = res.circular()
   if (circular.length) {
     console.error("Circular dependencies found")

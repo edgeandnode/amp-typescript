@@ -17,7 +17,7 @@ export const generateFlightData = (
   const numRows = options.numRows ?? 100
   const seed = typeof options.seed === "string" ? hashString(options.seed) : (options.seed ?? 42)
 
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const registry = yield* Types.GeneratorRegistry
 
     // Generate data for each field
@@ -82,10 +82,7 @@ export const generateFlightData = (
       expectedValues,
       schema
     }
-  }).pipe(
-    Effect.provide(GeneratorRegistry.Live),
-    Random.withSeed(seed)
-  )
+  }).pipe(Effect.provide(GeneratorRegistry.Live), Random.withSeed(seed))
 }
 
 const collectBuffers = (
@@ -137,10 +134,7 @@ const hasDataBuffer = (typeId: string): boolean => {
   }
 }
 
-const getFieldConfig = (
-  fieldName: string,
-  options: Types.BaseGeneratorOptions
-): Types.FieldGeneratorConfig => {
+const getFieldConfig = (fieldName: string, options: Types.BaseGeneratorOptions): Types.FieldGeneratorConfig => {
   const fieldConfig = options.fields?.[fieldName] ?? {}
   return {
     nullRate: fieldConfig.nullRate ?? options.defaultNullRate ?? 0.2,
@@ -157,12 +151,10 @@ export const generateMultiBatchFlightData = (
   schema: ArrowSchema,
   options: Types.MultiBatchGeneratorOptions
 ): Effect.Effect<Types.GeneratedMultiBatchFlightData> => {
-  const rowsPerBatch = Array.isArray(options.rowsPerBatch)
-    ? options.rowsPerBatch
-    : [options.rowsPerBatch]
+  const rowsPerBatch = Array.isArray(options.rowsPerBatch) ? options.rowsPerBatch : [options.rowsPerBatch]
   const seed = typeof options.seed === "string" ? hashString(options.seed) : (options.seed ?? 42)
 
-  return Effect.gen(function*() {
+  return Effect.gen(function* () {
     const registry = yield* Types.GeneratorRegistry
 
     const batches: Array<Types.GeneratedBatch> = []
@@ -243,17 +235,14 @@ export const generateMultiBatchFlightData = (
       schema,
       totalRows
     }
-  }).pipe(
-    Effect.provide(GeneratorRegistry.Live),
-    Random.withSeed(seed)
-  )
+  }).pipe(Effect.provide(GeneratorRegistry.Live), Random.withSeed(seed))
 }
 
 const hashString = (str: string): number => {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
+    hash = (hash << 5) - hash + char
     hash = hash & hash // Convert to 32-bit integer
   }
   return Math.abs(hash)

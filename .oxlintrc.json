@@ -12,14 +12,10 @@
     //       See related issue: https://github.com/oxc-project/oxc/issues/13204
     "packages/amp/src/protobuf/**/*"
   ],
-  "jsPlugins": [
-    "@amp/oxc/oxlint"
-  ],
+  "jsPlugins": ["@amp/oxc/oxlint"],
   "overrides": [
     {
-      "files": [
-        "**/{test,dtslint,examples,benchmark,bundle,scripts,scratchpad}/**"
-      ],
+      "files": ["**/{test,dtslint,examples,benchmark,bundle,scripts,scratchpad}/**"],
       "rules": {
         "eslint/no-console": "off",
         "effect/no-import-from-barrel-package": "off"

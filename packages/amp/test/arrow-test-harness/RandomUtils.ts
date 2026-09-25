@@ -17,7 +17,7 @@ import * as Random from "effect/Random"
  * Generate a random bigint in the range [min, max] inclusive.
  */
 export const nextBigInt = (min: bigint, max: bigint): Effect.Effect<bigint> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const range = max - min + 1n
     // For ranges that fit in a safe integer, use simple approach
     if (range <= BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -25,8 +25,8 @@ export const nextBigInt = (min: bigint, max: bigint): Effect.Effect<bigint> =>
       return min + BigInt(randomValue)
     }
     // For larger ranges, combine multiple random values
-    const high = yield* Random.nextIntBetween(0, 0x7FFFFFFF)
-    const low = yield* Random.nextIntBetween(0, 0xFFFFFFFF)
+    const high = yield* Random.nextIntBetween(0, 0x7fffffff)
+    const low = yield* Random.nextIntBetween(0, 0xffffffff)
     const combined = ((BigInt(high) << 32n) | BigInt(low >>> 0)) % range
     return min + combined
   })
@@ -53,7 +53,7 @@ const alphanumericChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0
  * Generate a random alphanumeric string of the given length.
  */
 export const nextString = (length: number): Effect.Effect<string> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     let result = ""
     for (let i = 0; i < length; i++) {
       const idx = yield* Random.nextIntBetween(0, alphanumericChars.length - 1)
@@ -66,7 +66,7 @@ export const nextString = (length: number): Effect.Effect<string> =>
  * Generate a random string with length between min and max.
  */
 export const nextStringBetween = (minLength: number, maxLength: number): Effect.Effect<string> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const length = yield* Random.nextIntBetween(minLength, maxLength)
     return yield* nextString(length)
   })
@@ -75,7 +75,7 @@ export const nextStringBetween = (minLength: number, maxLength: number): Effect.
  * Generate random bytes of the given length.
  */
 export const nextBytes = (length: number): Effect.Effect<Uint8Array> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const bytes = new Uint8Array(length)
     for (let i = 0; i < length; i++) {
       bytes[i] = yield* Random.nextIntBetween(0, 255)
@@ -86,11 +86,8 @@ export const nextBytes = (length: number): Effect.Effect<Uint8Array> =>
 /**
  * Generate random bytes with length between min and max.
  */
-export const nextBytesBetween = (
-  minLength: number,
-  maxLength: number
-): Effect.Effect<Uint8Array> =>
-  Effect.gen(function*() {
+export const nextBytesBetween = (minLength: number, maxLength: number): Effect.Effect<Uint8Array> =>
+  Effect.gen(function* () {
     const length = yield* Random.nextIntBetween(minLength, maxLength)
     return yield* nextBytes(length)
   })
@@ -103,7 +100,7 @@ export const nextBytesBetween = (
  * Generate a random Date within a reasonable range (1970-2100).
  */
 export const nextDate = (): Effect.Effect<Date> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     // Random timestamp between 1970-01-01 and 2100-01-01
     const minMs = 0
     const maxMs = 4102444800000 // 2100-01-01
@@ -128,11 +125,8 @@ export const nextTimeOfDayMs = (): Effect.Effect<number> => Random.nextIntBetwee
 /**
  * Generate an array of random values.
  */
-export const nextArray = <A>(
-  length: number,
-  generator: Effect.Effect<A>
-): Effect.Effect<Array<A>> =>
-  Effect.gen(function*() {
+export const nextArray = <A>(length: number, generator: Effect.Effect<A>): Effect.Effect<Array<A>> =>
+  Effect.gen(function* () {
     const result: Array<A> = []
     for (let i = 0; i < length; i++) {
       result.push(yield* generator)
@@ -148,7 +142,7 @@ export const nextNullableArray = <A>(
   generator: Effect.Effect<A>,
   nullRate: number
 ): Effect.Effect<Array<A | null>> =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const result: Array<A | null> = []
     for (let i = 0; i < length; i++) {
       const isNull = yield* nextBoolWithProbability(nullRate)

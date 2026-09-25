@@ -55,11 +55,11 @@
     "effect": "catalog:"
   },
   "devDependencies": {
-    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect": "^2.2.0",
     "@effect/platform-node": "catalog:",
     "effect": "catalog:"
   },
   "dependencies": {
-    "open": "^11.0.0"
+    "open": "^11.0.4"
   }
 }

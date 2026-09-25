@@ -88,8 +88,8 @@ const bigintToNumberSafe = (value: bigint, context?: string): number => {
   if (value > MAX_SAFE_INTEGER || value < MIN_SAFE_INTEGER) {
     const contextMsg = context ? ` (${context})` : ""
     throw new RangeError(
-      `Value ${value}${contextMsg} exceeds safe integer range for Number conversion. ` +
-        `Use BigInt-based APIs for values outside the range [${Number.MIN_SAFE_INTEGER}, ${Number.MAX_SAFE_INTEGER}].`
+      `Value ${value}${contextMsg} exceeds safe integer range for Number conversion. `
+        + `Use BigInt-based APIs for values outside the range [${Number.MIN_SAFE_INTEGER}, ${Number.MAX_SAFE_INTEGER}].`
     )
   }
   return Number(value)
@@ -1041,9 +1041,10 @@ export const readTimeValues = (
   const values = new Array<number | null>(length)
   for (let i = 0; i < length; i++) {
     if (validityChecker(i)) {
-      const raw = bitWidth === 32
-        ? view.getInt32(i * BYTES_PER_INT32, true)
-        : bigintToNumberSafe(view.getBigInt64(i * BYTES_PER_INT64, true), `time[${i}]`)
+      const raw =
+        bitWidth === 32
+          ? view.getInt32(i * BYTES_PER_INT32, true)
+          : bigintToNumberSafe(view.getBigInt64(i * BYTES_PER_INT64, true), `time[${i}]`)
       values[i] = raw * multiplier
     } else {
       values[i] = null
@@ -1342,12 +1343,10 @@ const readStructValues = (
 const readMapValues = (
   column: DecodedColumn,
   registry?: DictionaryRegistry
-): ReadonlyArray<
-  ReadonlyArray<{
-    readonly key: unknown
-    readonly value: unknown
-  }> | null
-> => {
+): ReadonlyArray<ReadonlyArray<{
+  readonly key: unknown
+  readonly value: unknown
+}> | null> => {
   const { buffers, children, node } = column
   const length = Number(node.length)
   const vc = createValidityChecker(buffers[0])
@@ -1385,9 +1384,8 @@ const readUnionValues = (
   const { buffers, children, node } = column
   const length = Number(node.length)
   const typeIdBuffer = buffers[0]
-  const offsetView = mode === "DENSE"
-    ? new DataView(buffers[1].buffer, buffers[1].byteOffset, buffers[1].byteLength)
-    : null
+  const offsetView =
+    mode === "DENSE" ? new DataView(buffers[1].buffer, buffers[1].byteOffset, buffers[1].byteLength) : null
   const childValuesArrays = children.map((c) => readColumnValues(c, registry))
   const typeIdToChild = new Map(typeIds.map((id, idx) => [id, idx]))
   const values = new Array<unknown>(length)
@@ -1473,18 +1471,13 @@ const readDictionaryEncodedValues = (
   const dictionary = registry.get(dictionaryEncoding.id)
   if (!dictionary) {
     throw new Error(
-      `Dictionary with ID ${dictionaryEncoding.id} not found. ` +
-        `Make sure dictionary batches are processed before record batches that reference them.`
+      `Dictionary with ID ${dictionaryEncoding.id} not found. `
+        + `Make sure dictionary batches are processed before record batches that reference them.`
     )
   }
 
   // Read the indices
-  const indices = readDictionaryIndices(
-    buffers[0],
-    buffers[1],
-    length,
-    dictionaryEncoding.indexType
-  )
+  const indices = readDictionaryIndices(buffers[0], buffers[1], length, dictionaryEncoding.indexType)
 
   // Look up values in the dictionary
   const dictValues = dictionary.values
@@ -1558,10 +1551,7 @@ const readDictionaryEncodedValues = (
  *
  * @see {@link https://arrow.apache.org/docs/format/Columnar.html | Arrow Columnar Format}
  */
-export const readColumnValues = (
-  column: DecodedColumn,
-  registry?: DictionaryRegistry
-): ReadonlyArray<unknown> => {
+export const readColumnValues = (column: DecodedColumn, registry?: DictionaryRegistry): ReadonlyArray<unknown> => {
   const { buffers, field, node } = column
   const length = Number(node.length)
   const type = field.type
@@ -1570,8 +1560,8 @@ export const readColumnValues = (
   if (field.dictionaryEncoding) {
     if (!registry) {
       throw new Error(
-        `Column "${field.name}" is dictionary-encoded but no dictionary registry was provided. ` +
-          `Pass a DictionaryRegistry to readColumnValues for dictionary-encoded columns.`
+        `Column "${field.name}" is dictionary-encoded but no dictionary registry was provided. `
+          + `Pass a DictionaryRegistry to readColumnValues for dictionary-encoded columns.`
       )
     }
     return readDictionaryEncodedValues(column, field.dictionaryEncoding, registry)

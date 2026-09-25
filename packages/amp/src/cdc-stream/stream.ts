@@ -57,9 +57,7 @@ export interface CdcStreamService {
 // Context.Tag
 // =============================================================================
 
-export class CdcStream extends Context.Service<CdcStream, CdcStreamService>()(
-  "Amp/CdcStream"
-) {}
+export class CdcStream extends Context.Service<CdcStream, CdcStreamService>()("Amp/CdcStream") {}
 
 // =============================================================================
 // DeleteBatchIterator
@@ -69,10 +67,7 @@ export class CdcStream extends Context.Service<CdcStream, CdcStreamService>()(
  * Create a lazy batch iterator that loads batches one-by-one from the store.
  * Skips missing batches (watermark-only transactions).
  */
-const makeDeleteBatchIterator = (
-  store: BatchStoreService,
-  ids: ReadonlyArray<TransactionId>
-): DeleteBatchIterator => {
+const makeDeleteBatchIterator = (store: BatchStoreService, ids: ReadonlyArray<TransactionId>): DeleteBatchIterator => {
   let cursor = 0
 
   return {
@@ -85,13 +80,9 @@ const makeDeleteBatchIterator = (
         if (cursor >= ids.length) return Effect.succeed(undefined)
         const id = ids[cursor]!
         cursor++
-        return store.load(id).pipe(
-          Effect.flatMap((batch) =>
-            batch !== undefined
-              ? Effect.succeed([id, batch] as const)
-              : loop()
-          )
-        )
+        return store
+          .load(id)
+          .pipe(Effect.flatMap((batch) => (batch !== undefined ? Effect.succeed([id, batch] as const) : loop())))
       }
       return loop()
     })
@@ -102,14 +93,14 @@ const makeDeleteBatchIterator = (
 // Implementation
 // =============================================================================
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const txStream = yield* TransactionalStream
   const batchStore = yield* BatchStore
 
   const streamCdc = (sql: string, options?: CdcStreamOptions) => {
     return txStream.streamTransactional(sql, options).pipe(
       Stream.mapEffect(
-        Effect.fnUntraced(function*([event, commit]): Effect.fn.Return<
+        Effect.fnUntraced(function* ([event, commit]): Effect.fn.Return<
           Option.Option<readonly [CdcEvent, CommitHandle]>,
           CdcStreamError
         > {
@@ -149,11 +140,13 @@ const make = Effect.gen(function*() {
               // Handle batch pruning when retention window moves
               if (Option.isSome(event.prune)) {
                 // Best-effort pruning
-                yield* batchStore.prune(event.prune.value).pipe(
-                  Effect.catch((error) =>
-                    Effect.logWarning("Batch pruning failed (will retry on next watermark)", error)
+                yield* batchStore
+                  .prune(event.prune.value)
+                  .pipe(
+                    Effect.catch((error) =>
+                      Effect.logWarning("Batch pruning failed (will retry on next watermark)", error)
+                    )
                   )
-                )
               }
               // Watermarks are not exposed to CDC consumers
               // Still need to commit so the underlying TransactionalStream advances
@@ -176,7 +169,7 @@ const make = Effect.gen(function*() {
   ): Effect.Effect<void, CdcStreamError | E, R> =>
     streamCdc(sql, options).pipe(
       Stream.runForEach(
-        Effect.fnUntraced(function*([event, commitHandle]) {
+        Effect.fnUntraced(function* ([event, commitHandle]) {
           yield* handler(event)
           yield* commitHandle.commit
         })

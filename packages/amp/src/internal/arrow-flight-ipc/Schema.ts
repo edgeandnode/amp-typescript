@@ -32,7 +32,7 @@ export const MessageHeaderType = {
   TENSOR: 4,
   SPARSE_TENSOR: 5
 } as const
-export type MessageHeaderType = typeof MessageHeaderType[keyof typeof MessageHeaderType]
+export type MessageHeaderType = (typeof MessageHeaderType)[keyof typeof MessageHeaderType]
 
 /**
  * A partial representation of the `FlightData` type.
@@ -70,33 +70,33 @@ export const ArrowDataTypeEnum = {
   LARGE_UTF8: 20,
   LARGE_LIST: 21
 } as const
-export type ArrowDataTypeEnum = typeof ArrowDataTypeEnum[keyof typeof ArrowDataTypeEnum]
+export type ArrowDataTypeEnum = (typeof ArrowDataTypeEnum)[keyof typeof ArrowDataTypeEnum]
 
 export const DateUnit = {
   DAY: 0,
   MILLISECOND: 1
 } as const
-export type DateUnit = typeof DateUnit[keyof typeof DateUnit]
+export type DateUnit = (typeof DateUnit)[keyof typeof DateUnit]
 
 export const Endianness = {
   LITTLE: 0,
   BIG: 1
 } as const
-export type Endianness = typeof Endianness[keyof typeof Endianness]
+export type Endianness = (typeof Endianness)[keyof typeof Endianness]
 
 export const IntervalUnit = {
   YEAR_MONTH: 0,
   DAY_TIME: 1,
   MONTH_DAY_NANO: 2
 } as const
-export type IntervalUnit = typeof IntervalUnit[keyof typeof IntervalUnit]
+export type IntervalUnit = (typeof IntervalUnit)[keyof typeof IntervalUnit]
 
 export const Precision = {
   HALF: 0,
   SINGLE: 1,
   DOUBLE: 2
 } as const
-export type Precision = typeof Precision[keyof typeof Precision]
+export type Precision = (typeof Precision)[keyof typeof Precision]
 
 export const TimeUnit = {
   SECOND: 0,
@@ -104,13 +104,13 @@ export const TimeUnit = {
   MICROSECOND: 2,
   NANOSECOND: 3
 } as const
-export type TimeUnit = typeof TimeUnit[keyof typeof TimeUnit]
+export type TimeUnit = (typeof TimeUnit)[keyof typeof TimeUnit]
 
 export const UnionMode = {
   SPARSE: 0,
   DENSE: 1
 } as const
-export type UnionMode = typeof UnionMode[keyof typeof UnionMode]
+export type UnionMode = (typeof UnionMode)[keyof typeof UnionMode]
 
 // =============================================================================
 // Schema Types
@@ -120,11 +120,7 @@ export class ArrowSchema {
   readonly fields: ReadonlyArray<ArrowField>
   readonly metadata: ReadonlyMap<string, string>
   readonly endianness: Endianness
-  constructor(
-    fields: ReadonlyArray<ArrowField>,
-    metadata: ReadonlyMap<string, string>,
-    endianness: Endianness
-  ) {
+  constructor(fields: ReadonlyArray<ArrowField>, metadata: ReadonlyMap<string, string>, endianness: Endianness) {
     this.fields = fields
     this.metadata = metadata
     this.endianness = endianness
@@ -389,7 +385,7 @@ export class UnionType {
 /**
  * Returns the Arrow Flight message type from the `FlightData` header.
  */
-export const getMessageType = Effect.fn(function*(flightData: FlightData) {
+export const getMessageType = Effect.fn(function* (flightData: FlightData) {
   const reader = new FlatBufferReader(flightData.dataHeader)
 
   // The flatbuffer root table offset is at position 0
@@ -440,7 +436,7 @@ export const getMessageType = Effect.fn(function*(flightData: FlightData) {
  *   3: bodyLength (Int64)
  *   4: custom_metadata (vector offset)
  */
-export const parseSchema = Effect.fn(function*(flightData: FlightData) {
+export const parseSchema = Effect.fn(function* (flightData: FlightData) {
   const reader = new FlatBufferReader(flightData.dataHeader)
 
   // The flatbuffer root table offset is at position 0
@@ -490,10 +486,7 @@ export const parseSchema = Effect.fn(function*(flightData: FlightData) {
  *   2: custom_metadata (vector of KeyValue)
  *   3: features (vector of Int64) - optional
  */
-const parseSchemaTable = Effect.fn(function*(
-  reader: FlatBufferReader,
-  offset: number
-) {
+const parseSchemaTable = Effect.fn(function* (reader: FlatBufferReader, offset: number) {
   // Parse the endianness
   const endiannessPosition = reader.getFieldPosition(offset, 0)
   const endianness = Predicate.isNotNull(endiannessPosition)
@@ -535,22 +528,15 @@ const parseSchemaTable = Effect.fn(function*(
  *   5: children (vector of Field)
  *   6: custom_metadata (vector of KeyValue)
  */
-const parseField: (
-  reader: FlatBufferReader,
-  offset: number
-) => Effect.Effect<ArrowField, InvalidArrowDataTypeError> = Effect.fn(
-  function*(reader, offset) {
+const parseField: (reader: FlatBufferReader, offset: number) => Effect.Effect<ArrowField, InvalidArrowDataTypeError> =
+  Effect.fn(function* (reader, offset) {
     // Parse field name
     const namePosition = reader.getFieldPosition(offset, 0)
-    const name = Predicate.isNotNull(namePosition)
-      ? reader.readString(namePosition)
-      : ""
+    const name = Predicate.isNotNull(namePosition) ? reader.readString(namePosition) : ""
 
     // Parse field nullability
     const nullabilityPosition = reader.getFieldPosition(offset, 1)
-    const nullable = Predicate.isNotNull(nullabilityPosition)
-      ? reader.readUint8(nullabilityPosition) !== 0
-      : false
+    const nullable = Predicate.isNotNull(nullabilityPosition) ? reader.readUint8(nullabilityPosition) !== 0 : false
 
     // Parse type
     const typeEnumPosition = reader.getFieldPosition(offset, 2)
@@ -558,9 +544,7 @@ const parseField: (
       ? (reader.readUint8(typeEnumPosition) as ArrowDataTypeEnum)
       : ArrowDataTypeEnum.NONE
     const typePosition = reader.getFieldPosition(offset, 3)
-    const typeOffset = Predicate.isNotNull(typePosition)
-      ? reader.readOffset(typePosition)
-      : 0
+    const typeOffset = Predicate.isNotNull(typePosition) ? reader.readOffset(typePosition) : 0
     const type = yield* parseType(reader, typeEnum, typeOffset)
 
     // Parse dictionary encoding
@@ -592,25 +576,13 @@ const parseField: (
       parseKeyValueVector(reader, metadataPosition, metadata)
     }
 
-    return new ArrowField(
-      name,
-      type,
-      nullable,
-      metadata,
-      children,
-      dictionaryEncoding
-    )
-  }
-)
+    return new ArrowField(name, type, nullable, metadata, children, dictionaryEncoding)
+  })
 
 /**
  * Parse type union based on the type enum value.
  */
-const parseType = Effect.fn(function*(
-  reader: FlatBufferReader,
-  typeEnum: ArrowDataTypeEnum,
-  offset: number
-) {
+const parseType = Effect.fn(function* (reader: FlatBufferReader, typeEnum: ArrowDataTypeEnum, offset: number) {
   switch (typeEnum) {
     case ArrowDataTypeEnum.NULL: {
       return NullType
@@ -693,14 +665,10 @@ const parseType = Effect.fn(function*(
  */
 const parseIntType = (reader: FlatBufferReader, offset: number): IntType => {
   const bitWidthPosition = reader.getFieldPosition(offset, 0)
-  const bitWidth = Predicate.isNotNull(bitWidthPosition)
-    ? (reader.readInt32(bitWidthPosition) as IntBitWidth)
-    : 32
+  const bitWidth = Predicate.isNotNull(bitWidthPosition) ? (reader.readInt32(bitWidthPosition) as IntBitWidth) : 32
 
   const isSignedPosition = reader.getFieldPosition(offset, 1)
-  const isSigned = Predicate.isNotNull(isSignedPosition)
-    ? reader.readUint8(isSignedPosition) !== 0
-    : true
+  const isSigned = Predicate.isNotNull(isSignedPosition) ? reader.readUint8(isSignedPosition) !== 0 : true
 
   return new IntType(bitWidth, isSigned)
 }
@@ -711,10 +679,7 @@ const parseIntType = (reader: FlatBufferReader, offset: number): IntType => {
  * The structure of the FloatingPoint vtable is as follows:
  *   0: precision (Precision enum)
  */
-const parseFloatingPointType = (
-  reader: FlatBufferReader,
-  offset: number
-): FloatingPointType => {
+const parseFloatingPointType = (reader: FlatBufferReader, offset: number): FloatingPointType => {
   const precisionPosition = reader.getFieldPosition(offset, 0)
   const precisionEnum = Predicate.isNotNull(precisionPosition)
     ? (reader.readInt16(precisionPosition) as Precision)
@@ -731,24 +696,15 @@ const parseFloatingPointType = (
  *   1: scale (Int32)
  *   2: bitWidth (Int32)
  */
-const parseDecimalType = (
-  reader: FlatBufferReader,
-  offset: number
-): DecimalType => {
+const parseDecimalType = (reader: FlatBufferReader, offset: number): DecimalType => {
   const precisionPosition = reader.getFieldPosition(offset, 0)
-  const precision = Predicate.isNotNull(precisionPosition)
-    ? reader.readInt32(precisionPosition)
-    : 0
+  const precision = Predicate.isNotNull(precisionPosition) ? reader.readInt32(precisionPosition) : 0
 
   const scalePosition = reader.getFieldPosition(offset, 1)
-  const scale = Predicate.isNotNull(scalePosition)
-    ? reader.readInt32(scalePosition)
-    : 0
+  const scale = Predicate.isNotNull(scalePosition) ? reader.readInt32(scalePosition) : 0
 
   const bitWidthPosition = reader.getFieldPosition(offset, 2)
-  const bitWidth = Predicate.isNotNull(bitWidthPosition)
-    ? reader.readInt32(bitWidthPosition)
-    : 128
+  const bitWidth = Predicate.isNotNull(bitWidthPosition) ? reader.readInt32(bitWidthPosition) : 128
 
   return new DecimalType(precision, scale, bitWidth)
 }
@@ -761,9 +717,7 @@ const parseDecimalType = (
  */
 const parseFixedSizeBinaryType = (reader: FlatBufferReader, offset: number): FixedSizeBinaryType => {
   const byteWidthPosition = reader.getFieldPosition(offset, 0)
-  const byteWidth = Predicate.isNotNull(byteWidthPosition)
-    ? reader.readInt32(byteWidthPosition)
-    : 0
+  const byteWidth = Predicate.isNotNull(byteWidthPosition) ? reader.readInt32(byteWidthPosition) : 0
 
   return new FixedSizeBinaryType(byteWidth)
 }
@@ -797,9 +751,7 @@ const parseTimeType = (reader: FlatBufferReader, offset: number): TimeType => {
     : TimeUnit.MILLISECOND
 
   const bitWidthPosition = reader.getFieldPosition(offset, 1)
-  const bitWidth = Predicate.isNotNull(bitWidthPosition)
-    ? (reader.readInt32(bitWidthPosition) as TimeBitWidth)
-    : 32
+  const bitWidth = Predicate.isNotNull(bitWidthPosition) ? (reader.readInt32(bitWidthPosition) as TimeBitWidth) : 32
 
   return new TimeType(unitEnum, bitWidth)
 }
@@ -811,19 +763,14 @@ const parseTimeType = (reader: FlatBufferReader, offset: number): TimeType => {
  *   0: unit (TimeUnit enum)
  *   1: timezone (string)
  */
-const parseTimestampType = (
-  reader: FlatBufferReader,
-  offset: number
-): TimestampType => {
+const parseTimestampType = (reader: FlatBufferReader, offset: number): TimestampType => {
   const unitPosition = reader.getFieldPosition(offset, 0)
   const unitEnum = Predicate.isNotNull(unitPosition)
     ? (reader.readInt16(unitPosition) as TimeUnit)
     : TimeUnit.MICROSECOND
 
   const timezonePosition = reader.getFieldPosition(offset, 1)
-  const timezone = Predicate.isNotNull(timezonePosition)
-    ? reader.readString(timezonePosition)
-    : null
+  const timezone = Predicate.isNotNull(timezonePosition) ? reader.readString(timezonePosition) : null
 
   return new TimestampType(unitEnum, timezone)
 }
@@ -834,10 +781,7 @@ const parseTimestampType = (
  * The structure of the Interval vtable is as follows:
  *   0: unit (IntervalUnit enum)
  */
-const parseIntervalType = (
-  reader: FlatBufferReader,
-  offset: number
-): IntervalType => {
+const parseIntervalType = (reader: FlatBufferReader, offset: number): IntervalType => {
   const unitPosition = reader.getFieldPosition(offset, 0)
   const unitEnum = Predicate.isNotNull(unitPosition)
     ? (reader.readInt16(unitPosition) as IntervalUnit)
@@ -852,10 +796,7 @@ const parseIntervalType = (
  * The structure of the Duration vtable is as follows:
  *   0: unit (TimeUnit enum)
  */
-const parseDurationType = (
-  reader: FlatBufferReader,
-  offset: number
-): DurationType => {
+const parseDurationType = (reader: FlatBufferReader, offset: number): DurationType => {
   const unitPosition = reader.getFieldPosition(offset, 0)
   const unitEnum = Predicate.isNotNull(unitPosition)
     ? (reader.readInt16(unitPosition) as TimeUnit)
@@ -870,14 +811,9 @@ const parseDurationType = (
  * The structure of the FixedSizeList vtable is as follows:
  *   0: listSize (Int32)
  */
-const parseFixedSizeListType = (
-  reader: FlatBufferReader,
-  offset: number
-): FixedSizeListType => {
+const parseFixedSizeListType = (reader: FlatBufferReader, offset: number): FixedSizeListType => {
   const listSizePosition = reader.getFieldPosition(offset, 0)
-  const listSize = Predicate.isNotNull(listSizePosition)
-    ? reader.readInt32(listSizePosition)
-    : 0
+  const listSize = Predicate.isNotNull(listSizePosition) ? reader.readInt32(listSizePosition) : 0
 
   return new FixedSizeListType(listSize)
 }
@@ -890,9 +826,7 @@ const parseFixedSizeListType = (
  */
 const parseMapType = (reader: FlatBufferReader, offset: number): MapType => {
   const keysSortedPosition = reader.getFieldPosition(offset, 0)
-  const keysSorted = Predicate.isNotNull(keysSortedPosition)
-    ? reader.readUint8(keysSortedPosition) !== 0
-    : false
+  const keysSorted = Predicate.isNotNull(keysSortedPosition) ? reader.readUint8(keysSortedPosition) !== 0 : false
 
   return new MapType(keysSorted)
 }
@@ -904,14 +838,9 @@ const parseMapType = (reader: FlatBufferReader, offset: number): MapType => {
  *   0: mode (UnionMode enum)
  *   1: typeIds (vector of Int32)
  */
-const parseUnionType = (
-  reader: FlatBufferReader,
-  offset: number
-): UnionType => {
+const parseUnionType = (reader: FlatBufferReader, offset: number): UnionType => {
   const modePosition = reader.getFieldPosition(offset, 0)
-  const modeEnum = Predicate.isNotNull(modePosition)
-    ? (reader.readInt16(modePosition) as UnionMode)
-    : UnionMode.SPARSE
+  const modeEnum = Predicate.isNotNull(modePosition) ? (reader.readInt16(modePosition) as UnionMode) : UnionMode.SPARSE
 
   const typeIds: Array<number> = []
   const typeIdsPosition = reader.getFieldPosition(offset, 1)
@@ -934,14 +863,9 @@ const parseUnionType = (
  *   1: indexType (Int table)
  *   2: isOrdered (Bool)
  */
-const parseDictionaryEncoding = (
-  reader: FlatBufferReader,
-  offset: number
-): DictionaryEncoding => {
+const parseDictionaryEncoding = (reader: FlatBufferReader, offset: number): DictionaryEncoding => {
   const idPosition = reader.getFieldPosition(offset, 0)
-  const id = Predicate.isNotNull(idPosition)
-    ? reader.readInt64(idPosition)
-    : 0n
+  const id = Predicate.isNotNull(idPosition) ? reader.readInt64(idPosition) : 0n
 
   const indexTypePosition = reader.getFieldPosition(offset, 1)
   let indexType: IntType
@@ -953,9 +877,7 @@ const parseDictionaryEncoding = (
   }
 
   const isOrderedPosition = reader.getFieldPosition(offset, 2)
-  const isOrdered = Predicate.isNotNull(isOrderedPosition)
-    ? reader.readUint8(isOrderedPosition) !== 0
-    : false
+  const isOrdered = Predicate.isNotNull(isOrderedPosition) ? reader.readUint8(isOrderedPosition) !== 0 : false
 
   return new DictionaryEncoding(id, indexType, isOrdered)
 }
@@ -963,11 +885,7 @@ const parseDictionaryEncoding = (
 /**
  * Parses a KeyValue vector into a Map.
  */
-const parseKeyValueVector = (
-  reader: FlatBufferReader,
-  pos: number,
-  map: Map<string, string>
-): void => {
+const parseKeyValueVector = (reader: FlatBufferReader, pos: number, map: Map<string, string>): void => {
   const vectorOffset = reader.readOffset(pos)
   const itemCount = reader.readVectorLength(vectorOffset)
 
@@ -981,9 +899,7 @@ const parseKeyValueVector = (
 
     if (Predicate.isNotNull(keyPosition)) {
       const key = reader.readString(keyPosition)
-      const value = Predicate.isNotNull(valuePosition)
-        ? reader.readString(valuePosition)
-        : ""
+      const value = Predicate.isNotNull(valuePosition) ? reader.readString(valuePosition) : ""
       map.set(key, value)
     }
   }
@@ -997,7 +913,7 @@ const parseKeyValueVector = (
  * Returns `true` if the provided `FlightData` header data buffer contains a
  * schema message, otherwise returns `false`.
  */
-export const isSchemaMessage = Effect.fn(function*(flightData: FlightData) {
+export const isSchemaMessage = Effect.fn(function* (flightData: FlightData) {
   const messageType = yield* getMessageType(flightData)
   return messageType === MessageHeaderType.SCHEMA
 })

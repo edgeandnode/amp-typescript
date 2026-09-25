@@ -10,7 +10,7 @@ import type * as Types from "../Types.ts"
 
 export const decimalGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.DecimalType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
 

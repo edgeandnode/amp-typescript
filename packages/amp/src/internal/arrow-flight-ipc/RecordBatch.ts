@@ -40,7 +40,7 @@ export const BufferType = {
   /** Type IDs for union types */
   TYPE_ID: 4
 } as const
-export type BufferType = typeof BufferType[keyof typeof BufferType]
+export type BufferType = (typeof BufferType)[keyof typeof BufferType]
 
 // =============================================================================
 // Record Batch Types
@@ -136,7 +136,7 @@ export const CompressionCodec = {
   LZ4_FRAME: 0,
   ZSTD: 1
 } as const
-export type CompressionCodec = typeof CompressionCodec[keyof typeof CompressionCodec]
+export type CompressionCodec = (typeof CompressionCodec)[keyof typeof CompressionCodec]
 
 export const BodyCompressionMethod = {
   /**
@@ -144,7 +144,7 @@ export const BodyCompressionMethod = {
    */
   BUFFER: 0
 } as const
-export type BodyCompressionMethod = typeof BodyCompressionMethod[keyof typeof BodyCompressionMethod]
+export type BodyCompressionMethod = (typeof BodyCompressionMethod)[keyof typeof BodyCompressionMethod]
 
 export class BodyCompression {
   /**
@@ -332,11 +332,7 @@ export class DecodedRecordBatch {
    */
   readonly columns: ReadonlyArray<DecodedColumn>
 
-  constructor(
-    schema: ArrowSchema,
-    numRows: bigint,
-    columns: ReadonlyArray<DecodedColumn>
-  ) {
+  constructor(schema: ArrowSchema, numRows: bigint, columns: ReadonlyArray<DecodedColumn>) {
     this.schema = schema
     this.numRows = numRows
     this.columns = columns
@@ -426,7 +422,7 @@ export class DecodedColumn {
  *   3: bodyLength (Int64)
  *   4: custom_metadata (vector offset)
  */
-export const parseRecordBatch = Effect.fn(function*(flightData: FlightData) {
+export const parseRecordBatch = Effect.fn(function* (flightData: FlightData) {
   const reader = new FlatBufferReader(flightData.dataHeader)
 
   // The flatbuffer root table offset is at position 0
@@ -476,7 +472,7 @@ export const parseRecordBatch = Effect.fn(function*(flightData: FlightData) {
  *   2: buffers ([Buffer]) - buffer locations
  *   3: compression (BodyCompression) - optional
  */
-export const parseRecordBatchTable = Effect.fn(function*(reader: FlatBufferReader, offset: number) {
+export const parseRecordBatchTable = Effect.fn(function* (reader: FlatBufferReader, offset: number) {
   // Parse length
   const lengthPosition = reader.getFieldPosition(offset, 0)
   const length = Predicate.isNotNull(lengthPosition) ? reader.readInt64(lengthPosition) : 0n
@@ -540,12 +536,12 @@ export const parseRecordBatchTable = Effect.fn(function*(reader: FlatBufferReade
 const parseBodyCompression = (reader: FlatBufferReader, offset: number): BodyCompression => {
   const codecPosition = reader.getFieldPosition(offset, 0)
   const codec = Predicate.isNotNull(codecPosition)
-    ? reader.readInt8(codecPosition) as CompressionCodec
+    ? (reader.readInt8(codecPosition) as CompressionCodec)
     : CompressionCodec.LZ4_FRAME
 
   const methodPosition = reader.getFieldPosition(offset, 1)
   const method = Predicate.isNotNull(methodPosition)
-    ? reader.readInt8(methodPosition) as BodyCompressionMethod
+    ? (reader.readInt8(methodPosition) as BodyCompressionMethod)
     : BodyCompressionMethod.BUFFER
 
   return new BodyCompression(codec, method)
@@ -562,7 +558,7 @@ const parseBodyCompression = (reader: FlatBufferReader, offset: number): BodyCom
  *   1: data (RecordBatch) - the dictionary values
  *   2: isDelta (Bool) - whether this is a delta update
  */
-export const parseDictionaryBatch = Effect.fn(function*(flightData: FlightData) {
+export const parseDictionaryBatch = Effect.fn(function* (flightData: FlightData) {
   const reader = new FlatBufferReader(flightData.dataHeader)
 
   // The flatbuffer root table offset is at position 0
@@ -611,7 +607,7 @@ export const parseDictionaryBatch = Effect.fn(function*(flightData: FlightData) 
  *   1: data (RecordBatch) - the dictionary values as a record batch
  *   2: isDelta (Bool) - whether this is a delta update (default: false)
  */
-const parseDictionaryBatchTable = Effect.fn(function*(reader: FlatBufferReader, offset: number) {
+const parseDictionaryBatchTable = Effect.fn(function* (reader: FlatBufferReader, offset: number) {
   // Parse id
   const idPosition = reader.getFieldPosition(offset, 0)
   const id = Predicate.isNotNull(idPosition) ? reader.readInt64(idPosition) : 0n
@@ -630,9 +626,7 @@ const parseDictionaryBatchTable = Effect.fn(function*(reader: FlatBufferReader, 
 
   // Parse isDelta (default: false)
   const isDeltaPosition = reader.getFieldPosition(offset, 2)
-  const isDelta = Predicate.isNotNull(isDeltaPosition)
-    ? reader.readUint8(isDeltaPosition) !== 0
-    : false
+  const isDelta = Predicate.isNotNull(isDeltaPosition) ? reader.readUint8(isDeltaPosition) !== 0 : false
 
   return new DictionaryBatch(id, data, isDelta)
 })
@@ -645,7 +639,7 @@ const parseDictionaryBatchTable = Effect.fn(function*(reader: FlatBufferReader, 
  * Returns `true` if the provided `FlightData` header data buffer contains a
  * record batch message, otherwise returns `false`.
  */
-export const isRecordBatchMessage = Effect.fn(function*(flightData: FlightData) {
+export const isRecordBatchMessage = Effect.fn(function* (flightData: FlightData) {
   const messageType = yield* getMessageType(flightData)
   return messageType === MessageHeaderType.RECORD_BATCH
 })
@@ -654,7 +648,7 @@ export const isRecordBatchMessage = Effect.fn(function*(flightData: FlightData) 
  * Returns `true` if the provided `FlightData` header data buffer contains a
  * dictionary batch message, otherwise returns `false`.
  */
-export const isDictionaryBatchMessage = Effect.fn(function*(flightData: FlightData) {
+export const isDictionaryBatchMessage = Effect.fn(function* (flightData: FlightData) {
   const messageType = yield* getMessageType(flightData)
   return messageType === MessageHeaderType.DICTIONARY_BATCH
 })

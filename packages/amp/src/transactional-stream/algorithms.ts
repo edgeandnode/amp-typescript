@@ -260,9 +260,7 @@ export const compressCommits = (
   }
 
   // Remove any watermarks that were pruned
-  const filteredInsert = maxPrune !== undefined
-    ? insert.filter(([id]) => id > maxPrune!)
-    : insert
+  const filteredInsert = maxPrune !== undefined ? insert.filter(([id]) => id > maxPrune!) : insert
 
   return {
     insert: filteredInsert,

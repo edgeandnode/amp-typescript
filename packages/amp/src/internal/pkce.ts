@@ -36,7 +36,7 @@ const getRandomValues = (size: number) => crypto.getRandomValues(new Uint8Array(
 const random = (size: number) => {
   const mask = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
   /// Ensure an even distribution of randomly selected values from the mask
-  const evenDistCutoff = Math.pow(2, 8) - Math.pow(2, 8) % mask.length
+  const evenDistCutoff = Math.pow(2, 8) - (Math.pow(2, 8) % mask.length)
 
   let result = ""
   while (result.length < size) {
@@ -61,10 +61,7 @@ const generateVerifier = (length: number): string => random(length)
  * Generate a PKCE code challenge from a code verifier.
  */
 export const generateChallenge = async (code_verifier: string) => {
-  const buffer = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(code_verifier)
-  )
+  const buffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code_verifier))
   // Generate base64url string. `btoa` is deprecated in Node.js but is used here
   // for web browser compatibility (which has no good replacement yet, see also
   // https://github.com/whatwg/html/issues/6811)
@@ -79,15 +76,13 @@ export const generateChallenge = async (code_verifier: string) => {
  *
  * The `length` must be in the range of 43-128 (defaults to 43).
  */
-export const pkceChallenge = Effect.fnUntraced(function*(length?: number) {
+export const pkceChallenge = Effect.fnUntraced(function* (length?: number) {
   if (!length) {
     length = 43
   }
 
   if (length < 43 || length > 128) {
-    return yield* Effect.die(
-      `Expected a length between 43 and 128. Received ${length}.`
-    )
+    return yield* Effect.die(`Expected a length between 43 and 128. Received ${length}.`)
   }
 
   const verifier = generateVerifier(length)
