@@ -55,20 +55,6 @@ const JobsQueryParams = Schema.Struct({
   status: Schema.String.pipe(Schema.optional)
 }).pipe(Schema.encodeKeys({ lastJobId: "last_job_id" }))
 
-/**
- * A non-negative integer query parameter.
- */
-const NonNegativeIntFromString = Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))
-
-/**
- * Query parameters for getting the lineage graph of a dataset.
- */
-const LineageQueryParams = Schema.Struct({
-  direction: Schema.optional(Domain.LineageDirection),
-  maxDepth: Schema.optional(NonNegativeIntFromString),
-  maxNodes: Schema.optional(NonNegativeIntFromString)
-}).pipe(Schema.encodeKeys({ maxDepth: "max_depth", maxNodes: "max_nodes" }))
-
 // =============================================================================
 // Dataset Endpoints
 // =============================================================================
@@ -190,7 +176,7 @@ const getDatasetLineage = HttpApiEndpoint.get(
       name: DatasetNameParam,
       revision: DatasetRevisionParam
     },
-    query: LineageQueryParams,
+    query: Domain.LineageQueryParams,
     error: [Error.InvalidPathError, Error.DatasetNotFoundError, Error.ResolveRevisionError, Error.BuildLineageError],
     success: Domain.GetDatasetLineageResponse
   }

@@ -253,6 +253,19 @@ export const GetDatasetLineageResponse = Schema.Struct({
 
 export type GetDatasetLineageResponse = typeof GetDatasetLineageResponse.Type
 
+/**
+ * A non-negative integer query parameter.
+ */
+export const NonNegativeIntFromString = Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))
+
+export const LineageQueryParams = Schema.Struct({
+  direction: Schema.optional(LineageDirection),
+  maxDepth: Schema.optional(NonNegativeIntFromString),
+  maxNodes: Schema.optional(NonNegativeIntFromString)
+}).pipe(Schema.encodeKeys({ maxDepth: "max_depth", maxNodes: "max_nodes" }))
+
+export type LineageQueryParams = typeof LineageQueryParams.Type
+
 // =============================================================================
 // Job Request/Response Schemas
 // =============================================================================
