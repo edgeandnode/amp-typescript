@@ -56,7 +56,8 @@ export interface QueryOptions {
  */
 export type ExtractQueryResult<Options extends QueryOptions> = Options extends {
   readonly schema: Schema.Top
-} ? QueryResult<Schema.Schema.Type<Options["schema"]>>
+}
+  ? QueryResult<Schema.Schema.Type<Options["schema"]>>
   : QueryResult<Record<string, unknown>>
 
 // =============================================================================
@@ -68,9 +69,9 @@ export type ExtractQueryResult<Options extends QueryOptions> = Options extends {
  * either parsed numbers, raw strings (when no parser matches), or `null` (when
  * the metric is `N/A`).
  */
-export const ExplainCell = Schema.NullOr(
-  Schema.Union([Schema.String, Schema.Number])
-).annotate({ identifier: "ExplainCell" })
+export const ExplainCell = Schema.NullOr(Schema.Union([Schema.String, Schema.Number])).annotate({
+  identifier: "ExplainCell"
+})
 export type ExplainCell = typeof ExplainCell.Type
 
 /**
@@ -80,8 +81,7 @@ export type ExplainCell = typeof ExplainCell.Type
  * expanded metrics (durations renamed with a `_secs` suffix, `total → matched`
  * split into `<key>_total` / `<key>_matched`, etc.).
  */
-export const ExplainRow = Schema.Record(Schema.String, ExplainCell)
-  .annotate({ identifier: "ExplainRow" })
+export const ExplainRow = Schema.Record(Schema.String, ExplainCell).annotate({ identifier: "ExplainRow" })
 export type ExplainRow = typeof ExplainRow.Type
 
 /**

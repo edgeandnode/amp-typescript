@@ -27,7 +27,7 @@ export class LoginCommandError extends Data.TaggedError("LoginCommandError")<{
 }
 
 const handleLoginCommand = Effect.fnUntraced(
-  function*() {
+  function* () {
     const auth = yield* Auth.Auth
 
     const authInfo = yield* auth.getCachedAuthInfo
@@ -41,24 +41,21 @@ const handleLoginCommand = Effect.fnUntraced(
     // Perform OAuth2 PKCE flow
     const { codeChallenge, codeVerifier } = yield* auth.createChallenge
 
-    const {
-      expiresIn,
-      deviceCode,
-      interval,
-      userCode,
-      verificationUri
-    } = yield* auth.requestDeviceAuthorization(codeChallenge)
+    const { expiresIn, deviceCode, interval, userCode, verificationUri } =
+      yield* auth.requestDeviceAuthorization(codeChallenge)
 
     // Show the user the OAuth2 PKCE code
-    yield* Console.error(String.stripMargin(
-      `|Copy the following verification code and enter it in your browser:
+    yield* Console.error(
+      String.stripMargin(
+        `|Copy the following verification code and enter it in your browser:
      |
      |    ${userCode}
      |`
-    ))
+      )
+    )
 
     // Ask if we should auto-open the user's browser
-    const autoOpenBrowser = yield* Prompt.confirm({
+    const autoOpenBrowser = yield* Prompt.Confirm({
       message: "Would you like to open your browser automatically?",
       initial: true
     })
@@ -69,31 +66,36 @@ const handleLoginCommand = Effect.fnUntraced(
       // If so, attempt to open the browser, falling back to a useful message
       yield* Effect.tryPromise(() => Open(verificationUri, { wait: false })).pipe(
         Effect.catchCause(() =>
-          Console.error(String.stripMargin(
-            `|If the browser window does not open automatically, enter the verification code into the following URL:
+          Console.error(
+            String.stripMargin(
+              `|If the browser window does not open automatically, enter the verification code into the following URL:
            |
            |    ${verificationUri}
            |`
-          ))
+            )
+          )
         )
       )
     } else {
       // If not, indicate that the user show navigate to the verification URL
-      yield* Console.error(String.stripMargin(
-        `|Enter the verification code into the following URL:
+      yield* Console.error(
+        String.stripMargin(
+          `|Enter the verification code into the following URL:
        |
        |    ${verificationUri}
        |`
-      ))
+        )
+      )
     }
 
     // Initially starts polling with a faster exponential backoff (1s, 1.5s, 2.25s, ...),
     // but then caps at the server's requested interval, setting the maximum
     // number of polling attempts based on the device code's lifetime
-    const pollingSchedule = Schedule.exponential("1 second", 1.5).pipe(
-      Schedule.both(Schedule.spaced(Duration.seconds(interval))),
-      Schedule.either(Schedule.recurs(Math.floor(expiresIn / interval)))
-    )
+    const pollingSchedule = Schedule.max([
+      Schedule.exponential("1 second", 1.5),
+      Schedule.spaced(Duration.seconds(interval)),
+      Schedule.recurs(Math.floor(expiresIn / interval))
+    ])
 
     // Show a spinner while we wait
     const spinnerFiber = yield* Effect.forkChild(showSpinner("Waiting for the user to authenticate..."))
@@ -128,7 +130,7 @@ export const LoginCommand = Command.make("login").pipe(
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
-const showSpinner = Effect.fnUntraced(function*(message: string) {
+const showSpinner = Effect.fnUntraced(function* (message: string) {
   let index = 0
   return yield* Effect.sync(() => {
     const frame = SPINNER_FRAMES[index]

@@ -1,5 +1,4 @@
 import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import * as SchemaGetter from "effect/SchemaGetter"
 import * as SchemaIssue from "effect/SchemaIssue"
@@ -23,27 +22,25 @@ export type NonNegativeInt = typeof NonNegativeInt.Type
  * address is a unique, 42-character hexadecimal identifier (starting with `0x`)
  * used to send and receive funds.
  */
-export const Address = NonEmptyTrimmedString.check(
-  Schema.makeFilter((val) => isAddress(val))
-).pipe(
-  Schema.brand("Amp/Models/Address")
-).annotate({ identifier: "Address" })
+export const Address = NonEmptyTrimmedString.check(Schema.makeFilter((val) => isAddress(val)))
+  .pipe(Schema.brand("Amp/Models/Address"))
+  .annotate({ identifier: "Address" })
 export type Address = typeof Address.Type
 
 /**
  * A branded type representing an OAuth2 access token.
  */
-export const AccessToken = NonEmptyTrimmedString.pipe(
-  Schema.brand("Amp/Models/AccessToken")
-).annotate({ identifier: "AccessToken" })
+export const AccessToken = NonEmptyTrimmedString.pipe(Schema.brand("Amp/Models/AccessToken")).annotate({
+  identifier: "AccessToken"
+})
 export type AccessToken = typeof AccessToken.Type
 
 /**
  * A branded type representing an OAuth2 refresh token.
  */
-export const RefreshToken = NonEmptyTrimmedString.pipe(
-  Schema.brand("Amp/Models/RefreshToken")
-).annotate({ identifier: "RefreshToken" })
+export const RefreshToken = NonEmptyTrimmedString.pipe(Schema.brand("Amp/Models/RefreshToken")).annotate({
+  identifier: "RefreshToken"
+})
 export type RefreshToken = typeof RefreshToken.Type
 
 const TOKEN_DURATION_REGEX =
@@ -53,29 +50,25 @@ const TOKEN_DURATION_REGEX =
  * A branded type representing the duration an OAuth2 access token should be
  * valid for.
  */
-export const TokenDuration = NonEmptyTrimmedString.check(
-  Schema.isPattern(TOKEN_DURATION_REGEX)
-).pipe(
-  Schema.brand("TokenDuration")
-).annotate({
-  identifier: "TokenDuration",
-  examples: [
-    "7 days" as TokenDuration,
-    "30 days" as TokenDuration,
-    "1 hour" as TokenDuration,
-    "1 year" as TokenDuration
-  ]
-})
+export const TokenDuration = NonEmptyTrimmedString.check(Schema.isPattern(TOKEN_DURATION_REGEX))
+  .pipe(Schema.brand("TokenDuration"))
+  .annotate({
+    identifier: "TokenDuration",
+    examples: [
+      "7 days" as TokenDuration,
+      "30 days" as TokenDuration,
+      "1 hour" as TokenDuration,
+      "1 year" as TokenDuration
+    ]
+  })
 export type TokenDuration = typeof TokenDuration.Type
 
 /**
  * A branded type representing the identifier for an authenticated user.
  */
-export const UserId = NonEmptyTrimmedString.check(
-  Schema.isPattern(/^(c[a-z0-9]{24}|did:privy:c[a-z0-9]{24})$/)
-).pipe(
-  Schema.brand("Amp/Models/UserId")
-).annotate({ identifier: "UserId" })
+export const UserId = NonEmptyTrimmedString.check(Schema.isPattern(/^(c[a-z0-9]{24}|did:privy:c[a-z0-9]{24})$/))
+  .pipe(Schema.brand("Amp/Models/UserId"))
+  .annotate({ identifier: "UserId" })
 export type UserId = typeof UserId.Type
 
 /**
@@ -85,9 +78,7 @@ export const AuthInfo = Schema.Struct({
   accessToken: Schema.Redacted(AccessToken),
   refreshToken: Schema.Redacted(RefreshToken),
   userId: UserId,
-  accounts: Schema.optional(Schema.Array(
-    Schema.Union([NonEmptyTrimmedString, Address])
-  )),
+  accounts: Schema.optional(Schema.Array(Schema.Union([NonEmptyTrimmedString, Address]))),
   expiry: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0)))
 }).annotate({ identifier: "AuthInfo" })
 export type AuthInfo = typeof AuthInfo.Type
@@ -95,9 +86,7 @@ export type AuthInfo = typeof AuthInfo.Type
 /**
  * Represents a block number.
  */
-export const BlockNumber = NonNegativeInt.pipe(
-  Schema.brand("Amp/Models/BlockNumber")
-).annotate({
+export const BlockNumber = NonNegativeInt.pipe(Schema.brand("Amp/Models/BlockNumber")).annotate({
   identifier: "BlockNumber",
   description: "A block number"
 })
@@ -106,25 +95,21 @@ export type BlockNumber = typeof BlockNumber.Type
 /**
  * Represents a block hash.
  */
-export const BlockHash = NonEmptyTrimmedString.check(
-  Schema.isPattern(/^0x[a-z0-9]{64}/)
-).pipe(
-  Schema.brand("Amp/Models/BlockHash")
-).annotate({ identifier: "BlockHash" })
+export const BlockHash = NonEmptyTrimmedString.check(Schema.isPattern(/^0x[a-z0-9]{64}/))
+  .pipe(Schema.brand("Amp/Models/BlockHash"))
+  .annotate({ identifier: "BlockHash" })
 export type BlockHash = typeof BlockHash.Type
 
 /**
  * Represents a blockchain network.
  */
-export const Network = Schema.String.check(
-  Schema.isLowercased()
-).pipe(
-  Schema.brand("Amp/Models/Network")
-).annotate({
-  title: "Network",
-  description: "a blockchain network",
-  examples: ["mainnet" as Network]
-})
+export const Network = Schema.String.check(Schema.isLowercased())
+  .pipe(Schema.brand("Amp/Models/Network"))
+  .annotate({
+    title: "Network",
+    description: "a blockchain network",
+    examples: ["mainnet" as Network]
+  })
 export type Network = typeof Network.Type
 
 /**
@@ -147,10 +132,12 @@ export const BlockRange = Schema.Struct({
    * The hash associated with the parent of the start block, if present
    */
   prevHash: Schema.optional(BlockHash)
-}).pipe(Schema.encodeKeys({ prevHash: "prev_hash" })).annotate({
-  identifier: "BlockRange",
-  description: "A range of blocks on a given network"
 })
+  .pipe(Schema.encodeKeys({ prevHash: "prev_hash" }))
+  .annotate({
+    identifier: "BlockRange",
+    description: "A range of blocks on a given network"
+  })
 export type BlockRange = typeof BlockRange.Type
 
 /**
@@ -166,10 +153,12 @@ export const RecordBatchMetadata = Schema.Struct({
    * Indicates whether this is the final record batch associated to the ranges.
    */
   rangesComplete: Schema.Boolean
-}).pipe(Schema.encodeKeys({ rangesComplete: "ranges_complete" })).annotate({
-  identifier: "RecordBatchMetadata",
-  description: "Metadata carrying information about the block ranges covered by this record batch"
 })
+  .pipe(Schema.encodeKeys({ rangesComplete: "ranges_complete" }))
+  .annotate({
+    identifier: "RecordBatchMetadata",
+    description: "Metadata carrying information about the block ranges covered by this record batch"
+  })
 export type RecordBatchMetadata = typeof RecordBatchMetadata.Type
 
 /**
@@ -180,18 +169,16 @@ export type RecordBatchMetadata = typeof RecordBatchMetadata.Type
 export const RecordBatchMetadataFromUint8Array = Schema.Uint8Array.pipe(
   Schema.decodeTo(
     Schema.fromJsonString(RecordBatchMetadata),
-    SchemaTransformation.transformOrFail<string, Uint8Array>({
+    SchemaTransformation.transformEffect<string, Uint8Array>({
       encode: (decoded) =>
         Effect.try({
           try: () => new TextEncoder().encode(decoded),
-          catch: () =>
-            new SchemaIssue.InvalidValue(Option.some(decoded), { message: "Failed to encode record batch metadata" })
+          catch: () => new SchemaIssue.InvalidValue({ message: "Failed to encode record batch metadata" }, decoded)
         }),
       decode: (encoded) =>
         Effect.try({
           try: () => new TextDecoder().decode(encoded),
-          catch: () =>
-            new SchemaIssue.InvalidValue(Option.some(encoded), { message: "Failed to decode record batch metadata" })
+          catch: () => new SchemaIssue.InvalidValue({ message: "Failed to decode record batch metadata" }, encoded)
         })
     })
   )
@@ -203,58 +190,66 @@ export type RecordBatchMetadataFromUint8Array = typeof RecordBatchMetadataFromUi
  *
  * If not specified, defaults to `"_"`.
  */
-export const DatasetNamespace = Schema.NonEmptyString.check(
-  Schema.isPattern(/^[a-z0-9_]+$/)
-).pipe(
-  Schema.brand("Amp/Models/Address")
-).annotate({
-  identifier: "DatasetNamespace",
-  description: "The namespace or owner of the dataset. If not specified, defaults to \"_\". " +
-    "Must contain only lowercase letters, digits, and underscores.",
-  examples: [
-    "edgeandnode" as DatasetNamespace,
-    "0xdeadbeef" as DatasetNamespace,
-    "my_org" as DatasetNamespace,
-    "_" as DatasetNamespace
-  ]
-})
+export const DatasetNamespace = Schema.NonEmptyString.check(Schema.isPattern(/^[a-z0-9_]+$/))
+  .pipe(Schema.brand("Amp/Models/DatasetNamespace"))
+  .annotate({
+    identifier: "DatasetNamespace",
+    description:
+      'The namespace or owner of the dataset. If not specified, defaults to "_". '
+      + "Must contain only lowercase letters, digits, and underscores.",
+    examples: [
+      "edgeandnode" as DatasetNamespace,
+      "0xdeadbeef" as DatasetNamespace,
+      "my_org" as DatasetNamespace,
+      "_" as DatasetNamespace
+    ]
+  })
 export type DatasetNamespace = typeof DatasetNamespace.Type
 
 /**
  * Represents the name of a dataset.
  */
-export const DatasetName = Schema.NonEmptyString.check(
-  Schema.isPattern(/^[a-z_][a-z0-9_]*$/)
-).pipe(
-  Schema.brand("Amp/Models/DatasetName")
-).annotate({
-  identifier: "DatasetName",
-  description: "The name of the dataset. Must start with a lowercase letter or underscore, " +
-    "followed by lowercase letters, digits, or underscores.",
-  examples: ["uniswap" as DatasetName]
-})
+export const DatasetName = Schema.NonEmptyString.check(Schema.isPattern(/^[a-z_][a-z0-9_]*$/))
+  .pipe(Schema.brand("Amp/Models/DatasetName"))
+  .annotate({
+    identifier: "DatasetName",
+    description:
+      "The name of the dataset. Must start with a lowercase letter or underscore, "
+      + "followed by lowercase letters, digits, or underscores.",
+    examples: ["uniswap" as DatasetName]
+  })
 export type DatasetName = typeof DatasetName.Type
+
+/**
+ * Represents the kind of a raw (extraction) dataset.
+ */
+export const RawDatasetKind = Schema.Literals([
+  "eth-beacon",
+  "bittensor",
+  "evm-rpc",
+  "solana",
+  "tempo",
+  "bitcoin-rpc",
+  "stellar",
+  "phaser"
+]).annotate({
+  identifier: "RawDatasetKind",
+  description: "The kind of a raw (extraction) dataset."
+})
+export type RawDatasetKind = typeof RawDatasetKind.Type
 
 /**
  * Represents the kind of the dataset.
  *
- * Must be one of `"manifest"`, `"evm-rpc"`, `"eth-beacon"`, or `"firehose"`.
+ * Must be `"manifest"` (derived), `"static"`, or one of the raw dataset kinds.
  */
-export const DatasetKind = Schema.Literals([
-  "manifest",
-  "evm-rpc",
-  "eth-beacon",
-  "firehose"
-]).pipe(Schema.brand("Amp/Models/DatasetKind")).annotate({
-  identifier: "DatasetKind",
-  description: "The kind of the dataset.",
-  examples: [
-    "manifest" as DatasetKind,
-    "evm-rpc" as DatasetKind,
-    "eth-beacon" as DatasetKind,
-    "firehose" as DatasetKind
-  ]
-})
+export const DatasetKind = Schema.Literals(["manifest", "static", ...RawDatasetKind.literals])
+  .pipe(Schema.brand("Amp/Models/DatasetKind"))
+  .annotate({
+    identifier: "DatasetKind",
+    description: "The kind of the dataset.",
+    examples: ["manifest" as DatasetKind, "static" as DatasetKind, "evm-rpc" as DatasetKind, "solana" as DatasetKind]
+  })
 export type DatasetKind = typeof DatasetKind.Type
 
 /**
@@ -264,58 +259,52 @@ export const DatasetVersion = Schema.String.check(
   Schema.isPattern(
     /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
   )
-).pipe(
-  Schema.brand("Amp/Models/DatasetVersion")
-).annotate({
-  identifier: "DatasetVersion",
-  description: "The semantic version number for the dataset.",
-  examples: [
-    "1.0.0" as DatasetVersion,
-    "1.0.1" as DatasetVersion,
-    "1.1.0" as DatasetVersion,
-    "1.0.0-dev123" as DatasetVersion,
-    "1.0.0+1234567890" as DatasetVersion
-  ]
-})
+)
+  .pipe(Schema.brand("Amp/Models/DatasetVersion"))
+  .annotate({
+    identifier: "DatasetVersion",
+    description: "The semantic version number for the dataset.",
+    examples: [
+      "1.0.0" as DatasetVersion,
+      "1.0.1" as DatasetVersion,
+      "1.1.0" as DatasetVersion,
+      "1.0.0-dev123" as DatasetVersion,
+      "1.0.0+1234567890" as DatasetVersion
+    ]
+  })
 export type DatasetVersion = typeof DatasetVersion.Type
 
 /**
  * Represents the 32-byte SHA-256 hash for the dataset.
  */
-export const DatasetHash = Schema.String.check(
-  Schema.isPattern(/^[0-9a-fA-F]{64}$/)
-).pipe(
-  Schema.brand("Amp/Models/DatasetHash")
-).annotate({
-  identifier: "DatasetHash",
-  description: "A 32-byte SHA-256 hash (64 characters) for the dataset.",
-  examples: ["b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9" as DatasetHash]
-})
+export const DatasetHash = Schema.String.check(Schema.isPattern(/^[0-9a-fA-F]{64}$/))
+  .pipe(Schema.brand("Amp/Models/DatasetHash"))
+  .annotate({
+    identifier: "DatasetHash",
+    description: "A 32-byte SHA-256 hash (64 characters) for the dataset.",
+    examples: ["b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9" as DatasetHash]
+  })
 export type DatasetHash = typeof DatasetHash.Type
 
 /**
  * Represents a tag for a dataset version.
  */
-export const DatasetTag = Schema.Literals(["latest", "dev"]).pipe(
-  Schema.brand("Amp/Models/DatasetTag")
-).annotate({
-  identifier: "DatasetTag",
-  description: "A tag for a dataset version.",
-  examples: ["latest" as DatasetTag, "dev" as DatasetTag]
-})
+export const DatasetTag = Schema.Literals(["latest", "dev"])
+  .pipe(Schema.brand("Amp/Models/DatasetTag"))
+  .annotate({
+    identifier: "DatasetTag",
+    description: "A tag for a dataset version.",
+    examples: ["latest" as DatasetTag, "dev" as DatasetTag]
+  })
 export type DatasetTag = typeof DatasetTag.Type
 
 /**
  * Represents a dataset revision reference, which can be either a semver tag,
  * a 64-character hexadecimal hash, `"latest"`, or `"dev"`.
  */
-export const DatasetRevision = Schema.Union([
-  DatasetVersion,
-  DatasetHash,
-  DatasetTag
-]).annotate({
+export const DatasetRevision = Schema.Union([DatasetVersion, DatasetHash, DatasetTag]).annotate({
   identifier: "DatasetRevision",
-  description: "A dataset revision reference (semver tag, 64 character hexadecimal hash, \"latest\", or \"dev\").",
+  description: 'A dataset revision reference (semver tag, 64 character hexadecimal hash, "latest", or "dev").',
   examples: [
     DatasetVersion.make("1.0.0"),
     DatasetHash.make("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"),
@@ -337,13 +326,10 @@ export const DatasetReferenceString = Schema.String.check(
   Schema.isPattern(/^[a-z0-9_]+\/[a-z_][a-z0-9_]*@.+$/)
 ).annotate({
   identifier: "DatasetReferenceString",
-  description: "A dataset reference as a string in the format `<namespace>/<name>@<revision>`, " +
-    "where revision is a semver version, hash, \"latest\", or \"dev\"",
-  examples: [
-    "edgeandnode/mainnet@1.0.0",
-    "edgeandnode/mainnet@latest",
-    "edgeandnode/mainnet@dev"
-  ]
+  description:
+    "A dataset reference as a string in the format `<namespace>/<name>@<revision>`, "
+    + 'where revision is a semver version, hash, "latest", or "dev"',
+  examples: ["edgeandnode/mainnet@1.0.0", "edgeandnode/mainnet@latest", "edgeandnode/mainnet@dev"]
 })
 export type DatasetReferenceString = typeof DatasetReferenceString.Type
 
@@ -370,7 +356,7 @@ const decodeDatasetReference = SchemaParser.decodeEffect(DatasetReference)
 export const DatasetReferenceFromString = Schema.String.pipe(
   Schema.decodeTo(DatasetReference, {
     encode: SchemaGetter.transform((ref) => `${ref.namespace}/${ref.name}@${ref.revision}`),
-    decode: SchemaGetter.transformOrFail((str) => {
+    decode: SchemaGetter.transformEffect((str) => {
       const at = str.lastIndexOf("@")
       const slash = str.indexOf("/")
 
@@ -430,9 +416,7 @@ export type DatasetReadme = typeof DatasetReadme.Type
 /**
  * Represents additional description and details about the dataset.
  */
-export const DatasetDescription = Schema.String.check(
-  Schema.isMaxLength(1024)
-).annotate({
+export const DatasetDescription = Schema.String.check(Schema.isMaxLength(1024)).annotate({
   identifier: "DatasetDescription",
   title: "Description",
   description: "Additional description and details about the dataset."
@@ -460,13 +444,10 @@ export type DatasetKeyword = typeof DatasetKeyword.Type
 export const DatasetSource = Schema.String.annotate({
   identifier: "DatasetSource",
   title: "Source",
-  description: "Source of the dataset data. For example, the block or logs table that powers the " +
-    "dataset, or the 0x address of the smart contract being queried.",
-  examples: [
-    "eth_mainnet_rpc.logs",
-    "arbitrum_one_rpc.blocks",
-    "0xc944e90c64b2c07662a292be6244bdf05cda44a7"
-  ]
+  description:
+    "Source of the dataset data. For example, the block or logs table that powers the "
+    + "dataset, or the 0x address of the smart contract being queried.",
+  examples: ["eth_mainnet_rpc.logs", "arbitrum_one_rpc.blocks", "0xc944e90c64b2c07662a292be6244bdf05cda44a7"]
 })
 export type DatasetSource = typeof DatasetSource.Type
 
@@ -559,18 +540,9 @@ export const DatasetConfig = Schema.Struct({
   license: Schema.optional(DatasetLicense),
   private: Schema.optional(Schema.Boolean),
   startBlock: Schema.optional(Schema.Number),
-  dependencies: Schema.Record(
-    Schema.String,
-    DatasetReferenceFromString
-  ),
-  tables: Schema.optional(Schema.Record(
-    Schema.String,
-    TableDefinition
-  )),
-  functions: Schema.optional(Schema.Record(
-    Schema.String,
-    FunctionDefinition
-  ))
+  dependencies: Schema.Record(Schema.String, DatasetReferenceFromString),
+  tables: Schema.optional(Schema.Record(Schema.String, TableDefinition)),
+  functions: Schema.optional(Schema.Record(Schema.String, FunctionDefinition))
 }).annotate({
   identifier: "DatasetConfig",
   description: "Configuration associated with a dataset."
@@ -584,10 +556,12 @@ export const TableInfo = Schema.Struct({
   name: Schema.String,
   network: Network,
   activeLocation: Schema.optional(Schema.String)
-}).pipe(Schema.encodeKeys({ activeLocation: "active_location" })).annotate({
-  identifier: "TableInfo",
-  description: "Information about a table."
 })
+  .pipe(Schema.encodeKeys({ activeLocation: "active_location" }))
+  .annotate({
+    identifier: "TableInfo",
+    description: "Information about a table."
+  })
 export type TableInfo = typeof TableInfo.Type
 
 /**
@@ -652,22 +626,10 @@ export const TableSchema = Schema.Struct({
 export type TableSchema = typeof TableSchema.Type
 
 /**
- * Represents a table schema with associated networks.
- */
-export const TableSchemaWithNetworks = Schema.Struct({
-  schema: TableSchema,
-  networks: Schema.Array(Schema.String)
-}).annotate({
-  identifier: "TableSchemaWithNetworks",
-  description: "A table schema with associated networks."
-})
-export type TableSchemaWithNetworks = typeof TableSchemaWithNetworks.Type
-
-/**
  * Represents the input SQL for a table.
  */
 export const TableInput = Schema.Struct({
-  sql: Schema.String
+  sql: Schema.String.check(Schema.isNonEmpty())
 }).annotate({
   identifier: "TableInput",
   description: "Input SQL for a table."
@@ -675,47 +637,68 @@ export const TableInput = Schema.Struct({
 export type TableInput = typeof TableInput.Type
 
 /**
- * Represents a table.
+ * Represents the bloom filter configuration for a table column.
+ */
+export const BloomFilterColumnConfig = Schema.Struct({
+  column: Schema.String,
+  ndv: Schema.optional(NonNegativeInt)
+}).annotate({
+  identifier: "BloomFilterColumnConfig",
+  description: "Bloom filter configuration for a table column."
+})
+export type BloomFilterColumnConfig = typeof BloomFilterColumnConfig.Type
+
+/**
+ * Represents a table in a derived dataset.
  */
 export const Table = Schema.Struct({
   input: TableInput,
   schema: TableSchema,
-  network: Network
-}).annotate({
-  identifier: "Table",
-  description: "A table."
+  bloomFilterColumns: Schema.optional(Schema.Array(BloomFilterColumnConfig))
 })
+  .pipe(Schema.encodeKeys({ bloomFilterColumns: "bloom_filter_columns" }))
+  .annotate({
+    identifier: "Table",
+    description: "A table in a derived dataset."
+  })
 export type Table = typeof Table.Type
+
+/**
+ * Represents the policy used to select segments for a raw dataset table.
+ */
+export const SegmentSelectionPolicy = Schema.Literals(["hash-linked", "ordered"]).annotate({
+  identifier: "SegmentSelectionPolicy",
+  description: "The policy used to select segments for a raw dataset table."
+})
+export type SegmentSelectionPolicy = typeof SegmentSelectionPolicy.Type
 
 /**
  * Represents a table for a raw dataset.
  */
 export const RawDatasetTable = Schema.Struct({
   schema: TableSchema,
-  network: Network
-}).annotate({
-  identifier: "RawDatasetTable",
-  description: "A table for a raw dataset."
+  network: Network,
+  sortedBy: Schema.optional(Schema.Array(Schema.String)),
+  bloomFilterColumns: Schema.optional(Schema.Array(BloomFilterColumnConfig)),
+  segmentSelectionPolicy: Schema.optional(SegmentSelectionPolicy)
 })
+  .pipe(
+    Schema.encodeKeys({
+      sortedBy: "sorted_by",
+      bloomFilterColumns: "bloom_filter_columns",
+      segmentSelectionPolicy: "segment_selection_policy"
+    })
+  )
+  .annotate({
+    identifier: "RawDatasetTable",
+    description: "A table for a raw dataset."
+  })
 export type RawDatasetTable = typeof RawDatasetTable.Type
 
 /**
- * Represents the output schema for a query.
- */
-export const OutputSchema = Schema.Struct({
-  schema: TableSchema,
-  networks: Schema.Array(Schema.String)
-}).annotate({
-  identifier: "OutputSchema",
-  description: "The output schema for a query."
-})
-export type OutputSchema = typeof OutputSchema.Type
-
-/**
- * Represents information associated with a function.
+ * Represents information associated with a function in a derived dataset.
  */
 export const FunctionManifest = Schema.Struct({
-  name: Schema.String,
   source: FunctionSource,
   inputTypes: Schema.Array(Schema.String),
   outputType: Schema.String
@@ -730,69 +713,96 @@ export type FunctionManifest = typeof FunctionManifest.Type
  */
 export const DatasetDerived = Schema.Struct({
   kind: Schema.Literal("manifest"),
-  startBlock: Schema.optional(Schema.NullOr(Schema.Number)),
-  dependencies: Schema.Record(Schema.String, DatasetReferenceFromString),
-  tables: Schema.Record(Schema.String, Table),
-  functions: Schema.Record(Schema.String, FunctionManifest)
-}).pipe(Schema.encodeKeys({ startBlock: "start_block" })).annotate({
+  dependencies: Schema.optional(Schema.Record(Schema.String, DatasetReferenceFromString)),
+  tables: Schema.optional(Schema.Record(Schema.String, Table)),
+  functions: Schema.optional(Schema.Record(Schema.String, FunctionManifest))
+}).annotate({
   identifier: "DatasetDerived",
-  description: "A SQL-based derived datasets."
+  description: "A SQL-based derived dataset."
 })
 export type DatasetDerived = typeof DatasetDerived.Type
 
 /**
- * Represents an EVM RPC extraction dataset.
+ * Represents a selector for periodic state snapshots of a raw dataset.
+ *
+ * Either a bare selector string, or a selector with an explicit block interval.
  */
-export const DatasetEvmRpc = Schema.Struct({
-  kind: Schema.Literal("evm-rpc"),
-  network: Network,
-  startBlock: Schema.optional(Schema.Number),
-  finalizedBlocksOnly: Schema.optional(Schema.Boolean),
-  tables: Schema.Record(Schema.String, RawDatasetTable)
-}).pipe(Schema.encodeKeys({
-  startBlock: "start_block",
-  finalizedBlocksOnly: "finalized_blocks_only"
-})).annotate({
-  identifier: "DatasetEvmRpc",
-  description: "An EVM RPC extraction dataset."
+export const StateSnapshotSelector = Schema.Union([
+  Schema.String,
+  Schema.Struct({
+    selector: Schema.String,
+    blockInterval: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))
+  }).pipe(Schema.encodeKeys({ blockInterval: "block_interval" }))
+]).annotate({
+  identifier: "StateSnapshotSelector",
+  description: "A selector for periodic state snapshots."
 })
-export type DatasetEvmRpc = typeof DatasetEvmRpc.Type
+export type StateSnapshotSelector = typeof StateSnapshotSelector.Type
 
 /**
- * Represents an ETH beacon extraction dataset.
+ * Represents the state snapshot configuration of a raw dataset.
  */
-export const DatasetEthBeacon = Schema.Struct({
-  kind: Schema.Literal("eth-beacon"),
-  network: Network,
-  startBlock: Schema.optional(Schema.Number),
-  finalizedBlocksOnly: Schema.optional(Schema.Boolean),
-  tables: Schema.Record(Schema.String, RawDatasetTable)
-}).pipe(Schema.encodeKeys({
-  startBlock: "start_block",
-  finalizedBlocksOnly: "finalized_blocks_only"
-})).annotate({
-  identifier: "DatasetEthBeacon",
-  description: "An ETH beacon extraction dataset."
+export const StateSnapshots = Schema.Struct({
+  selectors: Schema.optional(Schema.Array(StateSnapshotSelector))
+}).annotate({
+  identifier: "StateSnapshots",
+  description: "State snapshot configuration of a raw dataset."
 })
-export type DatasetEthBeacon = typeof DatasetEthBeacon.Type
+export type StateSnapshots = typeof StateSnapshots.Type
 
 /**
- * Represents a Firehose extraction dataset.
+ * Represents a raw (extraction) dataset, such as an EVM RPC, ETH beacon, or
+ * Solana dataset.
  */
-export const DatasetFirehose = Schema.Struct({
-  kind: Schema.Literal("firehose"),
+export const DatasetRaw = Schema.Struct({
+  kind: RawDatasetKind,
   network: Network,
-  startBlock: Schema.optional(Schema.Number),
+  startBlock: Schema.optional(NonNegativeInt),
   finalizedBlocksOnly: Schema.optional(Schema.Boolean),
+  stateSnapshots: Schema.optional(StateSnapshots),
   tables: Schema.Record(Schema.String, RawDatasetTable)
-}).pipe(Schema.encodeKeys({
-  startBlock: "start_block",
-  finalizedBlocksOnly: "finalized_blocks_only"
-})).annotate({
-  identifier: "DatasetFirehose",
-  description: "A Firehose extraction dataset."
 })
-export type DatasetFirehose = typeof DatasetFirehose.Type
+  .pipe(
+    Schema.encodeKeys({
+      startBlock: "start_block",
+      finalizedBlocksOnly: "finalized_blocks_only",
+      stateSnapshots: "state_snapshots"
+    })
+  )
+  .annotate({
+    identifier: "DatasetRaw",
+    description: "A raw (extraction) dataset."
+  })
+export type DatasetRaw = typeof DatasetRaw.Type
+
+/**
+ * Represents a table for a static dataset, backed by a data file.
+ */
+export const StaticDatasetTable = Schema.Struct({
+  path: Schema.String.check(Schema.isNonEmpty()),
+  schema: TableSchema,
+  sortedBy: Schema.optional(Schema.Array(Schema.String)),
+  format: Schema.Literal("csv"),
+  hasHeader: Schema.Boolean
+})
+  .pipe(Schema.encodeKeys({ sortedBy: "sorted_by", hasHeader: "has_header" }))
+  .annotate({
+    identifier: "StaticDatasetTable",
+    description: "A table for a static dataset, backed by a data file."
+  })
+export type StaticDatasetTable = typeof StaticDatasetTable.Type
+
+/**
+ * Represents a static dataset, backed by checked-in data files (e.g. CSV).
+ */
+export const DatasetStatic = Schema.Struct({
+  kind: Schema.Literal("static"),
+  tables: Schema.Record(Schema.String, StaticDatasetTable)
+}).annotate({
+  identifier: "DatasetStatic",
+  description: "A static dataset, backed by checked-in data files."
+})
+export type DatasetStatic = typeof DatasetStatic.Type
 
 /**
  * Union type representing any dataset manifest kind.
@@ -802,24 +812,16 @@ export type DatasetFirehose = typeof DatasetFirehose.Type
  *
  * Supported kinds:
  * - DatasetDerived (kind: "manifest") - SQL-based derived datasets
- * - DatasetEvmRpc (kind: "evm-rpc") - EVM RPC extraction datasets
- * - DatasetEthBeacon (kind: "eth-beacon") - ETH beacon extraction datasets
- * - DatasetFirehose (kind: "firehose") - Firehose extraction datasets
+ * - DatasetRaw (kind: see {@link RawDatasetKind}) - raw extraction datasets
+ * - DatasetStatic (kind: "static") - datasets backed by checked-in data files
  */
-export const DatasetManifest = Schema.Union([
-  DatasetDerived,
-  DatasetEvmRpc,
-  DatasetEthBeacon,
-  DatasetFirehose
-])
+export const DatasetManifest = Schema.Union([DatasetDerived, DatasetRaw, DatasetStatic])
 export type DatasetManifest = typeof DatasetManifest.Type
 
 /**
  * Represents the unique identifier for a job.
  */
-export const JobId = Schema.Number.pipe(
-  Schema.brand("Amp/Models/JobId")
-).annotate({
+export const JobId = Schema.Number.pipe(Schema.brand("Amp/Models/JobId")).annotate({
   identifier: "JobId",
   description: "The unique identifier for a job."
 })
@@ -835,14 +837,16 @@ export const JobStatus = Schema.Literals([
   "STOPPED",
   "STOP_REQUESTED",
   "STOPPING",
-  "FAILED",
+  "ERROR",
+  "CANCELLED",
+  "FATAL",
   "UNKNOWN"
-]).pipe(
-  Schema.brand("Amp/Models/JobStatus")
-).annotate({
-  identifier: "JobStatus",
-  description: "The status of a job."
-})
+])
+  .pipe(Schema.brand("Amp/Models/JobStatus"))
+  .annotate({
+    identifier: "JobStatus",
+    description: "The status of a job."
+  })
 export type JobStatus = typeof JobStatus.Type
 
 /**
@@ -850,17 +854,23 @@ export type JobStatus = typeof JobStatus.Type
  */
 export const JobInfo = Schema.Struct({
   id: JobId,
+  idempotencyKey: Schema.String,
   status: JobStatus,
   createdAt: Schema.DateTimeUtc,
   updatedAt: Schema.DateTimeUtc,
   nodeId: Schema.String,
   descriptor: Schema.Any
-}).pipe(Schema.encodeKeys({
-  createdAt: "created_at",
-  updatedAt: "updated_at",
-  nodeId: "node_id"
-})).annotate({
-  identifier: "JobInfo",
-  description: "Information about a job."
 })
+  .pipe(
+    Schema.encodeKeys({
+      idempotencyKey: "idempotency_key",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+      nodeId: "node_id"
+    })
+  )
+  .annotate({
+    identifier: "JobInfo",
+    description: "Information about a job."
+  })
 export type JobInfo = typeof JobInfo.Type

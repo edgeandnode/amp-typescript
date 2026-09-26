@@ -29,7 +29,9 @@ const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
 }
 
 const uint8ArrayToHex = (bytes: Uint8Array): string => {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("")
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
 }
 
 const convertValue = (
@@ -41,22 +43,22 @@ const convertValue = (
     return opts.bigIntHandling === "string"
       ? value.toString()
       : opts.bigIntHandling === "number"
-      ? Number(value)
-      : value
+        ? Number(value)
+        : value
   }
   if (value instanceof Date) {
     return opts.dateHandling === "iso"
       ? value.toISOString()
       : opts.dateHandling === "timestamp"
-      ? value.getTime()
-      : value
+        ? value.getTime()
+        : value
   }
   if (value instanceof Uint8Array) {
     return opts.binaryHandling === "base64"
       ? uint8ArrayToBase64(value)
       : opts.binaryHandling === "hex"
-      ? uint8ArrayToHex(value)
-      : Array.from(value)
+        ? uint8ArrayToHex(value)
+        : Array.from(value)
   }
   if (Array.isArray(value)) {
     return value.map((v) => convertValue(v, opts))

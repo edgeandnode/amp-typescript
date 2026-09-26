@@ -16,9 +16,7 @@ import { InvalidationRange } from "../protocol-stream/messages.ts"
  * Transaction ID - monotonically increasing identifier for each event.
  * Guaranteed to be unique and never reused, even across crashes.
  */
-export const TransactionId = NonNegativeInt.pipe(
-  Schema.brand("Amp/TransactionalStream/TransactionId")
-).annotate({
+export const TransactionId = NonNegativeInt.pipe(Schema.brand("Amp/TransactionalStream/TransactionId")).annotate({
   identifier: "TransactionId",
   description: "Monotonically increasing transaction identifier"
 })
@@ -181,9 +179,7 @@ export const watermarkEvent = (
 /**
  * Create a Reorg cause.
  */
-export const reorgCause = (
-  invalidation: ReadonlyArray<typeof InvalidationRange.Type>
-): UndoCauseReorg => ({
+export const reorgCause = (invalidation: ReadonlyArray<typeof InvalidationRange.Type>): UndoCauseReorg => ({
   _tag: "Reorg",
   invalidation: invalidation as Array<typeof InvalidationRange.Type>
 })

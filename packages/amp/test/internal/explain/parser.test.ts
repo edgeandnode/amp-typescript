@@ -7,8 +7,8 @@ const cell = (row: ExplainRow, key: string): unknown => (row as Record<string, u
 // Real EXPLAIN ANALYZE output captured from Amp. Two nodes:
 // `CoalescePartitionsExec` at depth 0, `DataSourceExec` at depth 1.
 const REAL_PLAN =
-  "CoalescePartitionsExec: fetch=10, metrics=[output_rows=10, elapsed_compute=9.59µs, output_bytes=1376.0 B, output_batches=1]\n" +
-  "  DataSourceExec: file_groups={4 groups: [[000000000-4b156bc5f8c4b5c9.parquet:0..34765529, 046041222-7dc8e8e88196fb16.parquet:0..3289, 046041316-214bfa0c4faa7b3c.parquet:0..12946, 046041384-7686b0192d63ea56.parquet:0..3188, 046041393-58281870e72806fe.parquet:0..3189, ...], [035000000-3804cfa716034dd4.parquet:2062293511..4159378225], [035000000-3804cfa716034dd4.parquet:4159378225..6256462939], [035000000-3804cfa716034dd4.parquet:6256462939..6599305879, 046041223-c398ae24960243cf.parquet:0..3190, 046041379-42c6761e45c71a94.parquet:0..3188, 046041385-9130b047b7c4a25f.parquet:0..3061, 046041394-cf85f4d98090f0a3.parquet:0..3062, ...]]}, projection=[_block_num, timestamp, block_num, tx_hash, buyer_address, seller_address, value_usdc, nonce], limit=10, file_type=parquet, metrics=[output_rows=10, elapsed_compute=4ns, output_bytes=1376.0 B, output_batches=1, files_ranges_pruned_statistics=6 total → 6 matched, row_groups_pruned_statistics=74 total → 74 matched, row_groups_pruned_bloom_filter=74 total → 74 matched, page_index_pages_pruned=0 total → 0 matched, page_index_rows_pruned=0 total → 0 matched, limit_pruned_row_groups=0 total → 0 matched, batches_split=0, bytes_scanned=13.37 M, file_open_errors=0, file_scan_errors=0, num_predicate_creation_errors=0, predicate_evaluation_errors=0, pushdown_rows_matched=0, pushdown_rows_pruned=0, predicate_cache_inner_records=0, predicate_cache_records=0, bloom_filter_eval_time=12ns, metadata_load_time=288.01µs, page_index_eval_time=12ns, row_pushdown_eval_time=12ns, statistics_eval_time=12ns, time_elapsed_opening=415.35µs, time_elapsed_processing=43.90ms, time_elapsed_scanning_total=230.61ms, time_elapsed_scanning_until_data=230.60ms, scan_efficiency_ratio=N/A (0/0)]\n"
+  "CoalescePartitionsExec: fetch=10, metrics=[output_rows=10, elapsed_compute=9.59µs, output_bytes=1376.0 B, output_batches=1]\n"
+  + "  DataSourceExec: file_groups={4 groups: [[000000000-4b156bc5f8c4b5c9.parquet:0..34765529, 046041222-7dc8e8e88196fb16.parquet:0..3289, 046041316-214bfa0c4faa7b3c.parquet:0..12946, 046041384-7686b0192d63ea56.parquet:0..3188, 046041393-58281870e72806fe.parquet:0..3189, ...], [035000000-3804cfa716034dd4.parquet:2062293511..4159378225], [035000000-3804cfa716034dd4.parquet:4159378225..6256462939], [035000000-3804cfa716034dd4.parquet:6256462939..6599305879, 046041223-c398ae24960243cf.parquet:0..3190, 046041379-42c6761e45c71a94.parquet:0..3188, 046041385-9130b047b7c4a25f.parquet:0..3061, 046041394-cf85f4d98090f0a3.parquet:0..3062, ...]]}, projection=[_block_num, timestamp, block_num, tx_hash, buyer_address, seller_address, value_usdc, nonce], limit=10, file_type=parquet, metrics=[output_rows=10, elapsed_compute=4ns, output_bytes=1376.0 B, output_batches=1, files_ranges_pruned_statistics=6 total → 6 matched, row_groups_pruned_statistics=74 total → 74 matched, row_groups_pruned_bloom_filter=74 total → 74 matched, page_index_pages_pruned=0 total → 0 matched, page_index_rows_pruned=0 total → 0 matched, limit_pruned_row_groups=0 total → 0 matched, batches_split=0, bytes_scanned=13.37 M, file_open_errors=0, file_scan_errors=0, num_predicate_creation_errors=0, predicate_evaluation_errors=0, pushdown_rows_matched=0, pushdown_rows_pruned=0, predicate_cache_inner_records=0, predicate_cache_records=0, bloom_filter_eval_time=12ns, metadata_load_time=288.01µs, page_index_eval_time=12ns, row_pushdown_eval_time=12ns, statistics_eval_time=12ns, time_elapsed_opening=415.35µs, time_elapsed_processing=43.90ms, time_elapsed_scanning_total=230.61ms, time_elapsed_scanning_until_data=230.60ms, scan_efficiency_ratio=N/A (0/0)]\n"
 
 describe("parsePlan", () => {
   it("returns an empty list for empty input", () => {
@@ -24,12 +24,7 @@ describe("parsePlan", () => {
     expect(root.name).toBe("CoalescePartitionsExec")
     expect(root.depth).toBe(0)
     expect(root.properties).toEqual({ fetch: "10" })
-    expect(Object.keys(root.metrics)).toEqual([
-      "output_rows",
-      "elapsed_compute",
-      "output_bytes",
-      "output_batches"
-    ])
+    expect(Object.keys(root.metrics)).toEqual(["output_rows", "elapsed_compute", "output_bytes", "output_batches"])
 
     const child = nodes[1]!
     expect(child.name).toBe("DataSourceExec")

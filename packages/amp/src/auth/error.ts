@@ -48,9 +48,7 @@ export const makeError = <
      * for programmatic error handling. Examples: `INVALID_SELECTOR`,
      * `DATASET_NOT_FOUND`, `METADATA_DB_ERROR`
      */
-    code: Schema.Literal(code).pipe(
-      Schema.withConstructorDefault(Effect.succeed(code))
-    ),
+    code: Schema.Literal(code).pipe(Schema.withConstructorDefault(Effect.succeed(code))),
     /**
      * Human-readable error message
      *
@@ -58,21 +56,18 @@ export const makeError = <
      * over time. Use `error_code` for programmatic decisions.
      */
     message: Schema.String
-  }).pipe(Schema.encodeKeys({
-    code: "error_code",
-    message: "error_message"
-  })) as any
+  }).pipe(
+    Schema.encodeKeys({
+      code: "error_code",
+      message: "error_message"
+    })
+  ) as any
 
 // =============================================================================
 // Error Details
 // =============================================================================
 
-export const DeviceFlowReason = Schema.Literals([
-  "expired",
-  "pending",
-  "access_denied",
-  "slow_down"
-])
+export const DeviceFlowReason = Schema.Literals(["expired", "pending", "access_denied", "slow_down"])
 
 export type DeviceFlowReason = Schema.Schema.Type<typeof DeviceFlowReason>
 
@@ -97,138 +92,99 @@ export type VerifyTokenFailureReason = Schema.Schema.Type<typeof VerifyTokenFail
 /**
  * Indicates that the user's session has expired and they need to re-authenticate.
  */
-export const AuthTokenExpiredError = makeError(
-  "AUTH_TOKEN_EXPIRED",
-  "AuthTokenExpiredError"
-)
+export const AuthTokenExpiredError = makeError("AUTH_TOKEN_EXPIRED", "AuthTokenExpiredError")
 
 export type AuthTokenExpiredError = typeof AuthTokenExpiredError.Type
 
 /**
  * Indicates that too many authentication requests have been made.
  */
-export const AuthRateLimitError = makeError(
-  "AUTH_RATE_LIMITED",
-  "AuthRateLimitError",
-  {
-    retryAfter: Schema.DurationFromMillis
-  }
-)
+export const AuthRateLimitError = makeError("AUTH_RATE_LIMITED", "AuthRateLimitError", {
+  retryAfter: Schema.DurationFromMillis
+})
 
 export type AuthRateLimitError = typeof AuthRateLimitError.Type
 
 /**
  * Indicates a general token refresh failure.
  */
-export const AuthRefreshError = makeError(
-  "AUTH_REFRESH_FAILED",
-  "AuthRefreshError",
-  {
-    status: Schema.OptionFromOptional(Schema.Int),
-    cause: Schema.OptionFromOptional(Schema.Defect())
-  }
-)
+export const AuthRefreshError = makeError("AUTH_REFRESH_FAILED", "AuthRefreshError", {
+  status: Schema.OptionFromOptional(Schema.Int),
+  cause: Schema.OptionFromOptional(Schema.Defect())
+})
 
 export type AuthRefreshError = typeof AuthRefreshError.Type
 
 /**
  * Indicates that the token belongs to a different user than expected.
  */
-export const AuthUserMismatchError = makeError(
-  "AUTH_USER_MISMATCH",
-  "AuthUserMismatchError",
-  {
-    expectedUserId: Schema.String,
-    receivedUserId: Schema.String
-  }
-)
+export const AuthUserMismatchError = makeError("AUTH_USER_MISMATCH", "AuthUserMismatchError", {
+  expectedUserId: Schema.String,
+  receivedUserId: Schema.String
+})
 
 export type AuthUserMismatchError = typeof AuthUserMismatchError.Type
 
 /**
  * Indicates an issue with the device authorization flow.
  */
-export const AuthDeviceFlowError = makeError(
-  "AUTH_DEVICE_FLOW_ERROR",
-  "AuthDeviceFlowError",
-  {
-    reason: DeviceFlowReason,
-    verificationUri: Schema.OptionFromOptional(Schema.String)
-  }
-)
+export const AuthDeviceFlowError = makeError("AUTH_DEVICE_FLOW_ERROR", "AuthDeviceFlowError", {
+  reason: DeviceFlowReason,
+  verificationUri: Schema.OptionFromOptional(Schema.String)
+})
 
 export type AuthDeviceFlowError = typeof AuthDeviceFlowError.Type
 
 /**
  * Indicates a failure with cache read/write/clear operations.
  */
-export const AuthCacheError = makeError(
-  "AUTH_CACHE_ERROR",
-  "AuthCacheError",
-  {
-    operation: CacheOperation,
-    cause: Schema.OptionFromOptional(Schema.Defect())
-  }
-)
+export const AuthCacheError = makeError("AUTH_CACHE_ERROR", "AuthCacheError", {
+  operation: CacheOperation,
+  cause: Schema.OptionFromOptional(Schema.Defect())
+})
 
 export type AuthCacheError = typeof AuthCacheError.Type
 
 /**
  * Indicates network or timeout issues during authentication.
  */
-export const AuthNetworkError = makeError(
-  "AUTH_NETWORK_ERROR",
-  "AuthNetworkError",
-  {
-    endpoint: Schema.OptionFromOptional(Schema.String),
-    isTimeout: Schema.Boolean,
-    cause: Schema.OptionFromOptional(Schema.Defect())
-  }
-)
+export const AuthNetworkError = makeError("AUTH_NETWORK_ERROR", "AuthNetworkError", {
+  endpoint: Schema.OptionFromOptional(Schema.String),
+  isTimeout: Schema.Boolean,
+  cause: Schema.OptionFromOptional(Schema.Defect())
+})
 
 export type AuthNetworkError = typeof AuthNetworkError.Type
 
 /**
  * Indicates that the client failed to construct or encode an authentication request.
  */
-export const AuthRequestError = makeError(
-  "AUTH_REQUEST_ERROR",
-  "AuthRequestError",
-  {
-    endpoint: Schema.OptionFromOptional(Schema.String),
-    cause: Schema.OptionFromOptional(Schema.Defect())
-  }
-)
+export const AuthRequestError = makeError("AUTH_REQUEST_ERROR", "AuthRequestError", {
+  endpoint: Schema.OptionFromOptional(Schema.String),
+  cause: Schema.OptionFromOptional(Schema.Defect())
+})
 
 export type AuthRequestError = typeof AuthRequestError.Type
 
 /**
  * Indicates that the authentication service returned a response that violated the expected protocol.
  */
-export const AuthProtocolError = makeError(
-  "AUTH_PROTOCOL_ERROR",
-  "AuthProtocolError",
-  {
-    endpoint: Schema.OptionFromOptional(Schema.String),
-    status: Schema.OptionFromOptional(Schema.Int),
-    cause: Schema.OptionFromOptional(Schema.Defect())
-  }
-)
+export const AuthProtocolError = makeError("AUTH_PROTOCOL_ERROR", "AuthProtocolError", {
+  endpoint: Schema.OptionFromOptional(Schema.String),
+  status: Schema.OptionFromOptional(Schema.Int),
+  cause: Schema.OptionFromOptional(Schema.Defect())
+})
 
 export type AuthProtocolError = typeof AuthProtocolError.Type
 
 /**
  * Indicates a failure when verifying a JWT access token.
  */
-export const AuthVerifyTokenError = makeError(
-  "AUTH_VERIFY_TOKEN_FAILED",
-  "AuthVerifyTokenError",
-  {
-    reason: VerifyTokenFailureReason,
-    claim: Schema.OptionFromOptional(Schema.String),
-    cause: Schema.OptionFromOptional(Schema.Defect())
-  }
-)
+export const AuthVerifyTokenError = makeError("AUTH_VERIFY_TOKEN_FAILED", "AuthVerifyTokenError", {
+  reason: VerifyTokenFailureReason,
+  claim: Schema.OptionFromOptional(Schema.String),
+  cause: Schema.OptionFromOptional(Schema.Defect())
+})
 
 export type AuthVerifyTokenError = typeof AuthVerifyTokenError.Type
 
@@ -279,9 +235,8 @@ export const getUserMessage = Match.type<AuthError>().pipe(
     }
   }),
   Match.when({ code: "AUTH_NETWORK_ERROR" }, (error) =>
-    error.isTimeout
-      ? "Authentication request timed out"
-      : "Could not connect to the authentication service"),
+    error.isTimeout ? "Authentication request timed out" : "Could not connect to the authentication service"
+  ),
   Match.when({ code: "AUTH_REQUEST_ERROR" }, () => "Failed to prepare the authentication request"),
   Match.when({ code: "AUTH_PROTOCOL_ERROR" }, () => "Authentication service returned an invalid response"),
   Match.when({ code: "AUTH_VERIFY_TOKEN_FAILED" }, (error) => {
@@ -330,11 +285,13 @@ export const getUserSuggestion = Match.type<AuthError>().pipe(
   Match.when({ code: "AUTH_CACHE_ERROR" }, (error) =>
     error.operation === "clear"
       ? "You may need to manually remove the credentials file"
-      : "Check file permissions in your configuration directory and try again"),
+      : "Check file permissions in your configuration directory and try again"
+  ),
   Match.when({ code: "AUTH_NETWORK_ERROR" }, (error) =>
     error.isTimeout
       ? "The service may be experiencing high load. Please try again in a few moments"
-      : "Check your internet connection and try again"),
+      : "Check your internet connection and try again"
+  ),
   Match.when(
     { code: "AUTH_REQUEST_ERROR" },
     () => "This is a client-side request construction problem. Please report it if it persists"

@@ -83,10 +83,7 @@ export interface TransactionalStreamService {
   readonly streamTransactional: (
     sql: string,
     options?: TransactionalStreamOptions
-  ) => Stream.Stream<
-    readonly [TransactionEvent, CommitHandle],
-    TransactionalStreamError
-  >
+  ) => Stream.Stream<readonly [TransactionEvent, CommitHandle], TransactionalStreamError>
 
   /**
    * High-level consumer: auto-commit after callback succeeds.
@@ -148,10 +145,9 @@ export interface TransactionalStreamService {
  * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  */
-export class TransactionalStream extends Context.Service<
-  TransactionalStream,
-  TransactionalStreamService
->()("Amp/TransactionalStream") {}
+export class TransactionalStream extends Context.Service<TransactionalStream, TransactionalStreamService>()(
+  "Amp/TransactionalStream"
+) {}
 
 // =============================================================================
 // Implementation
@@ -166,37 +162,31 @@ const DEFAULT_RETENTION = 128
  * - Buffer is empty but next > 0 (crash before any watermark committed)
  * - Buffer has watermarks but next > last_watermark_id + 1 (crash after processing but before commit)
  */
-const needsRewind = (
-  next: TransactionId,
-  lastWatermarkId: TransactionId | undefined
-): boolean => {
+const needsRewind = (next: TransactionId, lastWatermarkId: TransactionId | undefined): boolean => {
   if (lastWatermarkId === undefined) {
     // No watermarks - rewind if we've processed anything (next > 0)
     return next > 0
   }
   // Rewind if next ID is beyond what we've committed
-  return next > (lastWatermarkId + 1)
+  return next > lastWatermarkId + 1
 }
 
 /**
  * Create TransactionalStream service implementation.
  */
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const protocolStreamService = yield* ProtocolStream
   const storeService = yield* StateStore
 
   const streamTransactional = (
     sql: string,
     options?: TransactionalStreamOptions
-  ): Stream.Stream<
-    readonly [TransactionEvent, CommitHandle],
-    TransactionalStreamError
-  > => {
+  ): Stream.Stream<readonly [TransactionEvent, CommitHandle], TransactionalStreamError> => {
     const retention = options?.retention ?? DEFAULT_RETENTION
 
     // Create the stream with proper scoping
     return Stream.unwrap(
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         // 1. Create StateActor
         const actor: StateActor = yield* makeStateActor(storeService, retention)
 
@@ -205,18 +195,16 @@ const make = Effect.gen(function*() {
         const nextId = yield* actor.peek
 
         // 3. Determine resume cursor
-        const resumeWatermark: ReadonlyArray<BlockRange> | undefined = watermark !== undefined
-          ? watermark[1]
-          : undefined
+        const resumeWatermark: ReadonlyArray<BlockRange> | undefined =
+          watermark !== undefined ? watermark[1] : undefined
 
         // 4. Check if rewind is needed
         const lastWatermarkId = watermark?.[0]
         const shouldRewind = needsRewind(nextId, lastWatermarkId)
 
         // 5. Get protocol stream with resume cursor
-        const protocolOptions: ProtocolStreamOptions = resumeWatermark !== undefined
-          ? { schema: options?.schema, resumeWatermark }
-          : { schema: options?.schema }
+        const protocolOptions: ProtocolStreamOptions =
+          resumeWatermark !== undefined ? { schema: options?.schema, resumeWatermark } : { schema: options?.schema }
         const protocolStream = protocolStreamService.stream(sql, protocolOptions)
 
         // 6. Build transactional stream
@@ -224,24 +212,16 @@ const make = Effect.gen(function*() {
         const rewindStream: Stream.Stream<
           readonly [TransactionEvent, CommitHandle],
           StateStoreError | UnrecoverableReorgError | PartialReorgError
-        > = shouldRewind
-          ? Stream.fromEffect(
-            actor.execute({ _tag: "Rewind" })
-          )
-          : Stream.empty
+        > = shouldRewind ? Stream.fromEffect(actor.execute({ _tag: "Rewind" })) : Stream.empty
 
         const messageStream: Stream.Stream<
           readonly [TransactionEvent, CommitHandle],
           ProtocolStreamError | StateStoreError | UnrecoverableReorgError | PartialReorgError
-        > = protocolStream.pipe(
-          Stream.mapEffect((message) => actor.execute({ _tag: "Message", message } as Action))
-        )
+        > = protocolStream.pipe(Stream.mapEffect((message) => actor.execute({ _tag: "Message", message } as Action)))
 
         return Stream.concat(rewindStream, messageStream)
       })
-    ).pipe(
-      Stream.withSpan("TransactionalStream.streamTransactional")
-    )
+    ).pipe(Stream.withSpan("TransactionalStream.streamTransactional"))
   }
 
   const forEach = <E, R>(
@@ -250,12 +230,14 @@ const make = Effect.gen(function*() {
     handler: (event: TransactionEvent) => Effect.Effect<void, E, R>
   ): Effect.Effect<void, TransactionalStreamError | E, R> =>
     streamTransactional(sql, options).pipe(
-      Stream.runForEach(Effect.fnUntraced(function*([event, commitHandle]: readonly [TransactionEvent, CommitHandle]) {
-        // Process the event
-        yield* handler(event)
-        // Auto-commit after successful processing
-        yield* commitHandle.commit
-      })),
+      Stream.runForEach(
+        Effect.fnUntraced(function* ([event, commitHandle]: readonly [TransactionEvent, CommitHandle]) {
+          // Process the event
+          yield* handler(event)
+          // Auto-commit after successful processing
+          yield* commitHandle.commit
+        })
+      ),
       Effect.withSpan("TransactionalStream.forEach")
     )
 

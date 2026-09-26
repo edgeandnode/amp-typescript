@@ -60,10 +60,7 @@ export class ArrowFlight extends Context.Service<
     readonly query: <Options extends QueryOptions>(
       sql: string,
       options?: Options
-    ) => Effect.Effect<
-      ReadonlyArray<ExtractQueryResult<Options>>,
-      ArrowFlightError
-    >
+    ) => Effect.Effect<ReadonlyArray<ExtractQueryResult<Options>>, ArrowFlightError>
 
     /**
      * Executes an Arrow Flight SQL query and returns a stream of results.
@@ -87,14 +84,12 @@ export class ArrowFlight extends Context.Service<
   }
 >()("Amp/ArrowFlight") {}
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const auth = yield* Effect.serviceOption(Auth)
   const transport = yield* Transport
   const client = createClient(FlightService, transport)
 
-  const decodeRecordBatchMetadata = Schema.decodeEffect(
-    RecordBatchMetadataFromUint8Array
-  )
+  const decodeRecordBatchMetadata = Schema.decodeEffect(RecordBatchMetadataFromUint8Array)
 
   /**
    * Execute a SQL query and return a stream of rows.
@@ -103,15 +98,13 @@ const make = Effect.gen(function*() {
     query: string,
     options?: Options
   ): Stream.Stream<ExtractQueryResult<Options>, ArrowFlightError> =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const contextValues = createContextValues()
       // A cache failure ("can't read the saved token") is not an Arrow Flight
       // error and shouldn't surface as one — fall back to "no cached auth"
       // and let the server's auth response (if any) be the source of truth.
       const authInfo = Option.isSome(auth)
-        ? yield* auth.value.getCachedAuthInfo.pipe(
-          Effect.orElseSucceed(() => Option.none<AuthInfo>())
-        )
+        ? yield* auth.value.getCachedAuthInfo.pipe(Effect.orElseSucceed(() => Option.none<AuthInfo>()))
         : Option.none<AuthInfo>()
 
       // Setup the query context with authentication information, if available
@@ -132,10 +125,7 @@ const make = Effect.gen(function*() {
         headers.set("amp-stream", "true")
       }
       if (Predicate.isNotUndefined(options?.resumeWatermark)) {
-        headers.set(
-          "amp-resume",
-          blockRangesToResumeWatermark(options.resumeWatermark)
-        )
+        headers.set("amp-resume", blockRangesToResumeWatermark(options.resumeWatermark))
       }
 
       const flightInfo = yield* Effect.tryPromise({
@@ -156,7 +146,7 @@ const make = Effect.gen(function*() {
       }
 
       const flightDataStream = Stream.unwrap(
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           const controller = yield* Effect.acquireRelease(
             Effect.sync(() => new AbortController()),
             (abort) => Effect.sync(() => abort.abort())
@@ -170,9 +160,7 @@ const make = Effect.gen(function*() {
 
       let schema: ArrowSchema | undefined
       const dictionaryRegistry = new DictionaryRegistry()
-      const dataSchema = Schema.Array(
-        options?.schema ?? Schema.Record(Schema.String, Schema.Unknown)
-      )
+      const dataSchema = Schema.Array(options?.schema ?? Schema.Record(Schema.String, Schema.Unknown))
 
       const decodeRecordBatchData = Schema.decodeEffect(dataSchema)
 
@@ -180,10 +168,7 @@ const make = Effect.gen(function*() {
       // Convert FlightData stream to a stream of rows
       return flightDataStream.pipe(
         Stream.mapEffect(
-          Effect.fnUntraced(function*(flightData): Effect.fn.Return<
-            Option.Option<Result>,
-            ArrowFlightError
-          > {
+          Effect.fnUntraced(function* (flightData): Effect.fn.Return<Option.Option<Result>, ArrowFlightError> {
             const messageType = yield* Effect.orDie(getMessageType(flightData))
 
             switch (messageType) {
@@ -202,23 +187,13 @@ const make = Effect.gen(function*() {
                 return Option.none<Result>()
               }
               case MessageHeaderType.RECORD_BATCH: {
-                const metadata = yield* decodeRecordBatchMetadata(
-                  flightData.appMetadata
-                ).pipe(
-                  Effect.mapError(
-                    (cause) => new ParseRecordBatchError({ cause })
-                  )
+                const metadata = yield* decodeRecordBatchMetadata(flightData.appMetadata).pipe(
+                  Effect.mapError((cause) => new ParseRecordBatchError({ cause }))
                 )
                 const recordBatch = yield* parseRecordBatch(flightData).pipe(
-                  Effect.mapError(
-                    (cause) => new ParseRecordBatchError({ cause })
-                  )
+                  Effect.mapError((cause) => new ParseRecordBatchError({ cause }))
                 )
-                const decodedRecordBatch = decodeRecordBatch(
-                  recordBatch,
-                  flightData.dataBody,
-                  schema!
-                )
+                const decodedRecordBatch = decodeRecordBatch(recordBatch, flightData.dataBody, schema!)
                 const jsonOptions: RecordBatchToJsonOptions = {
                   dictionaryRegistry
                 }
@@ -237,19 +212,13 @@ const make = Effect.gen(function*() {
 
                 const json = recordBatchToJson(decodedRecordBatch, jsonOptions)
                 const data = yield* decodeRecordBatchData(json).pipe(
-                  Effect.mapError(
-                    (cause) => new ParseRecordBatchError({ cause })
-                  )
+                  Effect.mapError((cause) => new ParseRecordBatchError({ cause }))
                 )
                 return Option.some({ data, metadata } as Result)
               }
             }
 
-            return yield* Effect.die(
-              new Cause.IllegalArgumentError(
-                `Invalid message type received: ${messageType}`
-              )
-            )
+            return yield* Effect.die(new Cause.IllegalArgumentError(`Invalid message type received: ${messageType}`))
           })
         ),
         Stream.filterMap(Filter.fromPredicateOption(Fn.identity))
@@ -259,16 +228,13 @@ const make = Effect.gen(function*() {
   const query = <Options extends QueryOptions>(
     sql: string,
     options?: Options
-  ): Effect.Effect<
-    ReadonlyArray<ExtractQueryResult<Options>>,
-    ArrowFlightError
-  > =>
+  ): Effect.Effect<ReadonlyArray<ExtractQueryResult<Options>>, ArrowFlightError> =>
     Stream.runCollect(streamQuery(sql, options)).pipe(
       Effect.map((chunk) => Array.from(chunk)),
       Effect.withSpan("ArrowFlight.query")
     )
 
-  const explain = Effect.fn("ArrowFlight.explain")(function*(
+  const explain = Effect.fn("ArrowFlight.explain")(function* (
     sql: string,
     options?: { readonly analyze?: boolean | undefined }
   ) {
@@ -308,9 +274,7 @@ export const layer: Layer.Layer<ArrowFlight, ArrowFlightError, Transport> = Laye
  * @param ranges - The block ranges to convert.
  * @returns A resume watermark string.
  */
-const blockRangesToResumeWatermark = (
-  ranges: ReadonlyArray<BlockRange>
-): string => {
+const blockRangesToResumeWatermark = (ranges: ReadonlyArray<BlockRange>): string => {
   const watermarks: Record<string, { number: number; hash: string }> = {}
   for (const range of ranges) {
     watermarks[range.network] = {

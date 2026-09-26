@@ -9,10 +9,9 @@ import * as Models from "../core/domain.ts"
 // General Schemas
 // =============================================================================
 
-export const PositiveIntFromString = Schema.NumberFromString.check(
-  Schema.isInt(),
-  Schema.isGreaterThan(0)
-).annotate({ identifier: "PositiveIntFromString" })
+export const PositiveIntFromString = Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThan(0)).annotate({
+  identifier: "PositiveIntFromString"
+})
 export type PositiveIntFromString = typeof PositiveIntFromString.Type
 
 /**
@@ -27,27 +26,17 @@ export type ServiceStatus = typeof ServiceStatus.Type
 /**
  * Time-based buckets for grouping datasets by last updated time
  */
-export const LastUpdatedBucket = Schema.Literals([
-  "last_day",
-  "last_week",
-  "last_month",
-  "last_year"
-]).annotate({ identifier: "LastUpdatedBucket" })
+export const LastUpdatedBucket = Schema.Literals(["last_day", "last_week", "last_month", "last_year"]).annotate({
+  identifier: "LastUpdatedBucket"
+})
 export type LastUpdatedBucket = typeof LastUpdatedBucket.Type
 
-export const DatasetSortBy = Schema.Literals([
-  "namespace",
-  "name",
-  "owner",
-  "created_at",
-  "updated_at"
-]).annotate({ identifier: "DatasetSortBy" })
+export const DatasetSortBy = Schema.Literals(["namespace", "name", "owner", "created_at", "updated_at"]).annotate({
+  identifier: "DatasetSortBy"
+})
 export type DatasetSortBy = typeof DatasetSortBy.Type
 
-export const DatasetSortDirection = Schema.Literals([
-  "asc",
-  "desc"
-]).annotate({ identifier: "DatasetSortDirection" })
+export const DatasetSortDirection = Schema.Literals(["asc", "desc"]).annotate({ identifier: "DatasetSortDirection" })
 export type DatasetSortDirection = typeof DatasetSortDirection.Type
 
 /**
@@ -66,12 +55,9 @@ export type DatasetVersionAncestry = typeof DatasetVersionAncestry.Type
 /**
  * Represents the status of a dataset version.
  */
-export const DatasetVersionStatus = Schema.Literals([
-  "draft",
-  "published",
-  "deprecated",
-  "archived"
-]).annotate({ identifier: "DatasetVersionStatus" })
+export const DatasetVersionStatus = Schema.Literals(["draft", "published", "deprecated", "archived"]).annotate({
+  identifier: "DatasetVersionStatus"
+})
 export type DatasetVersionStatus = typeof DatasetVersionStatus.Type
 
 /**
@@ -425,9 +411,7 @@ export type SearchMyDatasetsParams = typeof SearchMyDatasetsParams.Type
  * Represents a bearer token header.
  */
 export const BearerAuthHeader = Schema.Struct({
-  Authorization: Schema.String.check(
-    Schema.isStartsWith("Bearer")
-  )
+  Authorization: Schema.String.check(Schema.isStartsWith("Bearer"))
 }).annotate({ identifier: "BearerAuthHeader" })
 export type BearerAuthHeader = typeof BearerAuthHeader.Type
 

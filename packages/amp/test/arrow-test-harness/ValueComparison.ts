@@ -205,11 +205,7 @@ const datesEqual = (expected: unknown, actual: Date, unit: string): boolean => {
   return Number(expected as bigint) === actual.getTime()
 }
 
-const timesEqual = (
-  expected: number | bigint,
-  actual: number,
-  unit: string
-): boolean => {
+const timesEqual = (expected: number | bigint, actual: number, unit: string): boolean => {
   // Generator stores raw time value, reader converts to ms
   const toMs: Record<string, number> = {
     "SECOND": 1000,
@@ -232,10 +228,7 @@ const timestampsEqual = (expected: bigint, actual: Date, unit: string): boolean 
   return expectedMs === actual.getTime()
 }
 
-const durationsEqual = (
-  expected: bigint,
-  actual: { value: bigint; unit: string }
-): boolean => {
+const durationsEqual = (expected: bigint, actual: { value: bigint; unit: string }): boolean => {
   return expected === actual.value
 }
 
@@ -255,17 +248,12 @@ const intervalsEqual = (expected: unknown, actual: unknown, unit: string): boole
   return exp.months === act.months && exp.days === act.days && exp.nanoseconds === act.nanoseconds
 }
 
-const listsEqual = (
-  type: ArrowDataType,
-  expected: Array<unknown>,
-  actual: Array<unknown>
-): boolean => {
+const listsEqual = (type: ArrowDataType, expected: Array<unknown>, actual: Array<unknown>): boolean => {
   if (expected.length !== actual.length) return false
 
   // Get child type - for lists, the child is the item type
-  const childType = "children" in type
-    ? ((type as { children?: ReadonlyArray<ArrowField> }).children?.[0]?.type)
-    : undefined
+  const childType =
+    "children" in type ? (type as { children?: ReadonlyArray<ArrowField> }).children?.[0]?.type : undefined
 
   if (!childType) {
     // Fallback to simple comparison
@@ -283,9 +271,7 @@ const structsEqual = (
   expected: Record<string, unknown>,
   actual: Record<string, unknown>
 ): boolean => {
-  const children = "children" in type
-    ? ((type as { children?: ReadonlyArray<ArrowField> }).children ?? [])
-    : []
+  const children = "children" in type ? ((type as { children?: ReadonlyArray<ArrowField> }).children ?? []) : []
 
   for (const child of children) {
     if (!valuesEqual(child.type, expected[child.name], actual[child.name])) {
@@ -295,11 +281,7 @@ const structsEqual = (
   return true
 }
 
-const mapsEqual = (
-  type: ArrowDataType,
-  expected: Array<unknown>,
-  actual: Array<unknown>
-): boolean => {
+const mapsEqual = (type: ArrowDataType, expected: Array<unknown>, actual: Array<unknown>): boolean => {
   if (expected.length !== actual.length) return false
 
   for (let i = 0; i < expected.length; i++) {
@@ -307,9 +289,8 @@ const mapsEqual = (
     const actEntry = actual[i] as { key: unknown; value: unknown }
 
     // Get key/value types from map's entries child
-    const entriesField = "children" in type
-      ? ((type as { children?: ReadonlyArray<ArrowField> }).children?.[0])
-      : undefined
+    const entriesField =
+      "children" in type ? (type as { children?: ReadonlyArray<ArrowField> }).children?.[0] : undefined
 
     if (entriesField && entriesField.children.length >= 2) {
       const keyType = entriesField.children[0].type
@@ -325,10 +306,7 @@ const mapsEqual = (
   return true
 }
 
-const unionsEqual = (
-  expected: unknown,
-  actual: unknown
-): boolean => {
+const unionsEqual = (expected: unknown, actual: unknown): boolean => {
   // For unions, we just compare the selected values directly
   // The type information of the selected variant would be needed for deep comparison
   // For now, use JSON comparison as a fallback

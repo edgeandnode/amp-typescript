@@ -15,10 +15,10 @@ export class LogoutCommandError extends Data.TaggedError("LogoutCommandError")<{
 }
 
 const handleLogoutCommand = Effect.fnUntraced(
-  function*() {
+  function* () {
     const auth = yield* Auth.Auth
 
-    const shouldLogout = yield* Prompt.confirm({
+    const shouldLogout = yield* Prompt.Confirm({
       message: "Are you sure you want to logout of Amp?",
       initial: false
     })

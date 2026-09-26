@@ -40,8 +40,8 @@ Each public module has a **root-level barrel `.ts` file** in `src/` that re-expo
 ```bash
 pnpm check                    # Type check root project
 pnpm check:recursive          # Type check all packages
-pnpm lint                     # Check with oxlint + dprint
-pnpm lint:fix                 # Auto-fix with oxlint + dprint
+pnpm lint                     # Check with oxlint + oxfmt
+pnpm lint:fix                 # Auto-fix with oxlint + oxfmt
 pnpm test                     # Run all tests (vitest)
 pnpm vitest run <file>        # Single test file
 pnpm build                    # Full build (tsc + babel)
@@ -49,7 +49,7 @@ pnpm build                    # Full build (tsc + babel)
 
 ## Code Style
 
-- **Formatter**: dprint — no semicolons (ASI), double quotes, no trailing commas, 120 char line width
+- **Formatter**: oxfmt — no semicolons (ASI), double quotes, no trailing commas, 120 char line width
 - **Linter**: oxlint with custom `@amp/oxc` plugin
 - **Array syntax**: `Array<T>` and `ReadonlyArray<T>`, never `T[]` (enforced by `typescript/array-type`)
 - **Effect imports**: Always namespace imports from subpaths — `import * as Effect from "effect/Effect"`, never `from "effect"`

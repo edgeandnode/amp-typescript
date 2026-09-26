@@ -14,7 +14,7 @@ import type * as Types from "../Types.ts"
 
 export const utf8Generator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const minLength = config.minLength ?? 0
       const maxLength = config.maxLength ?? 50
@@ -49,7 +49,7 @@ export const utf8Generator: Types.DataGenerator = {
 
 export const largeUtf8Generator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const minLength = config.minLength ?? 0
       const maxLength = config.maxLength ?? 50
@@ -84,7 +84,7 @@ export const largeUtf8Generator: Types.DataGenerator = {
 
 export const binaryGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const minLength = config.minLength ?? 0
       const maxLength = config.maxLength ?? 50
@@ -119,7 +119,7 @@ export const binaryGenerator: Types.DataGenerator = {
 
 export const largeBinaryGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const minLength = config.minLength ?? 0
       const maxLength = config.maxLength ?? 50
@@ -154,7 +154,7 @@ export const largeBinaryGenerator: Types.DataGenerator = {
 
 export const fixedSizeBinaryGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.FixedSizeBinaryType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const values: Array<Uint8Array | null> = []

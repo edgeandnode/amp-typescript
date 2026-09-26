@@ -28,15 +28,18 @@ import { Effect, Schema, Stream } from "effect"
 Define services with `Context.Tag`:
 
 ```typescript
-class MyService extends Context.Tag("Amp/MyService")<MyService, {
-  readonly doSomething: (input: string) => Effect.Effect<Result, MyError>
-}>() {}
+class MyService extends Context.Tag("Amp/MyService")<
+  MyService,
+  {
+    readonly doSomething: (input: string) => Effect.Effect<Result, MyError>
+  }
+>() {}
 ```
 
 Access services in generators with `yield*`:
 
 ```typescript
-Effect.gen(function*() {
+Effect.gen(function* () {
   const svc = yield* MyService
   return yield* svc.doSomething("input")
 })
@@ -63,13 +66,15 @@ Multiple `Effect.provide` calls each wrap the effect in another layer of indirec
 
 ```typescript
 // Bad — repeated provide calls
-Effect.runPromise(program.pipe(
-  Effect.provide(TransactionalStream.layer),
-  Effect.provide(InMemoryStateStore.layer),
-  Effect.provide(ProtocolStream.layer),
-  Effect.provide(ArrowFlight.layer),
-  Effect.provide(Transport.layer)
-))
+Effect.runPromise(
+  program.pipe(
+    Effect.provide(TransactionalStream.layer),
+    Effect.provide(InMemoryStateStore.layer),
+    Effect.provide(ProtocolStream.layer),
+    Effect.provide(ArrowFlight.layer),
+    Effect.provide(Transport.layer)
+  )
+)
 
 // Good — compose first, provide once
 const AppLayer = TransactionalStream.layer.pipe(
@@ -89,22 +94,19 @@ Wrapping `Effect.gen` in an arrow function allocates a new generator on every ca
 ```typescript
 // Bad — allocates a generator per invocation
 const query = (sql: string) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const svc = yield* ArrowFlight
     return yield* svc.query(sql)
   })
 
 // Good
-const query = Effect.fn("query")(function*(sql: string) {
+const query = Effect.fn("query")(function* (sql: string) {
   const svc = yield* ArrowFlight
   return yield* svc.query(sql)
 })
 
 // With explicit return type annotation
-const query = Effect.fn("query")(function*(sql: string): Effect.fn.Return<
-  QueryResult,
-  ArrowFlightError
-> {
+const query = Effect.fn("query")(function* (sql: string): Effect.fn.Return<QueryResult, ArrowFlightError> {
   const svc = yield* ArrowFlight
   return yield* svc.query(sql)
 })
@@ -115,9 +117,7 @@ const query = Effect.fn("query")(function*(sql: string): Effect.fn.Return<
 Use `Schema.brand` for domain primitives:
 
 ```typescript
-export const Network = Schema.Lowercase.pipe(
-  Schema.brand("Amp/Models/Network")
-).annotations({ identifier: "Network" })
+export const Network = Schema.Lowercase.pipe(Schema.brand("Amp/Models/Network")).annotations({ identifier: "Network" })
 export type Network = typeof Network.Type
 ```
 
@@ -126,9 +126,7 @@ export type Network = typeof Network.Type
 Use `Schema.TaggedError` for typed, serializable errors:
 
 ```typescript
-export class MyError extends Schema.TaggedError<MyError>(
-  "Amp/MyError"
-)("MyError", {
+export class MyError extends Schema.TaggedError<MyError>("Amp/MyError")("MyError", {
   cause: Schema.Defect
 }) {}
 ```

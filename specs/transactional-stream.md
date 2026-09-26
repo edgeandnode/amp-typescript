@@ -104,9 +104,7 @@ import {
 
 ```typescript
 // TransactionId - branded non-negative integer
-export const TransactionId = Schema.NonNegativeInt.pipe(
-  Schema.brand("Amp/TransactionalStream/TransactionId")
-)
+export const TransactionId = Schema.NonNegativeInt.pipe(Schema.brand("Amp/TransactionalStream/TransactionId"))
 
 // UndoCause - discriminated union
 export const UndoCause = Schema.Union(
@@ -133,11 +131,7 @@ export const TransactionEventWatermark = Schema.TaggedStruct("Watermark", {
   prune: Schema.OptionFromNullOr(TransactionId)
 })
 
-export const TransactionEvent = Schema.Union(
-  TransactionEventData,
-  TransactionEventUndo,
-  TransactionEventWatermark
-)
+export const TransactionEvent = Schema.Union(TransactionEventData, TransactionEventUndo, TransactionEventWatermark)
 ```
 
 ### state-store.ts
@@ -217,10 +211,7 @@ export interface StateStore {
 /**
  * StateStore Context.Tag - use this to depend on StateStore in Effects.
  */
-export class StateStore extends Context.Tag("Amp/TransactionalStream/StateStore")<
-  StateStore,
-  StateStore
->() {}
+export class StateStore extends Context.Tag("Amp/TransactionalStream/StateStore")<StateStore, StateStore>() {}
 
 // =============================================================================
 // Empty State Helper
@@ -261,7 +252,7 @@ import { type Commit, emptySnapshot, type StateSnapshot, StateStore } from "./st
  * )
  * ```
  */
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const stateRef = yield* Ref.make<StateSnapshot>(emptySnapshot)
 
   const advance = (next: TransactionId) => Ref.update(stateRef, (state) => ({ ...state, next }))
@@ -302,12 +293,10 @@ export const layer: Layer.Layer<StateStore> = Layer.effect(StateStore, make)
 /**
  * Create layer with initial state (useful for testing).
  */
-export const layerWithState = (
-  initial: StateSnapshot
-): Layer.Layer<StateStore> =>
+export const layerWithState = (initial: StateSnapshot): Layer.Layer<StateStore> =>
   Layer.effect(
     StateStore,
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const stateRef = yield* Ref.make<StateSnapshot>(initial)
       // ... same implementation as above
     })
@@ -411,29 +400,21 @@ export interface StateActor {
   readonly peek: () => Effect.Effect<TransactionId>
 
   /** Execute an action and return event with commit handle */
-  readonly execute: (action: Action) => Effect.Effect<
-    [TransactionEvent, CommitHandle],
-    TransactionalStreamError
-  >
+  readonly execute: (action: Action) => Effect.Effect<[TransactionEvent, CommitHandle], TransactionalStreamError>
 
   /** Commit pending changes up to and including this ID */
   readonly commit: (id: TransactionId) => Effect.Effect<void, StateStoreError>
 }
 
 // Action union for execute()
-type Action =
-  | { readonly _tag: "Message"; readonly message: ProtocolMessage }
-  | { readonly _tag: "Rewind" }
+type Action = { readonly _tag: "Message"; readonly message: ProtocolMessage } | { readonly _tag: "Rewind" }
 
 /**
  * Create a StateActor from a StateStore.
  * Called internally by TransactionalStream.
  */
-export const makeStateActor = (
-  store: StateStore,
-  retention: number
-): Effect.Effect<StateActor, StateStoreError> =>
-  Effect.gen(function*() {
+export const makeStateActor = (store: StateStore, retention: number): Effect.Effect<StateActor, StateStoreError> =>
+  Effect.gen(function* () {
     // Load initial state from store
     const snapshot = yield* store.load()
 
@@ -691,5 +672,5 @@ const manualProgram = Effect.gen(function*() {
 
 1. Run `pnpm vitest run packages/amp/test/transactional-stream/` - all tests pass
 2. Run `pnpm oxlint packages/amp/src/transactional-stream/` - no lint errors
-3. Run `pnpm dprint check` - formatting correct
+3. Run `pnpm oxfmt --check` - formatting correct
 4. Verify reorg test parity with Rust scenarios

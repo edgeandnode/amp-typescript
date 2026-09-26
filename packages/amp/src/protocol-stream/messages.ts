@@ -220,6 +220,5 @@ export const reorg = (
  * @param ranges - The block ranges that are confirmed complete.
  * @returns A Watermark protocol message.
  */
-export const watermark = (
-  ranges: ReadonlyArray<BlockRange>
-): ProtocolMessageWatermark => ProtocolMessageWatermark.make({ ranges: ranges })
+export const watermark = (ranges: ReadonlyArray<BlockRange>): ProtocolMessageWatermark =>
+  ProtocolMessageWatermark.make({ ranges: ranges })

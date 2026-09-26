@@ -86,10 +86,7 @@ export interface ProtocolStreamService {
    * )
    * ```
    */
-  readonly stream: (
-    sql: string,
-    options?: ProtocolStreamOptions
-  ) => Stream.Stream<ProtocolMessage, ProtocolStreamError>
+  readonly stream: (sql: string, options?: ProtocolStreamOptions) => Stream.Stream<ProtocolMessage, ProtocolStreamError>
 }
 
 // =============================================================================
@@ -116,10 +113,7 @@ export interface ProtocolStreamService {
  * Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
  * ```
  */
-export class ProtocolStream extends Context.Service<
-  ProtocolStream,
-  ProtocolStreamService
->()("Amp/ProtocolStream") {}
+export class ProtocolStream extends Context.Service<ProtocolStream, ProtocolStreamService>()("Amp/ProtocolStream") {}
 
 // =============================================================================
 // Implementation
@@ -163,11 +157,7 @@ const detectReorgs = (
     // Detect backwards jump (reorg indicator)
     if (incomingStart < prevEnd + 1) {
       invalidations.push(
-        makeInvalidationRange(
-          incomingRange.network,
-          incomingStart,
-          Math.max(incomingRange.numbers.end, prevEnd)
-        )
+        makeInvalidationRange(incomingRange.network, incomingStart, Math.max(incomingRange.numbers.end, prevEnd))
       )
     }
   }
@@ -178,13 +168,13 @@ const detectReorgs = (
 /**
  * Create ProtocolStream service implementation.
  */
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const arrowFlight = yield* ArrowFlight
 
-  const stream = (sql: string, options?: ProtocolStreamOptions): Stream.Stream<
-    ProtocolMessage,
-    ProtocolStreamError
-  > => {
+  const stream = (
+    sql: string,
+    options?: ProtocolStreamOptions
+  ): Stream.Stream<ProtocolMessage, ProtocolStreamError> => {
     const rawStream = arrowFlight.streamQuery(sql, {
       schema: options?.schema,
       stream: true,
@@ -202,45 +192,40 @@ const make = Effect.gen(function*() {
       // Process each batch with state tracking
       Stream.mapAccumEffect(
         () => initialState,
-        Effect.fnUntraced(
-          function*(
-            state: ProtocolStreamState,
-            queryResult: QueryResult<Record<string, unknown>>
-          ): Effect.fn.Return<
-            readonly [ProtocolStreamState, ReadonlyArray<ProtocolMessage>],
-            ProtocolStreamError
-          > {
-            const batchData = queryResult.data
-            const metadata = queryResult.metadata
-            const incoming = metadata.ranges
+        Effect.fnUntraced(function* (
+          state: ProtocolStreamState,
+          queryResult: QueryResult<Record<string, unknown>>
+        ): Effect.fn.Return<readonly [ProtocolStreamState, ReadonlyArray<ProtocolMessage>], ProtocolStreamError> {
+          const batchData = queryResult.data
+          const metadata = queryResult.metadata
+          const incoming = metadata.ranges
 
-            // Validate the incoming batch
-            yield* validateAll(state.previous, incoming).pipe(
-              Effect.mapError((error) => new ProtocolValidationError({ cause: error }))
-            )
+          // Validate the incoming batch
+          yield* validateAll(state.previous, incoming).pipe(
+            Effect.mapError((error) => new ProtocolValidationError({ cause: error }))
+          )
 
-            // Detect reorgs
-            const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
+          // Detect reorgs
+          const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
 
-            // Determine message type
-            let message: ProtocolMessage
+          // Determine message type
+          let message: ProtocolMessage
 
-            if (invalidations.length > 0) {
-              message = protocolReorg(state.previous, incoming, invalidations)
-            } else if (metadata.rangesComplete && batchData.length === 0) {
-              message = protocolWatermark(incoming)
-            } else {
-              message = protocolData(batchData, incoming)
-            }
-
-            const newState: ProtocolStreamState = {
-              previous: incoming,
-              initialized: true
-            }
-
-            return [newState, [message]] as const
+          if (invalidations.length > 0) {
+            message = protocolReorg(state.previous, incoming, invalidations)
+          } else if (metadata.rangesComplete && batchData.length === 0) {
+            message = protocolWatermark(incoming)
+          } else {
+            message = protocolData(batchData, incoming)
           }
-        )
+
+          const newState: ProtocolStreamState = {
+            previous: incoming,
+            initialized: true
+          }
+
+          return [newState, [message]] as const
+        })
       ),
       Stream.withSpan("ProtocolStream.stream")
     )

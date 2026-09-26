@@ -69,10 +69,7 @@ export class DictionaryRegistry {
       if (existing) {
         // Append delta values to existing dictionary
         const combinedValues = [...existing.values, ...dictionary.values]
-        this.dictionaries.set(
-          dictionary.id,
-          new DecodedDictionary(dictionary.id, combinedValues, dictionary.valueType)
-        )
+        this.dictionaries.set(dictionary.id, new DecodedDictionary(dictionary.id, combinedValues, dictionary.valueType))
       } else {
         // No existing dictionary, just set it
         this.dictionaries.set(dictionary.id, dictionary)
@@ -114,10 +111,7 @@ export class DictionaryRegistry {
  * Dictionary batches need to know the value type, which is stored in the
  * schema field's type definition.
  */
-const findFieldByDictionaryId = (
-  fields: ReadonlyArray<ArrowField>,
-  dictionaryId: bigint
-): ArrowField | undefined => {
+const findFieldByDictionaryId = (fields: ReadonlyArray<ArrowField>, dictionaryId: bigint): ArrowField | undefined => {
   for (const field of fields) {
     if (field.dictionaryEncoding?.id === dictionaryId) {
       return field
@@ -208,10 +202,10 @@ export const decodeRecordBatch = (
   if (recordBatch.compression) {
     const codecName = recordBatch.compression.codec === 0 ? "LZ4_FRAME" : "ZSTD"
     throw new Error(
-      `Compressed record batches are not currently supported. ` +
-        `This batch uses ${codecName} compression. ` +
-        `To process this data, the server should be configured to send uncompressed data, ` +
-        `or compression support needs to be added to this library.`
+      `Compressed record batches are not currently supported. `
+        + `This batch uses ${codecName} compression. `
+        + `To process this data, the server should be configured to send uncompressed data, `
+        + `or compression support needs to be added to this library.`
     )
   }
 
@@ -258,9 +252,7 @@ export const decodeRecordBatch = (
  * Dictionary-encoded fields store integer indices, so they have the same
  * buffer layout as an integer type: [validity, data].
  */
-const getBufferTypesForDictionaryEncoding = (
-  _indexType: IntType
-): ReadonlyArray<BufferType> => {
+const getBufferTypesForDictionaryEncoding = (_indexType: IntType): ReadonlyArray<BufferType> => {
   // Dictionary-encoded columns always have: validity bitmap + index data
   // The index type determines the bit width but not the buffer layout
   return [

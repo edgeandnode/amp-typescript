@@ -150,20 +150,19 @@ import type { TransactionalStreamError } from "../transactional-stream/errors.ts
 /**
  * Error from BatchStore operations.
  */
-export class BatchStoreError extends Schema.TaggedError<BatchStoreError>(
-  "Amp/CdcStream/BatchStoreError"
-)("BatchStoreError", {
-  reason: Schema.String,
-  operation: Schema.Literal("append", "seek", "load", "prune"),
-  cause: Schema.optional(Schema.Defect)
-}) {}
+export class BatchStoreError extends Schema.TaggedError<BatchStoreError>("Amp/CdcStream/BatchStoreError")(
+  "BatchStoreError",
+  {
+    reason: Schema.String,
+    operation: Schema.Literal("append", "seek", "load", "prune"),
+    cause: Schema.optional(Schema.Defect)
+  }
+) {}
 
 /**
  * Union of all CDC stream errors.
  */
-export type CdcStreamError =
-  | BatchStoreError
-  | TransactionalStreamError
+export type CdcStreamError = BatchStoreError | TransactionalStreamError
 ```
 
 ### batch-store.ts
@@ -205,9 +204,7 @@ export interface BatchStoreService {
    * Lightweight operation — returns only IDs, not batch data.
    * Used to build the DeleteBatchIterator.
    */
-  readonly seek: (
-    range: TransactionIdRange
-  ) => Effect.Effect<ReadonlyArray<TransactionId>, BatchStoreError>
+  readonly seek: (range: TransactionIdRange) => Effect.Effect<ReadonlyArray<TransactionId>, BatchStoreError>
 
   /**
    * Load a single batch by transaction ID.
@@ -225,15 +222,10 @@ export interface BatchStoreService {
    * Deletes all batches with IDs <= cutoff. Must be idempotent.
    * Best-effort — failures are logged but not fatal.
    */
-  readonly prune: (
-    cutoff: TransactionId
-  ) => Effect.Effect<void, BatchStoreError>
+  readonly prune: (cutoff: TransactionId) => Effect.Effect<void, BatchStoreError>
 }
 
-export class BatchStore extends Context.Tag("Amp/CdcStream/BatchStore")<
-  BatchStore,
-  BatchStoreService
->() {}
+export class BatchStore extends Context.Tag("Amp/CdcStream/BatchStore")<BatchStore, BatchStoreService>() {}
 ```
 
 **Key difference from Rust**: The Rust `BatchStore` stores `RecordBatch` (Arrow columnar format) and uses Arrow IPC serialization. The TypeScript SDK works with decoded JSON records (`ReadonlyArray<Record<string, unknown>>`), so the `BatchStore` stores decoded data directly. This avoids re-serialization overhead and aligns with how the rest of the TypeScript SDK handles data.
@@ -249,7 +241,7 @@ import { BatchStore, type BatchStoreService } from "./batch-store.ts"
 
 type BatchMap = ReadonlyMap<TransactionId, ReadonlyArray<Record<string, unknown>>>
 
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const mapRef = yield* Ref.make<BatchMap>(new Map())
 
   const append = (data: ReadonlyArray<Record<string, unknown>>, id: TransactionId) =>
@@ -266,10 +258,7 @@ const make = Effect.gen(function*() {
       })
     )
 
-  const load = (id: TransactionId) =>
-    Ref.get(mapRef).pipe(
-      Effect.map((map) => map.get(id))
-    )
+  const load = (id: TransactionId) => Ref.get(mapRef).pipe(Effect.map((map) => map.get(id)))
 
   const prune = (cutoff: TransactionId) =>
     Ref.update(mapRef, (map) => {
@@ -328,10 +317,7 @@ export interface CdcStreamService {
   ) => Effect.Effect<void, CdcStreamError | E, R>
 }
 
-export class CdcStream extends Context.Tag("Amp/CdcStream")<
-  CdcStream,
-  CdcStreamService
->() {}
+export class CdcStream extends Context.Tag("Amp/CdcStream")<CdcStream, CdcStreamService>() {}
 ```
 
 ### Implementation Logic (make)
@@ -339,14 +325,14 @@ export class CdcStream extends Context.Tag("Amp/CdcStream")<
 The implementation wraps `TransactionalStream.streamTransactional()` and transforms events:
 
 ```typescript
-const make = Effect.gen(function*() {
+const make = Effect.gen(function* () {
   const txStream = yield* TransactionalStream
   const batchStore = yield* BatchStore
 
   const streamCdc = (sql: string, options?: CdcStreamOptions) => {
     return txStream.streamTransactional(sql, options).pipe(
       Stream.mapEffect(
-        Effect.fnUntraced(function*([event, commit]): Effect.fn.Return<
+        Effect.fnUntraced(function* ([event, commit]): Effect.fn.Return<
           Option.Option<readonly [CdcEvent, CommitHandle]>,
           CdcStreamError
         > {
@@ -386,11 +372,13 @@ const make = Effect.gen(function*() {
               // Handle batch pruning when retention window moves
               if (Option.isSome(event.prune)) {
                 // Best-effort pruning
-                yield* batchStore.prune(event.prune.value).pipe(
-                  Effect.catchAll((error) =>
-                    Effect.logWarning("Batch pruning failed (will retry on next watermark)", error)
+                yield* batchStore
+                  .prune(event.prune.value)
+                  .pipe(
+                    Effect.catchAll((error) =>
+                      Effect.logWarning("Batch pruning failed (will retry on next watermark)", error)
+                    )
                   )
-                )
               }
               // Watermarks are not exposed to CDC consumers
               // Still need to commit so the underlying TransactionalStream advances
@@ -413,7 +401,7 @@ const make = Effect.gen(function*() {
   ): Effect.Effect<void, CdcStreamError | E, R> =>
     streamCdc(sql, options).pipe(
       Stream.runForEach(
-        Effect.fnUntraced(function*([event, commitHandle]) {
+        Effect.fnUntraced(function* ([event, commitHandle]) {
           yield* handler(event)
           yield* commitHandle.commit
         })
@@ -424,11 +412,7 @@ const make = Effect.gen(function*() {
   return { streamCdc, forEach } satisfies CdcStreamService
 })
 
-export const layer: Layer.Layer<
-  CdcStream,
-  never,
-  TransactionalStream | BatchStore
-> = Layer.effect(CdcStream, make)
+export const layer: Layer.Layer<CdcStream, never, TransactionalStream | BatchStore> = Layer.effect(CdcStream, make)
 ```
 
 ### DeleteBatchIterator Implementation
@@ -438,10 +422,7 @@ export const layer: Layer.Layer<
  * Create a lazy batch iterator that loads batches one-by-one from the store.
  * Skips missing batches (watermark-only transactions).
  */
-const makeDeleteBatchIterator = (
-  store: BatchStoreService,
-  ids: ReadonlyArray<TransactionId>
-): DeleteBatchIterator => {
+const makeDeleteBatchIterator = (store: BatchStoreService, ids: ReadonlyArray<TransactionId>): DeleteBatchIterator => {
   // Mutable cursor via Ref not needed here — we use a simple closure
   // since the iterator is consumed linearly by a single consumer.
   let cursor = 0
@@ -456,10 +437,8 @@ const makeDeleteBatchIterator = (
         const id = ids[cursor]!
         cursor++
         return store.load(id).pipe(
-          Effect.flatMap((batch) =>
-            batch !== undefined
-              ? Effect.succeed([id, batch] as const)
-              : loop() // Skip missing batches (watermarks)
+          Effect.flatMap(
+            (batch) => (batch !== undefined ? Effect.succeed([id, batch] as const) : loop()) // Skip missing batches (watermarks)
           )
         )
       }
@@ -495,13 +474,13 @@ const DevLayer = CdcStream.layer.pipe(
 )
 
 // Usage
-const program = Effect.gen(function*() {
+const program = Effect.gen(function* () {
   const cdc = yield* CdcStream
 
   yield* cdc.forEach(
     "SELECT * FROM eth.logs WHERE address = '0x...'",
     { retention: 128 },
-    Effect.fnUntraced(function*(event) {
+    Effect.fnUntraced(function* (event) {
       switch (event._tag) {
         case "Insert":
           yield* forwardInsert(event.id, event.data)

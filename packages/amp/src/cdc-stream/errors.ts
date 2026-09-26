@@ -13,13 +13,14 @@ import type { TransactionalStreamError } from "../transactional-stream/errors.ts
 /**
  * Error from BatchStore operations.
  */
-export class BatchStoreError extends Schema.TaggedErrorClass<BatchStoreError>(
-  "Amp/CdcStream/BatchStoreError"
-)("BatchStoreError", {
-  reason: Schema.String,
-  operation: Schema.Literals(["append", "seek", "load", "prune"]),
-  cause: Schema.optional(Schema.Defect())
-}) {}
+export class BatchStoreError extends Schema.TaggedError<BatchStoreError>("Amp/CdcStream/BatchStoreError")(
+  "BatchStoreError",
+  {
+    reason: Schema.String,
+    operation: Schema.Literals(["append", "seek", "load", "prune"]),
+    cause: Schema.optional(Schema.Defect())
+  }
+) {}
 
 // =============================================================================
 // Combined Error Type
@@ -28,6 +29,4 @@ export class BatchStoreError extends Schema.TaggedErrorClass<BatchStoreError>(
 /**
  * Union of all CDC stream errors.
  */
-export type CdcStreamError =
-  | BatchStoreError
-  | TransactionalStreamError
+export type CdcStreamError = BatchStoreError | TransactionalStreamError

@@ -24,7 +24,11 @@ export const makeError = <
   const Code extends string,
   const Tag extends string,
   const Fields extends Schema.Struct.Fields = {}
->(code: Code, tag: Tag, fields?: Fields): Schema.encodeKeys<
+>(
+  code: Code,
+  tag: Tag,
+  fields?: Fields
+): Schema.encodeKeys<
   Schema.Struct<
     Fields & {
       readonly _tag: Schema.withDecodingDefaultKey<Schema.tag<Tag>>
@@ -65,10 +69,12 @@ export const makeError = <
      * over time. Use `error_code` for programmatic decisions.
      */
     message: Schema.String
-  }).pipe(Schema.encodeKeys({
-    code: "error_code",
-    message: "error_message"
-  })) as any
+  }).pipe(
+    Schema.encodeKeys({
+      code: "error_code",
+      message: "error_message"
+    })
+  ) as any
 
 // =============================================================================
 // Dataset Errors
@@ -81,26 +87,11 @@ export const makeError = <
  * - SQL query contains a catalog-qualified table reference (catalog.schema.table)
  * - Only dataset-qualified tables are supported (dataset.table)
  */
-export const CatalogQualifiedTableError = makeError(
-  "CATALOG_QUALIFIED_TABLE",
-  "CatalogQualifiedTableError"
-).annotate({ httpApiStatus: 400 })
+export const CatalogQualifiedTableError = makeError("CATALOG_QUALIFIED_TABLE", "CatalogQualifiedTableError").annotate({
+  httpApiStatus: 400
+})
 
 export type CatalogQualifiedTableError = typeof CatalogQualifiedTableError.Type
-
-/**
- * CatalogQualifiedFunction - Function reference includes a catalog qualifier.
- *
- * Causes:
- * - SQL query contains a catalog-qualified function reference (catalog.schema.function)
- * - Only dataset-qualified functions are supported (dataset.function)
- */
-export const CatalogQualifiedFunctionError = makeError(
-  "CATALOG_QUALIFIED_FUNCTION",
-  "CatalogQualifiedFunctionError"
-).annotate({ httpApiStatus: 400 })
-
-export type CatalogQualifiedFunctionError = typeof CatalogQualifiedFunctionError.Type
 
 /**
  * DatasetNotFound - The requested dataset does not exist.
@@ -110,28 +101,11 @@ export type CatalogQualifiedFunctionError = typeof CatalogQualifiedFunctionError
  * - Dataset has been deleted
  * - Dataset not yet registered
  */
-export const DatasetNotFoundError = makeError(
-  "DATASET_NOT_FOUND",
-  "DatasetNotFoundError"
-).annotate({ httpApiStatus: 404 })
+export const DatasetNotFoundError = makeError("DATASET_NOT_FOUND", "DatasetNotFoundError").annotate({
+  httpApiStatus: 404
+})
 
 export type DatasetNotFoundError = typeof DatasetNotFoundError.Type
-
-/**
- * DatasetStoreError - Failure in dataset storage operations.
- *
- * Causes:
- * - File/object store retrieval failures
- * - Manifest parsing errors (TOML/JSON)
- * - Unsupported dataset kind
- * - Dataset name validation failures
- */
-export const DatasetStoreError = makeError(
-  "DATASET_STORE_ERROR",
-  "DatasetStoreError"
-).annotate({ httpApiStatus: 500 })
-
-export type DatasetStoreError = typeof DatasetStoreError.Type
 
 /**
  * DependencyAliasNotFound - Dependency alias not found in dependencies map.
@@ -154,25 +128,11 @@ export type DependencyAliasNotFoundError = typeof DependencyAliasNotFoundError.T
  * - Referenced dependency does not exist in dataset store
  * - Specified version or hash cannot be found
  */
-export const DependencyNotFoundError = makeError(
-  "DEPENDENCY_NOT_FOUND",
-  "DependencyNotFoundError"
-).annotate({ httpApiStatus: 404 })
+export const DependencyNotFoundError = makeError("DEPENDENCY_NOT_FOUND", "DependencyNotFoundError").annotate({
+  httpApiStatus: 404
+})
 
 export type DependencyNotFoundError = typeof DependencyNotFoundError.Type
-
-/**
- * DependencyResolution - Failed to resolve dependency.
- *
- * Causes:
- * - Database query fails during resolution
- */
-export const DependencyResolutionError = makeError(
-  "DEPENDENCY_RESOLUTION",
-  "DependencyResolutionError"
-).annotate({ httpApiStatus: 500 })
-
-export type DependencyResolutionError = typeof DependencyResolutionError.Type
 
 /**
  * EmptyTablesAndFunctions - No tables or functions provided.
@@ -188,61 +148,6 @@ export const EmptyTablesAndFunctionsError = makeError(
 export type EmptyTablesAndFunctionsError = typeof EmptyTablesAndFunctionsError.Type
 
 /**
- * EthCallNotAvailable - eth_call function not available for dataset.
- *
- * Causes:
- * - eth_call function is referenced in SQL but dataset doesn't support it
- * - Dataset is not an EVM RPC dataset
- */
-export const EthCallNotAvailableError = makeError(
-  "ETH_CALL_NOT_AVAILABLE",
-  "EthCallNotAvailableError"
-).annotate({ httpApiStatus: 404 })
-
-export type EthCallNotAvailableError = typeof EthCallNotAvailableError.Type
-
-/**
- * EthCallUdfCreationError - Failed to create ETH call UDF.
- *
- * Causes:
- * - Invalid provider configuration for dataset
- * - Provider connection issues
- */
-export const EthCallUdfCreationError = makeError(
-  "ETH_CALL_UDF_CREATION_ERROR",
-  "EthCallUdfCreationError"
-).annotate({ httpApiStatus: 500 })
-
-export type EthCallUdfCreationError = typeof EthCallUdfCreationError.Type
-
-/**
- * FunctionNotFoundInDataset - Function not found in referenced dataset.
- *
- * Causes:
- * - SQL query references a function that doesn't exist in the dataset
- * - Function name is misspelled
- */
-export const FunctionNotFoundInDatasetError = makeError(
-  "FUNCTION_NOT_FOUND_IN_DATASET",
-  "FunctionNotFoundInDatasetError"
-).annotate({ httpApiStatus: 404 })
-
-export type FunctionNotFoundInDatasetError = typeof FunctionNotFoundInDatasetError.Type
-
-/**
- * FunctionReferenceResolution - Failed to resolve function references from SQL.
- *
- * Causes:
- * - Unsupported DML statements encountered
- */
-export const FunctionReferenceResolutionError = makeError(
-  "FUNCTION_REFERENCE_RESOLUTION",
-  "FunctionReferenceResolutionError"
-).annotate({ httpApiStatus: 500 })
-
-export type FunctionReferenceResolutionError = typeof FunctionReferenceResolutionError.Type
-
-/**
  * GetDatasetError - Failed to retrieve dataset from store.
  *
  * Causes:
@@ -250,35 +155,76 @@ export type FunctionReferenceResolutionError = typeof FunctionReferenceResolutio
  * - Unsupported dataset kind
  * - Storage backend errors when reading dataset
  */
-export const GetDatasetError = makeError(
-  "GET_DATASET_ERROR",
-  "GetDatasetError"
-).annotate({ httpApiStatus: 500 })
+export const GetDatasetError = makeError("GET_DATASET_ERROR", "GetDatasetError").annotate({ httpApiStatus: 500 })
 
 export type GetDatasetError = typeof GetDatasetError.Type
 
 /**
  * GetManifestPathError - Failed to query manifest path from metadata database.
  */
-export const GetManifestPathError = makeError(
-  "GET_MANIFEST_PATH_ERROR",
-  "GetManifestPathError"
-).annotate({ httpApiStatus: 500 })
+export const GetManifestPathError = makeError("GET_MANIFEST_PATH_ERROR", "GetManifestPathError").annotate({
+  httpApiStatus: 500
+})
 
 export type GetManifestPathError = typeof GetManifestPathError.Type
 
 /**
- * GetSyncProgressError - Failed to retrieve the dataset sync progress
+ * BuildLineageError - Failed to build the lineage graph of a dataset.
  *
  * Causes:
- * - Unable to resolve the dataset synchronization progress server side
+ * - Registry or manifest store errors while traversing dataset dependencies
  */
-export const GetSyncProgressError = makeError(
-  "GET_SYNC_PROGRESS_ERROR",
-  "GetSyncProgressError"
+export const BuildLineageError = makeError("BUILD_LINEAGE_ERROR", "BuildLineageError").annotate({ httpApiStatus: 500 })
+
+export type BuildLineageError = typeof BuildLineageError.Type
+
+/**
+ * InvalidStoredDatasetNamespace - A stored dataset namespace is malformed.
+ */
+export const InvalidStoredDatasetNamespaceError = makeError(
+  "INVALID_STORED_DATASET_NAMESPACE",
+  "InvalidStoredDatasetNamespaceError"
 ).annotate({ httpApiStatus: 500 })
 
-export type GetSyncProgressError = typeof GetSyncProgressError.Type
+export type InvalidStoredDatasetNamespaceError = typeof InvalidStoredDatasetNamespaceError.Type
+
+/**
+ * InvalidStoredDatasetName - A stored dataset name is malformed.
+ */
+export const InvalidStoredDatasetNameError = makeError(
+  "INVALID_STORED_DATASET_NAME",
+  "InvalidStoredDatasetNameError"
+).annotate({ httpApiStatus: 500 })
+
+export type InvalidStoredDatasetNameError = typeof InvalidStoredDatasetNameError.Type
+
+/**
+ * InvalidStoredDatasetVersion - A stored dataset version is malformed.
+ */
+export const InvalidStoredDatasetVersionError = makeError(
+  "INVALID_STORED_DATASET_VERSION",
+  "InvalidStoredDatasetVersionError"
+).annotate({ httpApiStatus: 500 })
+
+export type InvalidStoredDatasetVersionError = typeof InvalidStoredDatasetVersionError.Type
+
+/**
+ * ListDatasetTagsError - Failed to list the tags pointing at a dataset manifest.
+ */
+export const ListDatasetTagsError = makeError("LIST_DATASET_TAGS_ERROR", "ListDatasetTagsError").annotate({
+  httpApiStatus: 500
+})
+
+export type ListDatasetTagsError = typeof ListDatasetTagsError.Type
+
+/**
+ * NamespaceNotFound - The namespace does not exist or is unavailable to the caller.
+ */
+export const NamespaceNotFoundError = makeError("NAMESPACE_NOT_FOUND", "NamespaceNotFoundError").annotate({
+  httpApiStatus: 404
+})
+
+export type NamespaceNotFoundError = typeof NamespaceNotFoundError.Type
 
 // =============================================================================
 // Job Errors
@@ -291,10 +237,7 @@ export type GetSyncProgressError = typeof GetSyncProgressError.Type
  * - Job ID contains invalid characters
  * - Job ID format does not match expected pattern
  */
-export const InvalidJobIdError = makeError(
-  "INVALID_JOB_ID",
-  "InvalidJobIdError"
-).annotate({ httpApiStatus: 400 })
+export const InvalidJobIdError = makeError("INVALID_JOB_ID", "InvalidJobIdError").annotate({ httpApiStatus: 400 })
 
 export type InvalidJobIdError = typeof InvalidJobIdError.Type
 
@@ -305,60 +248,42 @@ export type InvalidJobIdError = typeof InvalidJobIdError.Type
  * - Job ID does not exist in the system
  * - Job has been deleted
  */
-export const JobNotFoundError = makeError(
-  "JOB_NOT_FOUND",
-  "JobNotFoundError"
-).annotate({ httpApiStatus: 404 })
+export const JobNotFoundError = makeError("JOB_NOT_FOUND", "JobNotFoundError").annotate({ httpApiStatus: 404 })
 
 export type JobNotFoundError = typeof JobNotFoundError.Type
 
 /**
  * JobConflict - Job exists but cannot be deleted (not in terminal state).
  */
-export const JobConflictError = makeError(
-  "JOB_CONFLICT",
-  "JobConflictError"
-).annotate({ httpApiStatus: 409 })
+export const JobConflictError = makeError("JOB_CONFLICT", "JobConflictError").annotate({ httpApiStatus: 409 })
 
 export type JobConflictError = typeof JobConflictError.Type
 
 /**
  * GetJobError - Failed to retrieve job from scheduler.
  */
-export const GetJobError = makeError(
-  "GET_JOB_ERROR",
-  "GetJobError"
-).annotate({ httpApiStatus: 500 })
+export const GetJobError = makeError("GET_JOB_ERROR", "GetJobError").annotate({ httpApiStatus: 500 })
 
 export type GetJobError = typeof GetJobError.Type
 
 /**
  * DeleteJobError - Failed to delete job from scheduler.
  */
-export const DeleteJobError = makeError(
-  "DELETE_JOB_ERROR",
-  "DeleteJobError"
-).annotate({ httpApiStatus: 500 })
+export const DeleteJobError = makeError("DELETE_JOB_ERROR", "DeleteJobError").annotate({ httpApiStatus: 500 })
 
 export type DeleteJobError = typeof DeleteJobError.Type
 
 /**
  * StopJobError - Database error during stop operation.
  */
-export const StopJobError = makeError(
-  "STOP_JOB_ERROR",
-  "StopJobError"
-).annotate({ httpApiStatus: 500 })
+export const StopJobError = makeError("STOP_JOB_ERROR", "StopJobError").annotate({ httpApiStatus: 500 })
 
 export type StopJobError = typeof StopJobError.Type
 
 /**
  * ListJobsError - Failed to list jobs from scheduler.
  */
-export const ListJobsError = makeError(
-  "LIST_JOBS_ERROR",
-  "ListJobsError"
-).annotate({ httpApiStatus: 500 })
+export const ListJobsError = makeError("LIST_JOBS_ERROR", "ListJobsError").annotate({ httpApiStatus: 500 })
 
 export type ListJobsError = typeof ListJobsError.Type
 
@@ -372,6 +297,34 @@ export const UnexpectedStateConflictError = makeError(
 
 export type UnexpectedStateConflictError = typeof UnexpectedStateConflictError.Type
 
+/**
+ * ListJobDescriptorsError - Failed to list the descriptors of the listed jobs.
+ */
+export const ListJobDescriptorsError = makeError("LIST_JOB_DESCRIPTORS_ERROR", "ListJobDescriptorsError").annotate({
+  httpApiStatus: 500
+})
+
+export type ListJobDescriptorsError = typeof ListJobDescriptorsError.Type
+
+/**
+ * GetDescriptorError - Failed to retrieve the descriptor of a job.
+ */
+export const GetDescriptorError = makeError("GET_DESCRIPTOR_ERROR", "GetDescriptorError").annotate({
+  httpApiStatus: 500
+})
+
+export type GetDescriptorError = typeof GetDescriptorError.Type
+
+/**
+ * DeserializeJobDescriptorError - Failed to deserialize a job descriptor.
+ */
+export const DeserializeJobDescriptorError = makeError(
+  "DESERIALIZE_JOB_DESCRIPTOR_ERROR",
+  "DeserializeJobDescriptorError"
+).annotate({ httpApiStatus: 500 })
+
+export type DeserializeJobDescriptorError = typeof DeserializeJobDescriptorError.Type
+
 // =============================================================================
 // Manifest Errors
 // =============================================================================
@@ -384,40 +337,36 @@ export type UnexpectedStateConflictError = typeof UnexpectedStateConflictError.T
  * - Circular dependencies between datasets
  * - Schema validation failures
  */
-export const InvalidManifestError = makeError(
-  "INVALID_MANIFEST",
-  "InvalidManifestError"
-).annotate({ httpApiStatus: 400 })
+export const InvalidManifestError = makeError("INVALID_MANIFEST", "InvalidManifestError").annotate({
+  httpApiStatus: 400
+})
 
 export type InvalidManifestError = typeof InvalidManifestError.Type
 
 /**
  * ManifestLinkingError - Failed to link manifest to dataset.
  */
-export const ManifestLinkingError = makeError(
-  "MANIFEST_LINKING_ERROR",
-  "ManifestLinkingError"
-).annotate({ httpApiStatus: 500 })
+export const ManifestLinkingError = makeError("MANIFEST_LINKING_ERROR", "ManifestLinkingError").annotate({
+  httpApiStatus: 500
+})
 
 export type ManifestLinkingError = typeof ManifestLinkingError.Type
 
 /**
  * ManifestNotFound - Manifest with the provided hash not found.
  */
-export const ManifestNotFoundError = makeError(
-  "MANIFEST_NOT_FOUND",
-  "ManifestNotFoundError"
-).annotate({ httpApiStatus: 404 })
+export const ManifestNotFoundError = makeError("MANIFEST_NOT_FOUND", "ManifestNotFoundError").annotate({
+  httpApiStatus: 404
+})
 
 export type ManifestNotFoundError = typeof ManifestNotFoundError.Type
 
 /**
  * ManifestRegistrationError - Failed to register manifest in the system.
  */
-export const ManifestRegistrationError = makeError(
-  "MANIFEST_REGISTRATION_ERROR",
-  "ManifestRegistrationError"
-).annotate({ httpApiStatus: 500 })
+export const ManifestRegistrationError = makeError("MANIFEST_REGISTRATION_ERROR", "ManifestRegistrationError").annotate(
+  { httpApiStatus: 500 }
+)
 
 export type ManifestRegistrationError = typeof ManifestRegistrationError.Type
 
@@ -429,42 +378,164 @@ export type ManifestRegistrationError = typeof ManifestRegistrationError.Type
  * - Invalid table references in SQL
  * - Type inference errors
  */
-export const ManifestValidationError = makeError(
-  "MANIFEST_VALIDATION_ERROR",
-  "ManifestValidationError"
-).annotate({ httpApiStatus: 400 })
+export const ManifestValidationError = makeError("MANIFEST_VALIDATION_ERROR", "ManifestValidationError").annotate({
+  httpApiStatus: 400
+})
 
 export type ManifestValidationError = typeof ManifestValidationError.Type
 
 /**
  * ManifestStorageError - Failed to write manifest to object store.
  */
-export const ManifestStorageError = makeError(
-  "MANIFEST_STORAGE_ERROR",
-  "ManifestStorageError"
-).annotate({ httpApiStatus: 500 })
+export const ManifestStorageError = makeError("MANIFEST_STORAGE_ERROR", "ManifestStorageError").annotate({
+  httpApiStatus: 500
+})
 
 export type ManifestStorageError = typeof ManifestStorageError.Type
 
 /**
  * ParseManifestError - Failed to parse manifest JSON.
  */
-export const ParseManifestError = makeError(
-  "PARSE_MANIFEST_ERROR",
-  "ParseManifestError"
-).annotate({ httpApiStatus: 500 })
+export const ParseManifestError = makeError("PARSE_MANIFEST_ERROR", "ParseManifestError").annotate({
+  httpApiStatus: 500
+})
 
 export type ParseManifestError = typeof ParseManifestError.Type
 
 /**
  * ReadManifestError - Failed to read manifest from object store.
  */
-export const ReadManifestError = makeError(
-  "READ_MANIFEST_ERROR",
-  "ReadManifestError"
-).annotate({ httpApiStatus: 500 })
+export const ReadManifestError = makeError("READ_MANIFEST_ERROR", "ReadManifestError").annotate({ httpApiStatus: 500 })
 
 export type ReadManifestError = typeof ReadManifestError.Type
+
+/**
+ * InvalidSortedByConfig - The manifest `sorted_by` configuration is invalid.
+ */
+export const InvalidSortedByConfigError = makeError("INVALID_SORTED_BY_CONFIG", "InvalidSortedByConfigError").annotate({
+  httpApiStatus: 400
+})
+
+export type InvalidSortedByConfigError = typeof InvalidSortedByConfigError.Type
+
+/**
+ * ManifestSerializationError - Failed to serialize the validated manifest.
+ */
+export const ManifestSerializationError = makeError(
+  "MANIFEST_SERIALIZATION_ERROR",
+  "ManifestSerializationError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestSerializationError = typeof ManifestSerializationError.Type
+
+/**
+ * ManifestTransactionBeginError - Failed to begin the manifest registration transaction.
+ */
+export const ManifestTransactionBeginError = makeError(
+  "MANIFEST_TRANSACTION_BEGIN_ERROR",
+  "ManifestTransactionBeginError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestTransactionBeginError = typeof ManifestTransactionBeginError.Type
+
+/**
+ * ManifestTransactionCommitError - Failed to commit the manifest registration transaction.
+ */
+export const ManifestTransactionCommitError = makeError(
+  "MANIFEST_TRANSACTION_COMMIT_ERROR",
+  "ManifestTransactionCommitError"
+).annotate({ httpApiStatus: 500 })
+
+export type ManifestTransactionCommitError = typeof ManifestTransactionCommitError.Type
+
+/**
+ * SortedManifestTableNotFound - Internal manifest consistency failure.
+ */
+export const SortedManifestTableNotFoundError = makeError(
+  "SORTED_MANIFEST_TABLE_NOT_FOUND",
+  "SortedManifestTableNotFoundError"
+).annotate({ httpApiStatus: 500 })
+
+export type SortedManifestTableNotFoundError = typeof SortedManifestTableNotFoundError.Type
+
+/**
+ * SortedTableStatementNotFound - Internal manifest consistency failure.
+ */
+export const SortedTableStatementNotFoundError = makeError(
+  "SORTED_TABLE_STATEMENT_NOT_FOUND",
+  "SortedTableStatementNotFoundError"
+).annotate({ httpApiStatus: 500 })
+
+export type SortedTableStatementNotFoundError = typeof SortedTableStatementNotFoundError.Type
+
+/**
+ * PhaserProviderNotFound - No Phaser provider is configured for the manifest network.
+ */
+export const PhaserProviderNotFoundError = makeError(
+  "PHASER_PROVIDER_NOT_FOUND",
+  "PhaserProviderNotFoundError"
+).annotate({ httpApiStatus: 400 })
+
+export type PhaserProviderNotFoundError = typeof PhaserProviderNotFoundError.Type
+
+/**
+ * PhaserProviderParseFailed - The Phaser provider configuration is invalid.
+ */
+export const PhaserProviderParseFailedError = makeError(
+  "PHASER_PROVIDER_PARSE_FAILED",
+  "PhaserProviderParseFailedError"
+).annotate({ httpApiStatus: 400 })
+
+export type PhaserProviderParseFailedError = typeof PhaserProviderParseFailedError.Type
+
+/**
+ * PhaserProviderNetworkMismatch - The Phaser provider network does not match the manifest.
+ */
+export const PhaserProviderNetworkMismatchError = makeError(
+  "PHASER_PROVIDER_NETWORK_MISMATCH",
+  "PhaserProviderNetworkMismatchError"
+).annotate({ httpApiStatus: 400 })
+
+export type PhaserProviderNetworkMismatchError = typeof PhaserProviderNetworkMismatchError.Type
+
+/**
+ * PhaserConnectionFailed - Failed to connect to the Phaser bridge.
+ */
+export const PhaserConnectionFailedError = makeError(
+  "PHASER_CONNECTION_FAILED",
+  "PhaserConnectionFailedError"
+).annotate({ httpApiStatus: 502 })
+
+export type PhaserConnectionFailedError = typeof PhaserConnectionFailedError.Type
+
+/**
+ * PhaserDiscoveryFailed - Phaser bridge table discovery failed.
+ */
+export const PhaserDiscoveryFailedError = makeError("PHASER_DISCOVERY_FAILED", "PhaserDiscoveryFailedError").annotate({
+  httpApiStatus: 502
+})
+
+export type PhaserDiscoveryFailedError = typeof PhaserDiscoveryFailedError.Type
+
+/**
+ * PhaserInvalidDiscovery - Phaser bridge returned invalid table metadata.
+ */
+export const PhaserInvalidDiscoveryError = makeError(
+  "PHASER_INVALID_DISCOVERY",
+  "PhaserInvalidDiscoveryError"
+).annotate({ httpApiStatus: 502 })
+
+export type PhaserInvalidDiscoveryError = typeof PhaserInvalidDiscoveryError.Type
+
+/**
+ * PhaserNoTablesDiscovered - Phaser bridge returned no usable tables.
+ */
+export const PhaserNoTablesDiscoveredError = makeError(
+  "PHASER_NO_TABLES_DISCOVERED",
+  "PhaserNoTablesDiscoveredError"
+).annotate({ httpApiStatus: 502 })
+
+export type PhaserNoTablesDiscoveredError = typeof PhaserNoTablesDiscoveredError.Type
 
 // =============================================================================
 // Request Validation Errors
@@ -473,40 +544,16 @@ export type ReadManifestError = typeof ReadManifestError.Type
 /**
  * InvalidPath - Invalid path parameters.
  */
-export const InvalidPathError = makeError(
-  "INVALID_PATH",
-  "InvalidPathError"
-).annotate({ httpApiStatus: 400 })
+export const InvalidPathError = makeError("INVALID_PATH", "InvalidPathError").annotate({ httpApiStatus: 400 })
 
 export type InvalidPathError = typeof InvalidPathError.Type
 
 /**
- * InvalidBody - Invalid request body.
- */
-export const InvalidBodyError = makeError(
-  "INVALID_BODY",
-  "InvalidBodyError"
-).annotate({ httpApiStatus: 400 })
-
-export type InvalidBodyError = typeof InvalidBodyError.Type
-
-/**
- * InvalidPathParams - Invalid request path parameters.
- */
-export const InvalidPathParamsError = makeError(
-  "INVALID_PATH_PARAMS",
-  "InvalidPathParamsError"
-).annotate({ httpApiStatus: 400 })
-
-export type InvalidPathParamsError = typeof InvalidPathParamsError.Type
-
-/**
  * InvalidPayloadFormat - Invalid request payload format.
  */
-export const InvalidPayloadFormatError = makeError(
-  "INVALID_PAYLOAD_FORMAT",
-  "InvalidPayloadFormatError"
-).annotate({ httpApiStatus: 400 })
+export const InvalidPayloadFormatError = makeError("INVALID_PAYLOAD_FORMAT", "InvalidPayloadFormatError").annotate({
+  httpApiStatus: 400
+})
 
 export type InvalidPayloadFormatError = typeof InvalidPayloadFormatError.Type
 
@@ -521,82 +568,34 @@ export const InvalidQueryParametersError = makeError(
 export type InvalidQueryParametersError = typeof InvalidQueryParametersError.Type
 
 /**
- * InvalidRequest - The request is malformed or contains invalid parameters.
- */
-export const InvalidRequestError = makeError(
-  "INVALID_REQUEST",
-  "InvalidRequestError"
-).annotate({ httpApiStatus: 400 })
-
-export type InvalidRequestError = typeof InvalidRequestError.Type
-
-/**
- * InvalidSelector - The provided dataset selector is malformed or invalid.
- */
-export const InvalidSelectorError = makeError(
-  "INVALID_SELECTOR",
-  "InvalidSelectorError"
-).annotate({ httpApiStatus: 400 })
-
-export type InvalidSelectorError = typeof InvalidSelectorError.Type
-
-/**
  * InvalidTableName - Table name does not conform to SQL identifier rules.
  */
-export const InvalidTableNameError = makeError(
-  "INVALID_TABLE_NAME",
-  "InvalidTableNameError"
-).annotate({ httpApiStatus: 400 })
+export const InvalidTableNameError = makeError("INVALID_TABLE_NAME", "InvalidTableNameError").annotate({
+  httpApiStatus: 400
+})
 
 export type InvalidTableNameError = typeof InvalidTableNameError.Type
 
 /**
  * InvalidTableSql - SQL syntax error in table definition.
  */
-export const InvalidTableSqlError = makeError(
-  "INVALID_TABLE_SQL",
-  "InvalidTableSqlError"
-).annotate({ httpApiStatus: 400 })
+export const InvalidTableSqlError = makeError("INVALID_TABLE_SQL", "InvalidTableSqlError").annotate({
+  httpApiStatus: 400
+})
 
 export type InvalidTableSqlError = typeof InvalidTableSqlError.Type
 
 /**
- * InvalidDependencyAliasForTableRef - Invalid dependency alias in table reference.
- */
-export const InvalidDependencyAliasForTableRefError = makeError(
-  "INVALID_DEPENDENCY_ALIAS_FOR_TABLE_REF",
-  "InvalidDependencyAliasForTableRefError"
-).annotate({ httpApiStatus: 400 })
-
-export type InvalidDependencyAliasForTableRefError = typeof InvalidDependencyAliasForTableRefError.Type
-
-/**
- * InvalidDependencyAliasForFunctionRef - Invalid dependency alias in function reference.
- */
-export const InvalidDependencyAliasForFunctionRefError = makeError(
-  "INVALID_DEPENDENCY_ALIAS_FOR_FUNCTION_REF",
-  "InvalidDependencyAliasForFunctionRefError"
-).annotate({ httpApiStatus: 400 })
-
-export type InvalidDependencyAliasForFunctionRefError = typeof InvalidDependencyAliasForFunctionRefError.Type
-
-/**
  * LimitTooLarge - The requested limit exceeds the maximum allowed value.
  */
-export const LimitTooLargeError = makeError(
-  "LIMIT_TOO_LARGE",
-  "LimitTooLargeError"
-).annotate({ httpApiStatus: 400 })
+export const LimitTooLargeError = makeError("LIMIT_TOO_LARGE", "LimitTooLargeError").annotate({ httpApiStatus: 400 })
 
 export type LimitTooLargeError = typeof LimitTooLargeError.Type
 
 /**
  * LimitInvalid - The requested limit is invalid (zero).
  */
-export const LimitInvalidError = makeError(
-  "LIMIT_INVALID",
-  "LimitInvalidError"
-).annotate({ httpApiStatus: 400 })
+export const LimitInvalidError = makeError("LIMIT_INVALID", "LimitInvalidError").annotate({ httpApiStatus: 400 })
 
 export type LimitInvalidError = typeof LimitInvalidError.Type
 
@@ -605,32 +604,11 @@ export type LimitInvalidError = typeof LimitInvalidError.Type
 // =============================================================================
 
 /**
- * MetadataDbError - Database operation failure in the metadata PostgreSQL database.
- */
-export const MetadataDbError = makeError(
-  "METADATA_DB_ERROR",
-  "MetadataDbError"
-).annotate({ httpApiStatus: 500 })
-
-export type MetadataDbError = typeof MetadataDbError.Type
-
-/**
- * PhysicalTableError - Failed to access the physical table metadata.
- */
-export const PhysicalTableError = makeError(
-  "PHYSICAL_TABLE_ERROR",
-  "PhysicalTableError"
-).annotate({ httpApiStatus: 500 })
-
-export type PhysicalTableError = typeof PhysicalTableError.Type
-
-/**
  * ResolveRevisionError - Failed to resolve the dataset revision.
  */
-export const ResolveRevisionError = makeError(
-  "RESOLVE_REVISION_ERROR",
-  "ResolveRevisionError"
-).annotate({ httpApiStatus: 500 })
+export const ResolveRevisionError = makeError("RESOLVE_REVISION_ERROR", "ResolveRevisionError").annotate({
+  httpApiStatus: 500
+})
 
 export type ResolveRevisionError = typeof ResolveRevisionError.Type
 
@@ -645,20 +623,18 @@ export type ResolveRevisionError = typeof ResolveRevisionError.Type
  * - SQL contains LIMIT, ORDER BY, GROUP BY, DISTINCT, window functions
  * - SQL uses outer joins
  */
-export const NonIncrementalQueryError = makeError(
-  "NON_INCREMENTAL_QUERY",
-  "NonIncrementalQueryError"
-).annotate({ httpApiStatus: 400 })
+export const NonIncrementalQueryError = makeError("NON_INCREMENTAL_QUERY", "NonIncrementalQueryError").annotate({
+  httpApiStatus: 400
+})
 
 export type NonIncrementalQueryError = typeof NonIncrementalQueryError.Type
 
 /**
  * SchemaInference - Failed to infer output schema from query.
  */
-export const SchemaInferenceError = makeError(
-  "SCHEMA_INFERENCE",
-  "SchemaInferenceError"
-).annotate({ httpApiStatus: 500 })
+export const SchemaInferenceError = makeError("SCHEMA_INFERENCE", "SchemaInferenceError").annotate({
+  httpApiStatus: 500
+})
 
 export type SchemaInferenceError = typeof SchemaInferenceError.Type
 
@@ -668,7 +644,7 @@ export type SchemaInferenceError = typeof SchemaInferenceError.Type
 export const TableNotFoundInDatasetError = makeError(
   "TABLE_NOT_FOUND_IN_DATASET",
   "TableNotFoundInDatasetError"
-).annotate({ httpApiStatus: 404 })
+).annotate({ httpApiStatus: 400 })
 
 export type TableNotFoundInDatasetError = typeof TableNotFoundInDatasetError.Type
 
@@ -683,38 +659,136 @@ export const TableReferenceResolutionError = makeError(
 export type TableReferenceResolutionError = typeof TableReferenceResolutionError.Type
 
 /**
- * UnqualifiedTable - Table reference is not qualified with a dataset.
+ * CatalogQualifiedTableInNetworkResolution - A catalog-qualified table was encountered while resolving table networks.
  */
-export const UnqualifiedTableError = makeError(
-  "UNQUALIFIED_TABLE",
-  "UnqualifiedTableError"
+export const CatalogQualifiedTableInNetworkResolutionError = makeError(
+  "CATALOG_QUALIFIED_TABLE_IN_NETWORK_RESOLUTION",
+  "CatalogQualifiedTableInNetworkResolutionError"
+).annotate({ httpApiStatus: 500 })
+
+export type CatalogQualifiedTableInNetworkResolutionError = typeof CatalogQualifiedTableInNetworkResolutionError.Type
+
+/**
+ * CyclicDependency - Tables in the request reference each other cyclically.
+ */
+export const CyclicDependencyError = makeError("CYCLIC_DEPENDENCY", "CyclicDependencyError").annotate({
+  httpApiStatus: 400
+})
+
+export type CyclicDependencyError = typeof CyclicDependencyError.Type
+
+/**
+ * DependencyManifestLinkCheck - Failed to verify that a dependency manifest is linked to its dataset.
+ */
+export const DependencyManifestLinkCheckError = makeError(
+  "DEPENDENCY_MANIFEST_LINK_CHECK",
+  "DependencyManifestLinkCheckError"
+).annotate({ httpApiStatus: 500 })
+
+export type DependencyManifestLinkCheckError = typeof DependencyManifestLinkCheckError.Type
+
+/**
+ * DependencyVersionResolution - Failed to resolve the version of a dependency.
+ */
+export const DependencyVersionResolutionError = makeError(
+  "DEPENDENCY_VERSION_RESOLUTION",
+  "DependencyVersionResolutionError"
+).annotate({ httpApiStatus: 500 })
+
+export type DependencyVersionResolutionError = typeof DependencyVersionResolutionError.Type
+
+/**
+ * InvalidPlan - The query plan could not be built from the user-provided SQL.
+ */
+export const InvalidPlanError = makeError("INVALID_PLAN", "InvalidPlanError").annotate({ httpApiStatus: 400 })
+
+export type InvalidPlanError = typeof InvalidPlanError.Type
+
+/**
+ * MissingBlockNum - The table output is missing the required block number column.
+ */
+export const MissingBlockNumError = makeError("MISSING_BLOCK_NUM", "MissingBlockNumError").annotate({
+  httpApiStatus: 400
+})
+
+export type MissingBlockNumError = typeof MissingBlockNumError.Type
+
+/**
+ * MissingTs - The table output is missing the required timestamp column.
+ */
+export const MissingTsError = makeError("MISSING_TS", "MissingTsError").annotate({ httpApiStatus: 400 })
+
+export type MissingTsError = typeof MissingTsError.Type
+
+/**
+ * NoTableReferences - A table query does not reference any table.
+ */
+export const NoTableReferencesError = makeError("NO_TABLE_REFERENCES", "NoTableReferencesError").annotate({
+  httpApiStatus: 400
+})
+
+export type NoTableReferencesError = typeof NoTableReferencesError.Type
+
+/**
+ * SelfReferencingTable - A table query references itself.
+ */
+export const SelfReferencingTableError = makeError("SELF_REFERENCING_TABLE", "SelfReferencingTableError").annotate({
+  httpApiStatus: 400
+})
+
+export type SelfReferencingTableError = typeof SelfReferencingTableError.Type
+
+/**
+ * SelfRefNetworksNotResolved - The networks of a self-referenced table could not be resolved.
+ */
+export const SelfRefNetworksNotResolvedError = makeError(
+  "SELF_REF_NETWORKS_NOT_RESOLVED",
+  "SelfRefNetworksNotResolvedError"
+).annotate({ httpApiStatus: 500 })
+
+export type SelfRefNetworksNotResolvedError = typeof SelfRefNetworksNotResolvedError.Type
+
+/**
+ * SelfRefTableNotFound - A self-referenced table does not exist in the request.
+ */
+export const SelfRefTableNotFoundError = makeError("SELF_REF_TABLE_NOT_FOUND", "SelfRefTableNotFoundError").annotate({
+  httpApiStatus: 400
+})
+
+export type SelfRefTableNotFoundError = typeof SelfRefTableNotFoundError.Type
+
+/**
+ * SessionConfigError - Failed to configure the query session.
+ */
+export const SessionConfigError = makeError("SESSION_CONFIG_ERROR", "SessionConfigError").annotate({
+  httpApiStatus: 500
+})
+
+export type SessionConfigError = typeof SessionConfigError.Type
+
+/**
+ * StaticSourceNotMaterializable - A static dataset source cannot be materialized by a derived table.
+ */
+export const StaticSourceNotMaterializableError = makeError(
+  "STATIC_SOURCE_NOT_MATERIALIZABLE",
+  "StaticSourceNotMaterializableError"
 ).annotate({ httpApiStatus: 400 })
 
-export type UnqualifiedTableError = typeof UnqualifiedTableError.Type
+export type StaticSourceNotMaterializableError = typeof StaticSourceNotMaterializableError.Type
+
+/**
+ * TableReferencesNotResolved - The table references of a query could not be resolved.
+ */
+export const TableReferencesNotResolvedError = makeError(
+  "TABLE_REFERENCES_NOT_RESOLVED",
+  "TableReferencesNotResolvedError"
+).annotate({ httpApiStatus: 500 })
+
+export type TableReferencesNotResolvedError = typeof TableReferencesNotResolvedError.Type
 
 // =============================================================================
 // Scheduler/Worker Errors
 // =============================================================================
-
-/**
- * SchedulerError - Indicates a failure in the job scheduling system.
- */
-export const SchedulerError = makeError(
-  "SCHEDULER_ERROR",
-  "SchedulerError"
-).annotate({ httpApiStatus: 500 })
-
-export type SchedulerError = typeof SchedulerError.Type
-
-/**
- * WorkerNotAvailable - Specified worker not found or inactive.
- */
-export const WorkerNotAvailableError = makeError(
-  "WORKER_NOT_AVAILABLE",
-  "WorkerNotAvailableError"
-).annotate({ httpApiStatus: 400 })
-
-export type WorkerNotAvailableError = typeof WorkerNotAvailableError.Type
 
 /**
  * SchedulerListWorkersError - Failed to list workers from the scheduler.
@@ -731,51 +805,28 @@ export type SchedulerListWorkersError = typeof SchedulerListWorkersError.Type
 // =============================================================================
 
 /**
- * StoreError - Dataset store operation error.
- */
-export const StoreError = makeError(
-  "STORE_ERROR",
-  "StoreError"
-).annotate({ httpApiStatus: 500 })
-
-export type StoreError = typeof StoreError.Type
-
-/**
- * UnsupportedDatasetKind - Dataset kind is not supported.
- */
-export const UnsupportedDatasetKindError = makeError(
-  "UNSUPPORTED_DATASET_KIND",
-  "UnsupportedDatasetKindError"
-).annotate({ httpApiStatus: 400 })
-
-export type UnsupportedDatasetKindError = typeof UnsupportedDatasetKindError.Type
-
-/**
  * VersionTaggingError - Failed to tag version for the dataset.
  */
-export const VersionTaggingError = makeError(
-  "VERSION_TAGGING_ERROR",
-  "VersionTaggingError"
-).annotate({ httpApiStatus: 500 })
+export const VersionTaggingError = makeError("VERSION_TAGGING_ERROR", "VersionTaggingError").annotate({
+  httpApiStatus: 500
+})
 
 export type VersionTaggingError = typeof VersionTaggingError.Type
 
 /**
  * ListAllDatasetsError - Failed to list all datasets from dataset store.
  */
-export const ListAllDatasetsError = makeError(
-  "LIST_ALL_DATASETS_ERROR",
-  "ListAllDatasetsError"
-).annotate({ httpApiStatus: 500 })
+export const ListAllDatasetsError = makeError("LIST_ALL_DATASETS_ERROR", "ListAllDatasetsError").annotate({
+  httpApiStatus: 500
+})
 
 export type ListAllDatasetsError = typeof ListAllDatasetsError.Type
 
 /**
  * ListVersionTagsError - Failed to list version tags from dataset store.
  */
-export const ListVersionTagsError = makeError(
-  "LIST_VERSION_TAGS_ERROR",
-  "ListVersionTagsError"
-).annotate({ httpApiStatus: 500 })
+export const ListVersionTagsError = makeError("LIST_VERSION_TAGS_ERROR", "ListVersionTagsError").annotate({
+  httpApiStatus: 500
+})
 
 export type ListVersionTagsError = typeof ListVersionTagsError.Type

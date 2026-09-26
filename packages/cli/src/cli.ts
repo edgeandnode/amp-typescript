@@ -11,16 +11,14 @@ import PackageJson from "../package.json" with { type: "json" }
 import { AuthCommand } from "./commands/auth.ts"
 import { QueryCommand } from "./commands/query.ts"
 
-const RootCommand = Command.make("amp").pipe(
-  Command.withSubcommands([AuthCommand, QueryCommand])
-)
+const RootCommand = Command.make("amp").pipe(Command.withSubcommands([AuthCommand, QueryCommand]))
 
 const run = Command.run(RootCommand, {
   version: PackageJson["version"]
 })
 
 const CliCacheLayer = Layer.unwrap(
-  Effect.gen(function*() {
+  Effect.gen(function* () {
     const path = yield* Path.Path
 
     const homeDirectory = NodeOS.homedir()
@@ -32,17 +30,8 @@ const CliCacheLayer = Layer.unwrap(
 
 const HttpClientLayer = FetchHttpClient.layer
 
-const AuthLayer = Auth.layer.pipe(
-  Layer.provide(CliCacheLayer),
-  Layer.provide(HttpClientLayer)
-)
+const AuthLayer = Auth.layer.pipe(Layer.provide(CliCacheLayer), Layer.provide(HttpClientLayer))
 
-const MainLayer = Layer.mergeAll(
-  AuthLayer,
-  HttpClientLayer
-).pipe(
-  Layer.provideMerge(NodeServices.layer),
-  Layer.orDie
-)
+const MainLayer = Layer.mergeAll(AuthLayer, HttpClientLayer).pipe(Layer.provideMerge(NodeServices.layer), Layer.orDie)
 
 export const Cli = Effect.provide(run, MainLayer)

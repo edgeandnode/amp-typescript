@@ -46,12 +46,7 @@ const makeHash = (network: string, block: number, epoch: number = 0): BlockHash 
  * Creates a BlockRange for testing.
  * Automatically generates hashes based on network, block numbers, and epoch.
  */
-const makeBlockRange = (
-  network: string,
-  start: number,
-  end: number,
-  epoch: number = 0
-): BlockRange => ({
+const makeBlockRange = (network: string, start: number, end: number, epoch: number = 0): BlockRange => ({
   network: network as Network,
   numbers: {
     start: start as BlockNumber,
@@ -101,11 +96,11 @@ const detectReorgs = (
 
     // Skip identical ranges (watermarks can repeat)
     if (
-      incomingRange.network === prevRange.network &&
-      incomingRange.numbers.start === prevRange.numbers.start &&
-      incomingRange.numbers.end === prevRange.numbers.end &&
-      incomingRange.hash === prevRange.hash &&
-      incomingRange.prevHash === prevRange.prevHash
+      incomingRange.network === prevRange.network
+      && incomingRange.numbers.start === prevRange.numbers.start
+      && incomingRange.numbers.end === prevRange.numbers.end
+      && incomingRange.hash === prevRange.hash
+      && incomingRange.prevHash === prevRange.prevHash
     ) {
       continue
     }
@@ -116,11 +111,7 @@ const detectReorgs = (
     // Detect backwards jump (reorg indicator)
     if (incomingStart < prevEnd + 1) {
       invalidations.push(
-        makeInvalidationRange(
-          incomingRange.network,
-          incomingStart,
-          Math.max(incomingRange.numbers.end, prevEnd)
-        )
+        makeInvalidationRange(incomingRange.network, incomingStart, Math.max(incomingRange.numbers.end, prevEnd))
       )
     }
   }
@@ -140,7 +131,7 @@ describe("detectReorgs", () => {
    * Corresponds to Rust test: reorg_invalidates_affected_batches
    */
   it.effect("detects reorg when backwards jump with hash mismatch occurs", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Previous: blocks 0-10 in epoch 0
       const previous = [makeBlockRange("eth", 0, 10, 0)]
 
@@ -153,13 +144,14 @@ describe("detectReorgs", () => {
       expect(invalidations[0]!.network).toBe("eth")
       expect(invalidations[0]!.start).toBe(5) // Start of reorg
       expect(invalidations[0]!.end).toBe(12) // End covers incoming range
-    }))
+    })
+  )
 
   /**
    * Tests that consecutive blocks with matching hash chains don't trigger reorg.
    */
   it.effect("does not detect reorg for consecutive blocks with matching hashes", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Previous: blocks 0-10 in epoch 0
       const previous = [makeBlockRange("eth", 0, 10, 0)]
 
@@ -169,7 +161,8 @@ describe("detectReorgs", () => {
       const invalidations = detectReorgs(previous, incoming)
 
       expect(invalidations.length).toBe(0)
-    }))
+    })
+  )
 
   /**
    * Tests that watermarks don't invalidate previous batches when block ranges
@@ -178,7 +171,7 @@ describe("detectReorgs", () => {
    * Corresponds to Rust test: reorg_does_not_invalidate_unaffected_batches
    */
   it.effect("does not detect reorg for forward progress", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Previous: blocks 0-10 (finalized by watermark)
       const previous = [makeBlockRange("eth", 0, 10, 0)]
 
@@ -188,19 +181,21 @@ describe("detectReorgs", () => {
       const invalidations = detectReorgs(previous, incoming)
 
       expect(invalidations.length).toBe(0)
-    }))
+    })
+  )
 
   /**
    * Tests identical range handling (watermark repeats).
    */
   it.effect("does not detect reorg for identical ranges (watermark repeat)", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const range = makeBlockRange("eth", 0, 10, 0)
 
       const invalidations = detectReorgs([range], [range])
 
       expect(invalidations.length).toBe(0)
-    }))
+    })
+  )
 })
 
 // =============================================================================
@@ -215,12 +210,9 @@ describe("detectReorgs - multi-network", () => {
    * Corresponds to Rust test: multi_network_reorg_partial_invalidation
    */
   it.effect("detects partial reorg when only one network reorgs", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Previous: both networks at blocks 0-10
-      const previous = [
-        makeBlockRange("eth", 0, 10, 0),
-        makeBlockRange("polygon", 0, 10, 0)
-      ]
+      const previous = [makeBlockRange("eth", 0, 10, 0), makeBlockRange("polygon", 0, 10, 0)]
 
       // Incoming: eth reorgs back to block 5, polygon continues normally
       const incoming = [
@@ -234,31 +226,27 @@ describe("detectReorgs - multi-network", () => {
       expect(invalidations.length).toBe(1)
       expect(invalidations[0]!.network).toBe("eth")
       expect(invalidations[0]!.start).toBe(5)
-    }))
+    })
+  )
 
   /**
    * Tests multi-network reorg where both networks reorg.
    */
   it.effect("detects reorg on both networks when both reorg", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Previous: both networks at blocks 0-10
-      const previous = [
-        makeBlockRange("eth", 0, 10, 0),
-        makeBlockRange("polygon", 0, 10, 0)
-      ]
+      const previous = [makeBlockRange("eth", 0, 10, 0), makeBlockRange("polygon", 0, 10, 0)]
 
       // Incoming: both networks reorg
-      const incoming = [
-        makeBlockRangeWithReorg("eth", 5, 12, 1, 1),
-        makeBlockRangeWithReorg("polygon", 7, 15, 1, 1)
-      ]
+      const incoming = [makeBlockRangeWithReorg("eth", 5, 12, 1, 1), makeBlockRangeWithReorg("polygon", 7, 15, 1, 1)]
 
       const invalidations = detectReorgs(previous, incoming)
 
       expect(invalidations.length).toBe(2)
       expect(invalidations.find((i) => i.network === "eth")).toBeDefined()
       expect(invalidations.find((i) => i.network === "polygon")).toBeDefined()
-    }))
+    })
+  )
 })
 
 // =============================================================================
@@ -267,52 +255,58 @@ describe("detectReorgs - multi-network", () => {
 
 describe("invalidates", () => {
   it.effect("returns true when block range overlaps with invalidation range", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const invalidation = makeInvalidationRange("eth", 10, 20)
       const range = makeBlockRange("eth", 15, 25, 0)
 
       expect(invalidates(invalidation, range)).toBe(true)
-    }))
+    })
+  )
 
   it.effect("returns false when block range is before invalidation range", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const invalidation = makeInvalidationRange("eth", 20, 30)
       const range = makeBlockRange("eth", 5, 15, 0)
 
       expect(invalidates(invalidation, range)).toBe(false)
-    }))
+    })
+  )
 
   it.effect("returns false when block range is after invalidation range", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const invalidation = makeInvalidationRange("eth", 5, 15)
       const range = makeBlockRange("eth", 20, 30, 0)
 
       expect(invalidates(invalidation, range)).toBe(false)
-    }))
+    })
+  )
 
   it.effect("returns false when networks don't match", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const invalidation = makeInvalidationRange("eth", 10, 20)
       const range = makeBlockRange("polygon", 10, 20, 0)
 
       expect(invalidates(invalidation, range)).toBe(false)
-    }))
+    })
+  )
 
   it.effect("returns true when ranges are identical", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const invalidation = makeInvalidationRange("eth", 10, 20)
       const range = makeBlockRange("eth", 10, 20, 0)
 
       expect(invalidates(invalidation, range)).toBe(true)
-    }))
+    })
+  )
 
   it.effect("returns true when invalidation range contains block range", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const invalidation = makeInvalidationRange("eth", 5, 30)
       const range = makeBlockRange("eth", 10, 20, 0)
 
       expect(invalidates(invalidation, range)).toBe(true)
-    }))
+    })
+  )
 })
 
 // =============================================================================
@@ -321,7 +315,7 @@ describe("invalidates", () => {
 
 describe("protocol messages", () => {
   it.effect("creates Data message with records and ranges", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const records = [{ id: 1 }, { id: 2 }]
       const ranges = [makeBlockRange("eth", 0, 10, 0)]
 
@@ -330,20 +324,22 @@ describe("protocol messages", () => {
       expect(message._tag).toBe("Data")
       expect(message.data.length).toBe(2)
       expect(message.ranges.length).toBe(1)
-    }))
+    })
+  )
 
   it.effect("creates Watermark message with ranges", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const ranges = [makeBlockRange("eth", 0, 10, 0)]
 
       const message = watermark(ranges)
 
       expect(message._tag).toBe("Watermark")
       expect(message.ranges.length).toBe(1)
-    }))
+    })
+  )
 
   it.effect("creates Reorg message with previous, incoming, and invalidation", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const previous = [makeBlockRange("eth", 0, 10, 0)]
       const incoming = [makeBlockRangeWithReorg("eth", 5, 12, 1, 1)]
       const invalidation = [makeInvalidationRange("eth", 5, 12)]
@@ -354,7 +350,8 @@ describe("protocol messages", () => {
       expect(message.previous.length).toBe(1)
       expect(message.incoming.length).toBe(1)
       expect(message.invalidation.length).toBe(1)
-    }))
+    })
+  )
 })
 
 // =============================================================================
@@ -371,7 +368,7 @@ describe("deep reorg scenarios", () => {
    * Corresponds to Rust test: reorg_invalidates_multiple_consecutive_batches
    */
   it.effect("calculates invalidation range for deep reorg", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Simulate state after multiple data batches:
       // Previous state shows blocks 31-40 were the last received
       const previous = [makeBlockRange("eth", 31, 40, 0)]
@@ -386,7 +383,8 @@ describe("deep reorg scenarios", () => {
       expect(invalidations[0]!.start).toBe(15) // Reorg point
       // End is max of incoming.end (25) and previous.end (40)
       expect(invalidations[0]!.end).toBe(40)
-    }))
+    })
+  )
 
   /**
    * Tests consecutive reorgs - multiple reorgs in sequence.
@@ -394,7 +392,7 @@ describe("deep reorg scenarios", () => {
    * Corresponds to Rust test: consecutive_reorgs_cumulative_invalidation
    */
   it.effect("handles consecutive reorgs correctly", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // First reorg scenario
       let previous = [makeBlockRange("eth", 21, 30, 0)]
       let incoming = [makeBlockRangeWithReorg("eth", 21, 25, 1, 1)]
@@ -421,7 +419,8 @@ describe("deep reorg scenarios", () => {
       expect(invalidations.length).toBe(1)
       expect(invalidations[0]!.start).toBe(21)
       expect(invalidations[0]!.end).toBe(30)
-    }))
+    })
+  )
 
   /**
    * Tests reorg with backwards jump that succeeds validation.
@@ -429,7 +428,7 @@ describe("deep reorg scenarios", () => {
    * Corresponds to Rust test: reorg_with_backwards_jump_succeeds
    */
   it.effect("detects reorg with backwards jump", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       // Previous: blocks 11-20
       const previous = [makeBlockRange("eth", 11, 20, 0)]
 
@@ -442,7 +441,8 @@ describe("deep reorg scenarios", () => {
       expect(invalidations[0]!.network).toBe("eth")
       expect(invalidations[0]!.start).toBe(15)
       expect(invalidations[0]!.end).toBe(25) // max(incoming.end, previous.end)
-    }))
+    })
+  )
 })
 
 // =============================================================================
@@ -451,17 +451,18 @@ describe("deep reorg scenarios", () => {
 
 describe("edge cases", () => {
   it.effect("handles empty previous ranges (first batch)", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const previous: Array<BlockRange> = []
       const incoming = [makeBlockRange("eth", 0, 10, 0)]
 
       const invalidations = detectReorgs(previous, incoming)
 
       expect(invalidations.length).toBe(0)
-    }))
+    })
+  )
 
   it.effect("handles new network in incoming (no reorg)", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const previous = [makeBlockRange("eth", 0, 10, 0)]
       const incoming = [
         makeBlockRange("eth", 11, 20, 0),
@@ -472,10 +473,11 @@ describe("edge cases", () => {
 
       // New networks don't cause reorg detection (handled by validateNetworks)
       expect(invalidations.length).toBe(0)
-    }))
+    })
+  )
 
   it.effect("handles single block ranges", ({ expect }) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const previous = [makeBlockRange("eth", 10, 10, 0)]
       const incoming = [makeBlockRangeWithReorg("eth", 10, 12, 1, 1)]
 
@@ -484,5 +486,6 @@ describe("edge cases", () => {
       expect(invalidations.length).toBe(1)
       expect(invalidations[0]!.start).toBe(10)
       expect(invalidations[0]!.end).toBe(12)
-    }))
+    })
+  )
 })

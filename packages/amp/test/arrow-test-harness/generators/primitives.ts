@@ -31,7 +31,7 @@ export const nullGenerator: Types.DataGenerator = {
 
 export const boolGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const values: Array<boolean | null> = []
 
@@ -75,7 +75,7 @@ const int64Ranges = {
 
 export const intGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.IntType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
 
@@ -118,11 +118,12 @@ export const intGenerator: Types.DataGenerator = {
       }
 
       const { bitmap, nullCount } = BufferUtils.createValidityBitmap(values)
-      const data = type.bitWidth === 8
-        ? BufferUtils.createInt8DataBuffer(values, type.isSigned)
-        : type.bitWidth === 16
-        ? BufferUtils.createInt16DataBuffer(values, type.isSigned)
-        : BufferUtils.createInt32DataBuffer(values, type.isSigned)
+      const data =
+        type.bitWidth === 8
+          ? BufferUtils.createInt8DataBuffer(values, type.isSigned)
+          : type.bitWidth === 16
+            ? BufferUtils.createInt16DataBuffer(values, type.isSigned)
+            : BufferUtils.createInt32DataBuffer(values, type.isSigned)
 
       return {
         validity: bitmap,
@@ -181,7 +182,7 @@ const FLOAT_RANGES = {
 
 export const floatGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const type = field.type as Schema.FloatingPointType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const includeSpecial = config.includeSpecialFloats ?? false
@@ -209,11 +210,12 @@ export const floatGenerator: Types.DataGenerator = {
       }
 
       const { bitmap, nullCount } = BufferUtils.createValidityBitmap(values)
-      const data = type.precision === "HALF"
-        ? BufferUtils.createFloat16DataBuffer(values)
-        : type.precision === "SINGLE"
-        ? BufferUtils.createFloat32DataBuffer(values)
-        : BufferUtils.createFloat64DataBuffer(values)
+      const data =
+        type.precision === "HALF"
+          ? BufferUtils.createFloat16DataBuffer(values)
+          : type.precision === "SINGLE"
+            ? BufferUtils.createFloat32DataBuffer(values)
+            : BufferUtils.createFloat64DataBuffer(values)
 
       return {
         validity: bitmap,

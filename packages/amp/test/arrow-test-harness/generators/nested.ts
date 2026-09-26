@@ -15,7 +15,7 @@ import * as Types from "../Types.ts"
 
 export const listGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const registry = yield* Types.GeneratorRegistry
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const minItems = config.minLength ?? 0
@@ -36,9 +36,7 @@ export const listGenerator: Types.DataGenerator = {
           offsets.push(currentOffset)
         } else {
           // Handle case where minItems === maxItems (avoids empty range in nextIntBetween)
-          const listLength = minItems === maxItems
-            ? minItems
-            : yield* Random.nextIntBetween(minItems, maxItems)
+          const listLength = minItems === maxItems ? minItems : yield* Random.nextIntBetween(minItems, maxItems)
           currentOffset += listLength
           offsets.push(currentOffset)
           values.push([]) // placeholder
@@ -79,7 +77,7 @@ export const listGenerator: Types.DataGenerator = {
 
 export const largeListGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const registry = yield* Types.GeneratorRegistry
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const minItems = config.minLength ?? 0
@@ -99,9 +97,7 @@ export const largeListGenerator: Types.DataGenerator = {
           offsets.push(currentOffset)
         } else {
           // Handle case where minItems === maxItems (avoids empty range in nextIntBetween)
-          const listLength = minItems === maxItems
-            ? minItems
-            : yield* Random.nextIntBetween(minItems, maxItems)
+          const listLength = minItems === maxItems ? minItems : yield* Random.nextIntBetween(minItems, maxItems)
           currentOffset += BigInt(listLength)
           offsets.push(currentOffset)
           values.push([])
@@ -140,7 +136,7 @@ export const largeListGenerator: Types.DataGenerator = {
 
 export const fixedSizeListGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const registry = yield* Types.GeneratorRegistry
       const type = field.type as Schema.FixedSizeListType
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
@@ -192,7 +188,7 @@ export const fixedSizeListGenerator: Types.DataGenerator = {
 
 export const structGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const registry = yield* Types.GeneratorRegistry
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const nestedConfig = config as Types.NestedFieldConfig
@@ -246,7 +242,7 @@ export const structGenerator: Types.DataGenerator = {
 
 export const mapGenerator: Types.DataGenerator = {
   generate: (field, numRows, config) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const registry = yield* Types.GeneratorRegistry
       const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
       const minItems = config.minLength ?? 0
@@ -268,9 +264,7 @@ export const mapGenerator: Types.DataGenerator = {
           offsets.push(currentOffset)
         } else {
           // Handle case where minItems === maxItems (avoids empty range in nextIntBetween)
-          const mapSize = minItems === maxItems
-            ? minItems
-            : yield* Random.nextIntBetween(minItems, maxItems)
+          const mapSize = minItems === maxItems ? minItems : yield* Random.nextIntBetween(minItems, maxItems)
           currentOffset += mapSize
           offsets.push(currentOffset)
           values.push([])
@@ -329,7 +323,7 @@ export const mapGenerator: Types.DataGenerator = {
 
 export const unionGenerator: Types.DataGenerator = {
   generate: (field, numRows) =>
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const registry = yield* Types.GeneratorRegistry
       const type = field.type as Schema.UnionType
       const isSparse = type.mode === "SPARSE"

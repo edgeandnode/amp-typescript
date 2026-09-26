@@ -41,9 +41,7 @@ export interface BatchStoreService {
    * Lightweight operation — returns only IDs, not batch data.
    * Used to build the DeleteBatchIterator.
    */
-  readonly seek: (
-    range: TransactionIdRange
-  ) => Effect.Effect<ReadonlyArray<TransactionId>, BatchStoreError>
+  readonly seek: (range: TransactionIdRange) => Effect.Effect<ReadonlyArray<TransactionId>, BatchStoreError>
 
   /**
    * Load a single batch by transaction ID.
@@ -61,15 +59,11 @@ export interface BatchStoreService {
    * Deletes all batches with IDs <= cutoff. Must be idempotent.
    * Best-effort — failures are logged but not fatal.
    */
-  readonly prune: (
-    cutoff: TransactionId
-  ) => Effect.Effect<void, BatchStoreError>
+  readonly prune: (cutoff: TransactionId) => Effect.Effect<void, BatchStoreError>
 }
 
 // =============================================================================
 // Context.Tag
 // =============================================================================
 
-export class BatchStore extends Context.Service<BatchStore, BatchStoreService>()(
-  "Amp/CdcStream/BatchStore"
-) {}
+export class BatchStore extends Context.Service<BatchStore, BatchStoreService>()("Amp/CdcStream/BatchStore") {}

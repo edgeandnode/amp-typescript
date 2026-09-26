@@ -46,10 +46,7 @@ export namespace ESTree {
     local: Identifier
   }
 
-  export type ImportDeclarationSpecifier =
-    | ImportSpecifier
-    | ImportDefaultSpecifier
-    | ImportNamespaceSpecifier
+  export type ImportDeclarationSpecifier = ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier
 
   export interface ImportDeclaration extends BaseNode {
     type: "ImportDeclaration"
