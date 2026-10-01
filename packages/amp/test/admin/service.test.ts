@@ -174,6 +174,11 @@ describe("AdminApi", () => {
       assert.strictEqual(manifest.dependencies?.eth.name, "eth_mainnet")
       assert.strictEqual(manifest.tables?.transfers.input.sql, "SELECT * FROM eth.logs")
       assert.strictEqual(manifest.functions?.decode.outputType, "Utf8")
+      assert.deepStrictEqual(manifest.functions?.checksum.inputTypes, [
+        { FixedSizeBinary: 20 },
+        { Timestamp: ["Nanosecond", "+00:00"] }
+      ])
+      assert.deepStrictEqual(manifest.functions?.checksum.outputType, { Decimal128: [38, 0] })
     }).pipe(
       Effect.provide(
         makeLayer({
@@ -194,6 +199,11 @@ describe("AdminApi", () => {
                   inputTypes: ["Binary"],
                   outputType: "Utf8",
                   source: { source: "export default () => ''", filename: "decode.js" }
+                },
+                checksum: {
+                  inputTypes: [{ FixedSizeBinary: 20 }, { Timestamp: ["Nanosecond", "+00:00"] }],
+                  outputType: { Decimal128: [38, 0] },
+                  source: { source: "export default () => 0n", filename: "checksum.js" }
                 }
               }
             }

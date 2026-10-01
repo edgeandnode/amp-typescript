@@ -490,6 +490,20 @@ export const DatasetMetadata = Schema.Struct({
 export type DatasetMetadata = typeof DatasetMetadata.Type
 
 /**
+ * Represents an Apache Arrow data type, as serialized by Amp.
+ *
+ * Types without parameters serialize as a bare string (e.g. `"Int32"`), while
+ * parameterized types serialize as a single-key object mapping the type name
+ * to its parameters (e.g. `{ "FixedSizeBinary": 20 }`).
+ */
+export const ArrowDataType = Schema.Union([Schema.String, Schema.Record(Schema.String, Schema.Unknown)]).annotate({
+  identifier: "ArrowDataType",
+  description: "An Apache Arrow data type.",
+  examples: ["Utf8", { FixedSizeBinary: 20 }, { Timestamp: ["Nanosecond", "+00:00"] }, { Decimal128: [38, 0] }]
+})
+export type ArrowDataType = typeof ArrowDataType.Type
+
+/**
  * Represents the source of a function.
  */
 export const FunctionSource = Schema.Struct({
@@ -506,8 +520,8 @@ export type FunctionSource = typeof FunctionSource.Type
  */
 export const FunctionDefinition = Schema.Struct({
   source: FunctionSource,
-  inputTypes: Schema.Array(Schema.String),
-  outputType: Schema.String
+  inputTypes: Schema.Array(ArrowDataType),
+  outputType: ArrowDataType
 }).annotate({
   identifier: "FunctionDefinition",
   description: "The data required to define of a function."
@@ -700,8 +714,8 @@ export type RawDatasetTable = typeof RawDatasetTable.Type
  */
 export const FunctionManifest = Schema.Struct({
   source: FunctionSource,
-  inputTypes: Schema.Array(Schema.String),
-  outputType: Schema.String
+  inputTypes: Schema.Array(ArrowDataType),
+  outputType: ArrowDataType
 }).annotate({
   identifier: "FunctionManifest",
   description: "Information associated with a function."
