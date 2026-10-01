@@ -8,9 +8,9 @@ import * as Effect from "effect/Effect"
 import * as Redacted from "effect/Redacted"
 import * as Runtime from "effect/Runtime"
 import * as String from "effect/String"
-import * as Argument from "effect/unstable/cli/Argument"
-import * as Command from "effect/unstable/cli/Command"
-import * as Flag from "effect/unstable/cli/Flag"
+import * as Argument from "effect/cli/Argument"
+import * as Command from "effect/cli/Command"
+import * as Flag from "effect/cli/Flag"
 
 export class TokenCommandError extends Data.TaggedError("TokenCommandError")<{
   readonly cause?:

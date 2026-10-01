@@ -5,9 +5,9 @@ import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
-import * as HttpClient from "effect/unstable/http/HttpClient"
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
+import * as HttpClient from "effect/http/HttpClient"
+import * as HttpClientResponse from "effect/http/HttpClientResponse"
+import * as KeyValueStore from "effect/persistence/KeyValueStore"
 
 // Response payloads mirror the serialized shapes of the Amp admin API
 // (see `docs/schemas/openapi/admin.spec.json` in the Amp repository).
@@ -174,6 +174,11 @@ describe("AdminApi", () => {
       assert.strictEqual(manifest.dependencies?.eth.name, "eth_mainnet")
       assert.strictEqual(manifest.tables?.transfers.input.sql, "SELECT * FROM eth.logs")
       assert.strictEqual(manifest.functions?.decode.outputType, "Utf8")
+      assert.deepStrictEqual(manifest.functions?.checksum.inputTypes, [
+        { FixedSizeBinary: 20 },
+        { Timestamp: ["Nanosecond", "+00:00"] }
+      ])
+      assert.deepStrictEqual(manifest.functions?.checksum.outputType, { Decimal128: [38, 0] })
     }).pipe(
       Effect.provide(
         makeLayer({
@@ -194,6 +199,11 @@ describe("AdminApi", () => {
                   inputTypes: ["Binary"],
                   outputType: "Utf8",
                   source: { source: "export default () => ''", filename: "decode.js" }
+                },
+                checksum: {
+                  inputTypes: [{ FixedSizeBinary: 20 }, { Timestamp: ["Nanosecond", "+00:00"] }],
+                  outputType: { Decimal128: [38, 0] },
+                  source: { source: "export default () => 0n", filename: "checksum.js" }
                 }
               }
             }

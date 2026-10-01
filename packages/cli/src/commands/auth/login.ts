@@ -9,8 +9,8 @@ import * as Option from "effect/Option"
 import * as Runtime from "effect/Runtime"
 import * as Schedule from "effect/Schedule"
 import * as String from "effect/String"
-import * as Command from "effect/unstable/cli/Command"
-import * as Prompt from "effect/unstable/cli/Prompt"
+import * as Command from "effect/cli/Command"
+import * as Prompt from "effect/cli/Prompt"
 import Open from "open"
 
 export class LoginCommandError extends Data.TaggedError("LoginCommandError")<{

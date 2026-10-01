@@ -4,8 +4,8 @@ import * as Console from "effect/Console"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Runtime from "effect/Runtime"
-import * as Command from "effect/unstable/cli/Command"
-import * as Prompt from "effect/unstable/cli/Prompt"
+import * as Command from "effect/cli/Command"
+import * as Prompt from "effect/cli/Prompt"
 
 export class LogoutCommandError extends Data.TaggedError("LogoutCommandError")<{
   readonly cause: AuthError.AuthCacheError
