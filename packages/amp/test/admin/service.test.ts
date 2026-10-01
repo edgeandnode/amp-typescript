@@ -5,9 +5,9 @@ import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
-import * as HttpClient from "effect/unstable/http/HttpClient"
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
+import * as HttpClient from "effect/http/HttpClient"
+import * as HttpClientResponse from "effect/http/HttpClientResponse"
+import * as KeyValueStore from "effect/persistence/KeyValueStore"
 
 // Response payloads mirror the serialized shapes of the Amp admin API
 // (see `docs/schemas/openapi/admin.spec.json` in the Amp repository).

@@ -411,7 +411,7 @@ export type SearchMyDatasetsParams = typeof SearchMyDatasetsParams.Type
  * Represents a bearer token header.
  */
 export const BearerAuthHeader = Schema.Struct({
-  Authorization: Schema.String.check(Schema.isStartsWith("Bearer"))
+  Authorization: Schema.String.check(Schema.isStartingWith("Bearer"))
 }).annotate({ identifier: "BearerAuthHeader" })
 export type BearerAuthHeader = typeof BearerAuthHeader.Type
 
