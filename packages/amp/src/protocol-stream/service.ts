@@ -181,9 +181,10 @@ const make = Effect.gen(function* () {
       resumeWatermark: options?.resumeWatermark
     })
 
+    // Start from the resume watermark so reorgs that happened while stopped are detected
     const initialState: ProtocolStreamState = {
-      previous: [],
-      initialized: false
+      previous: options?.resumeWatermark ?? [],
+      initialized: options?.resumeWatermark !== undefined
     }
 
     return rawStream.pipe(
@@ -208,15 +209,17 @@ const make = Effect.gen(function* () {
           // Detect reorgs
           const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
 
-          // Determine message type
-          let message: ProtocolMessage
+          // Determine message types: a reorg is followed by the batch that revealed it
+          const messages: Array<ProtocolMessage> = []
 
           if (invalidations.length > 0) {
-            message = protocolReorg(state.previous, incoming, invalidations)
-          } else if (metadata.rangesComplete && batchData.length === 0) {
-            message = protocolWatermark(incoming)
+            messages.push(protocolReorg(state.previous, incoming, invalidations))
+          }
+
+          if (metadata.rangesComplete && batchData.length === 0) {
+            messages.push(protocolWatermark(incoming))
           } else {
-            message = protocolData(batchData, incoming)
+            messages.push(protocolData(batchData, incoming))
           }
 
           const newState: ProtocolStreamState = {
@@ -224,7 +227,7 @@ const make = Effect.gen(function* () {
             initialized: true
           }
 
-          return [newState, [message]] as const
+          return [newState, messages] as const
         })
       ),
       Stream.withSpan("ProtocolStream.stream")

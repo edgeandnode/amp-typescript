@@ -35,9 +35,11 @@ const makeServiceFromRef = (stateRef: Ref.Ref<StateSnapshot>): StateStoreService
         buffer = buffer.filter(([id]) => id > commitData.prune!)
       }
 
-      // Add new watermarks
+      // Add new watermarks, skipping ones already committed (commit must be idempotent)
       for (const entry of commitData.insert) {
-        buffer.push(entry)
+        if (!buffer.some(([id]) => id === entry[0])) {
+          buffer.push(entry)
+        }
       }
 
       return { ...state, buffer }

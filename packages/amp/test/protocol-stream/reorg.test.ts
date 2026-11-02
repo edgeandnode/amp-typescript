@@ -15,10 +15,21 @@
  * - Multi-network partial reorg detection
  * - Watermark and data message generation
  */
+import { ArrowFlight, type QueryResult } from "@edgeandnode/amp/arrow-flight"
 import type { BlockHash, BlockNumber, BlockRange, Network } from "@edgeandnode/amp/core"
-import { data, invalidates, makeInvalidationRange, reorg, watermark } from "@edgeandnode/amp/protocol-stream"
+import {
+  data,
+  invalidates,
+  layer as protocolStreamLayer,
+  makeInvalidationRange,
+  ProtocolStream,
+  reorg,
+  watermark
+} from "@edgeandnode/amp/protocol-stream"
 import { describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
 
 // =============================================================================
 // Test Helpers - Ported from Rust utils/response.rs
@@ -487,5 +498,84 @@ describe("edge cases", () => {
       expect(invalidations[0]!.start).toBe(10)
       expect(invalidations[0]!.end).toBe(12)
     })
+  )
+})
+
+// =============================================================================
+// ProtocolStream Service Tests
+// =============================================================================
+
+/**
+ * Creates a ProtocolStream layer over a mock ArrowFlight that streams the given batches.
+ */
+const makeProtocolStreamLayer = (batches: ReadonlyArray<QueryResult<Record<string, unknown>>>) =>
+  protocolStreamLayer.pipe(
+    Layer.provide(
+      Layer.succeed(ArrowFlight, {
+        streamQuery: () => Stream.fromIterable(batches)
+      } as unknown as ArrowFlight["Service"])
+    )
+  )
+
+describe("ProtocolStream.stream", () => {
+  it.effect("emits the data of the batch that reveals a reorg", ({ expect }) =>
+    Effect.gen(function* () {
+      const protocolStream = yield* ProtocolStream
+      const messages = yield* protocolStream.stream("SELECT * FROM eth.logs").pipe(Stream.runCollect)
+
+      expect(messages.map((message) => message._tag)).toEqual(["Data", "Watermark", "Reorg", "Data"])
+      const replacement = messages[3]!
+      expect(replacement._tag === "Data" && replacement.data).toEqual([{ block: 5 }, { block: 12 }])
+    }).pipe(
+      Effect.provide(
+        makeProtocolStreamLayer([
+          { data: [{ block: 0 }], metadata: { ranges: [makeBlockRange("eth", 0, 10, 0)], rangesComplete: false } },
+          { data: [], metadata: { ranges: [makeBlockRange("eth", 0, 10, 0)], rangesComplete: true } },
+          {
+            data: [{ block: 5 }, { block: 12 }],
+            metadata: { ranges: [makeBlockRangeWithReorg("eth", 5, 12, 1, 1)], rangesComplete: false }
+          }
+        ])
+      )
+    )
+  )
+
+  it.effect("detects a reorg against the resume watermark", ({ expect }) =>
+    Effect.gen(function* () {
+      const protocolStream = yield* ProtocolStream
+      const messages = yield* protocolStream
+        .stream("SELECT * FROM eth.logs", { resumeWatermark: [makeBlockRange("eth", 0, 10, 0)] })
+        .pipe(Stream.runCollect)
+
+      expect(messages.map((message) => message._tag)).toEqual(["Reorg", "Data"])
+      const reorgMessage = messages[0]!
+      expect(reorgMessage._tag === "Reorg" && reorgMessage.invalidation).toEqual([makeInvalidationRange("eth", 7, 12)])
+    }).pipe(
+      Effect.provide(
+        makeProtocolStreamLayer([
+          {
+            data: [{ block: 7 }],
+            metadata: { ranges: [makeBlockRangeWithReorg("eth", 7, 12, 1, 1)], rangesComplete: false }
+          }
+        ])
+      )
+    )
+  )
+
+  it.effect("resumes without a reorg when the chain continues from the resume watermark", ({ expect }) =>
+    Effect.gen(function* () {
+      const protocolStream = yield* ProtocolStream
+      const messages = yield* protocolStream
+        .stream("SELECT * FROM eth.logs", { resumeWatermark: [makeBlockRange("eth", 0, 10, 0)] })
+        .pipe(Stream.runCollect)
+
+      expect(messages.map((message) => message._tag)).toEqual(["Data"])
+    }).pipe(
+      Effect.provide(
+        makeProtocolStreamLayer([
+          { data: [{ block: 11 }], metadata: { ranges: [makeBlockRange("eth", 11, 20, 0)], rangesComplete: false } }
+        ])
+      )
+    )
   )
 })

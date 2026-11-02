@@ -140,6 +140,22 @@ describe("StateStore.commit", () => {
     )
   )
 
+  it.effect("is idempotent when the same commit is applied twice", () =>
+    Effect.gen(function* () {
+      const store = yield* StateStore
+      const commit = {
+        insert: [[1 as TransactionId, [makeBlockRange("eth", 0, 10)]] as const],
+        prune: undefined
+      }
+
+      yield* store.commit(commit)
+      yield* store.commit(commit)
+
+      const snapshot = yield* store.load
+      expect(snapshot.buffer.map(([id]) => id)).toEqual([1])
+    }).pipe(Effect.provide(InMemoryStateStore.layer))
+  )
+
   it.effect("can insert and prune atomically", () =>
     Effect.gen(function* () {
       const store = yield* StateStore
