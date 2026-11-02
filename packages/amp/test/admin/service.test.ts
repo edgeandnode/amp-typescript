@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import * as HttpClient from "effect/http/HttpClient"
+import * as HttpClientError from "effect/http/HttpClientError"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import * as KeyValueStore from "effect/persistence/KeyValueStore"
 
@@ -345,6 +346,83 @@ describe("AdminApi", () => {
               providers: [{ name: "mainnet-rpc", kind: "evm-rpc", network: "mainnet", url: "http://localhost:8545" }]
             }
           }
+        })
+      )
+    )
+  )
+})
+
+describe("AdminApi failures", () => {
+  const unauthorized = { error_code: "UNAUTHORIZED", error_message: "missing bearer token" }
+
+  it.effect("keeps transport failures as HttpClientError", () =>
+    Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      const reason = yield* admin.getDatasets.pipe(
+        Effect.map(() => "none"),
+        Effect.catchTag("HttpClientError", (error) => Effect.succeed(error.reason._tag))
+      )
+      assert.strictEqual(reason, "TransportError")
+    }).pipe(
+      Effect.provide(
+        AdminApi.layer({ url: "http://localhost:1610" }).pipe(
+          Layer.provide(
+            Layer.succeed(
+              HttpClient.HttpClient,
+              HttpClient.make((request) =>
+                Effect.fail(
+                  new HttpClientError.HttpClientError({
+                    reason: new HttpClientError.TransportError({ request, description: "connection refused" })
+                  })
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+
+  it.effect("keeps an undeclared status as HttpClientError", () =>
+    Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      const error = yield* admin.getJobs().pipe(Effect.flip)
+      assert.strictEqual(error._tag, "HttpClientError")
+    }).pipe(Effect.provide(makeLayer({ "GET /jobs": { status: 502, body: "bad gateway" } })))
+  )
+
+  it.effect("maps a 401 to Unauthorized on every endpoint, whatever its body", () =>
+    Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      const jobs = yield* admin.getJobs().pipe(Effect.flip)
+      assert.strictEqual(jobs._tag, "Unauthorized")
+      const datasets = yield* admin.getDatasets.pipe(Effect.flip)
+      assert.strictEqual(datasets._tag, "Unauthorized")
+      const workers = yield* admin.getWorkers.pipe(Effect.flip)
+      assert.strictEqual(workers._tag, "Unauthorized")
+    }).pipe(
+      Effect.provide(
+        makeLayer({
+          "GET /jobs": { status: 401, body: unauthorized },
+          "GET /datasets": { status: 401 },
+          "GET /workers": { status: 401, body: { _tag: "Unauthorized" } }
+        })
+      )
+    )
+  )
+
+  it.effect("maps a 403 to Forbidden on every endpoint, whatever its body", () =>
+    Effect.gen(function* () {
+      const admin = yield* AdminApi.AdminApi
+      const providers = yield* admin.getProviders.pipe(Effect.flip)
+      assert.strictEqual(providers._tag, "Forbidden")
+      const datasets = yield* admin.getDatasets.pipe(Effect.flip)
+      assert.strictEqual(datasets._tag, "Forbidden")
+    }).pipe(
+      Effect.provide(
+        makeLayer({
+          "GET /providers": { status: 403 },
+          "GET /datasets": { status: 403, body: { error_code: "FORBIDDEN", error_message: "not allowed" } }
         })
       )
     )
