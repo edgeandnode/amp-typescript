@@ -67,7 +67,7 @@ const toProtoFlightData = (
     dataHeader: flightData.dataHeader
   })
 
-const makeCapturingTransport = (capturedSql: { value: string }) =>
+const makeCapturingTransport = (capturedSql: { value: string; headers?: Headers }) =>
   createRouterTransport((router) => {
     const ticket = create(TicketSchema, { ticket: encoder.encode("ticket") })
     const endpoint = create(FlightEndpointSchema, {
@@ -91,7 +91,8 @@ const makeCapturingTransport = (capturedSql: { value: string }) =>
         }
         return messages()
       },
-      getFlightInfo(req) {
+      getFlightInfo(req, context) {
+        capturedSql.headers = context.requestHeader
         if (req.type === FlightDescriptor_DescriptorType.CMD) {
           const any = fromBinary(AnySchema, req.cmd)
           const cmd = anyUnpack(any, CommandStatementQuerySchema)
@@ -134,6 +135,26 @@ describe("ArrowFlight", () => {
       expect(captured.value).toBe("EXPLAIN ANALYZE SELECT 1")
       expect(result.rows).toEqual([])
       expect(result.columns).toEqual([])
+    })
+  )
+
+  it.effect("only sends the amp-stream header when stream is true", ({ expect }) =>
+    Effect.gen(function* () {
+      const captured: { value: string; headers?: Headers } = { value: "" }
+      const transport = makeCapturingTransport(captured)
+      const layer = ArrowFlight.layer.pipe(Layer.provide(Layer.succeed(ArrowFlight.Transport, transport)))
+
+      const headers = yield* Effect.gen(function* () {
+        const flight = yield* ArrowFlight.ArrowFlight
+        yield* flight.query("SELECT 1", { stream: false })
+        const withStreamFalse = captured.headers?.get("amp-stream")
+        yield* flight.query("SELECT 1", { stream: true })
+        const withStreamTrue = captured.headers?.get("amp-stream")
+        return { withStreamFalse, withStreamTrue }
+      }).pipe(Effect.provide(layer))
+
+      expect(headers.withStreamFalse).toBeNull()
+      expect(headers.withStreamTrue).toBe("true")
     })
   )
 
