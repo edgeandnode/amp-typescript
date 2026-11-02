@@ -68,7 +68,9 @@ export const ArrowDataTypeEnum = {
   DURATION: 18,
   LARGE_BINARY: 19,
   LARGE_UTF8: 20,
-  LARGE_LIST: 21
+  LARGE_LIST: 21,
+  BINARY_VIEW: 23,
+  UTF8_VIEW: 24
 } as const
 export type ArrowDataTypeEnum = (typeof ArrowDataTypeEnum)[keyof typeof ArrowDataTypeEnum]
 
@@ -174,9 +176,11 @@ export type ArrowDataType =
   | DecimalType
   | BinaryType
   | LargeBinaryType
+  | BinaryViewType
   | FixedSizeBinaryType
   | Utf8Type
   | LargeUtf8Type
+  | Utf8ViewType
   | DateType
   | TimeType
   | TimestampType
@@ -247,6 +251,16 @@ export interface LargeBinaryType {
 }
 export const LargeBinaryType: LargeBinaryType = { typeId: "large-binary" }
 
+/**
+ * Same as Binary, but each value is stored as a 16-byte view instead of an
+ * offset. Values of 12 bytes or less are inlined in the view, longer values
+ * are referenced by data buffer index and offset.
+ */
+export interface BinaryViewType {
+  readonly typeId: "binary-view"
+}
+export const BinaryViewType: BinaryViewType = { typeId: "binary-view" }
+
 export class FixedSizeBinaryType {
   readonly typeId = "fixed-size-binary"
   readonly byteWidth: number
@@ -264,6 +278,14 @@ export interface LargeUtf8Type {
   readonly typeId: "large-utf8"
 }
 export const LargeUtf8Type: LargeUtf8Type = { typeId: "large-utf8" }
+
+/**
+ * Same as Utf8, but with the view layout of BinaryView.
+ */
+export interface Utf8ViewType {
+  readonly typeId: "utf8-view"
+}
+export const Utf8ViewType: Utf8ViewType = { typeId: "utf8-view" }
 
 export class DateType {
   readonly typeId = "date"
@@ -605,6 +627,9 @@ const parseType = Effect.fn(function* (reader: FlatBufferReader, typeEnum: Arrow
     case ArrowDataTypeEnum.LARGE_BINARY: {
       return LargeBinaryType
     }
+    case ArrowDataTypeEnum.BINARY_VIEW: {
+      return BinaryViewType
+    }
     case ArrowDataTypeEnum.FIXED_SIZE_BINARY: {
       return parseFixedSizeBinaryType(reader, offset)
     }
@@ -613,6 +638,9 @@ const parseType = Effect.fn(function* (reader: FlatBufferReader, typeEnum: Arrow
     }
     case ArrowDataTypeEnum.LARGE_UTF8: {
       return LargeUtf8Type
+    }
+    case ArrowDataTypeEnum.UTF8_VIEW: {
+      return Utf8ViewType
     }
     case ArrowDataTypeEnum.DATE: {
       return parseDateType(reader, offset)

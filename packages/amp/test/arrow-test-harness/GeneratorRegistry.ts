@@ -23,8 +23,10 @@ const generators: Record<string, Types.DataGenerator> = {
   // Strings & Binary
   "utf8": Strings.utf8Generator,
   "large-utf8": Strings.largeUtf8Generator,
+  "utf8-view": Strings.utf8ViewGenerator,
   "binary": Strings.binaryGenerator,
   "large-binary": Strings.largeBinaryGenerator,
+  "binary-view": Strings.binaryViewGenerator,
   "fixed-size-binary": Strings.fixedSizeBinaryGenerator,
 
   // Temporal

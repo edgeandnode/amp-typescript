@@ -124,6 +124,8 @@ export interface GeneratedBuffers {
   readonly offsets: Uint8Array | null
   /** Data buffer containing the actual values */
   readonly data: Uint8Array
+  /** Data buffers that follow `data` (the views) for view types (absent for other types) */
+  readonly variadicBuffers?: ReadonlyArray<Uint8Array>
   /** Child buffers for nested types (empty array for leaf types) */
   readonly children: ReadonlyArray<GeneratedBuffers>
   /** Field node metadata (length and null count) */

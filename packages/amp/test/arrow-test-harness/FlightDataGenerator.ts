@@ -35,9 +35,10 @@ export const generateFlightData = (
     // Collect field nodes and buffers in depth-first order
     const fieldNodes: Array<MessageEncoder.FieldNodeData> = []
     const buffers: Array<{ data: Uint8Array }> = []
+    const variadicBufferCounts: Array<bigint> = []
 
     for (let i = 0; i < schema.fields.length; i++) {
-      collectBuffers(schema.fields[i], columnResults[i], fieldNodes, buffers)
+      collectBuffers(schema.fields[i], columnResults[i], fieldNodes, buffers, variadicBufferCounts)
     }
 
     // Calculate aligned offsets and build body
@@ -67,7 +68,8 @@ export const generateFlightData = (
       BigInt(numRows),
       fieldNodes,
       bufferDescriptors,
-      bodyLength
+      bodyLength,
+      variadicBufferCounts
     )
 
     return {
@@ -89,7 +91,8 @@ const collectBuffers = (
   field: ArrowField,
   result: Types.GeneratedBuffers,
   fieldNodes: Array<MessageEncoder.FieldNodeData>,
-  buffers: Array<{ data: Uint8Array }>
+  buffers: Array<{ data: Uint8Array }>,
+  variadicBufferCounts: Array<bigint>
 ): void => {
   // Add field node
   fieldNodes.push(result.fieldNode)
@@ -112,10 +115,18 @@ const collectBuffers = (
     buffers.push({ data: result.data })
   }
 
+  // Variadic data buffers (for view types)
+  if (result.variadicBuffers !== undefined) {
+    variadicBufferCounts.push(BigInt(result.variadicBuffers.length))
+    for (const data of result.variadicBuffers) {
+      buffers.push({ data })
+    }
+  }
+
   // Recurse into children
   for (let i = 0; i < result.children.length; i++) {
     const childField = field.children[i]
-    collectBuffers(childField, result.children[i], fieldNodes, buffers)
+    collectBuffers(childField, result.children[i], fieldNodes, buffers, variadicBufferCounts)
   }
 }
 
@@ -179,9 +190,10 @@ export const generateMultiBatchFlightData = (
       // Collect field nodes and buffers
       const fieldNodes: Array<MessageEncoder.FieldNodeData> = []
       const buffers: Array<{ data: Uint8Array }> = []
+      const variadicBufferCounts: Array<bigint> = []
 
       for (let i = 0; i < schema.fields.length; i++) {
-        collectBuffers(schema.fields[i], columnResults[i], fieldNodes, buffers)
+        collectBuffers(schema.fields[i], columnResults[i], fieldNodes, buffers, variadicBufferCounts)
       }
 
       // Calculate aligned offsets and build body
@@ -210,7 +222,8 @@ export const generateMultiBatchFlightData = (
         BigInt(numRows),
         fieldNodes,
         bufferDescriptors,
-        bodyLength
+        bodyLength,
+        variadicBufferCounts
       )
 
       batches.push({

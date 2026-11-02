@@ -138,6 +138,59 @@ export const createVariableLengthBuffers = (
 }
 
 // =============================================================================
+// View Buffers
+// =============================================================================
+
+/**
+ * Creates the views and data buffers of a view type (utf8-view, binary-view).
+ * Values of up to 12 bytes are inlined in their 16-byte view. Longer values go
+ * in data buffers of up to `maxDataBufferLength` bytes (unless a single value
+ * is longer), so that columns can span several data buffers.
+ */
+export const createViewBuffers = (
+  values: ReadonlyArray<string | Uint8Array | null>,
+  maxDataBufferLength = 64
+): { views: Uint8Array; dataBuffers: ReadonlyArray<Uint8Array> } => {
+  const encoder = new TextEncoder()
+  const views = new Uint8Array(values.length * 16)
+  const view = new DataView(views.buffer)
+  const chunks: Array<Array<Uint8Array>> = []
+  let chunkLength = 0
+
+  for (let i = 0; i < values.length; i++) {
+    const value = values[i]
+    if (value === null) continue
+    const bytes = typeof value === "string" ? encoder.encode(value) : value
+    view.setInt32(i * 16, bytes.length, true)
+    if (bytes.length <= 12) {
+      views.set(bytes, i * 16 + 4)
+    } else {
+      if (chunks.length === 0 || chunkLength + bytes.length > maxDataBufferLength) {
+        chunks.push([])
+        chunkLength = 0
+      }
+      views.set(bytes.subarray(0, 4), i * 16 + 4)
+      view.setInt32(i * 16 + 8, chunks.length - 1, true)
+      view.setInt32(i * 16 + 12, chunkLength, true)
+      chunks[chunks.length - 1].push(bytes)
+      chunkLength += bytes.length
+    }
+  }
+
+  const dataBuffers = chunks.map((chunk) => {
+    const data = new Uint8Array(align8(chunk.reduce((total, bytes) => total + bytes.length, 0)))
+    let pos = 0
+    for (const bytes of chunk) {
+      data.set(bytes, pos)
+      pos += bytes.length
+    }
+    return data
+  })
+
+  return { views, dataBuffers }
+}
+
+// =============================================================================
 // Fixed-Width Data Buffers
 // =============================================================================
 

@@ -33,6 +33,10 @@ const BYTES_PER_INT32 = 4
 const BYTES_PER_INT64 = 8
 /** Number of bytes per interval (month-day-nano) value: 4 + 4 + 8 = 16 */
 const BYTES_PER_INTERVAL_MONTH_DAY_NANO = 16
+/** Number of bytes per view (utf8-view, binary-view): 4 + 12 = 16 */
+const BYTES_PER_VIEW = 16
+/** Maximum length of a view value that is stored inline in its view */
+const MAX_INLINE_VIEW_LENGTH = 12
 /** Number of bits per byte (for validity bitmap calculations) */
 const BITS_PER_BYTE = 8
 
@@ -847,6 +851,108 @@ export const readFixedSizeBinaryValues = (
 }
 
 // =============================================================================
+// Views
+// =============================================================================
+
+/**
+ * Returns the bytes of the value at `index` in an Arrow view column.
+ *
+ * Each view is 16 bytes, starting with the value's length (32-bit integer):
+ * - Values of up to 12 bytes are stored inline in the remaining 12 bytes.
+ * - Longer values store a 4-byte prefix, then the index of the data buffer
+ *   that holds the value and the value's offset in it (32-bit integers).
+ */
+const getViewBytes = (
+  viewsBuffer: Uint8Array,
+  viewsView: DataView,
+  dataBuffers: ReadonlyArray<Uint8Array>,
+  index: number
+): Uint8Array => {
+  const viewStart = index * BYTES_PER_VIEW
+  const length = viewsView.getInt32(viewStart, true)
+  if (length <= MAX_INLINE_VIEW_LENGTH) {
+    return viewsBuffer.subarray(viewStart + 4, viewStart + 4 + length)
+  }
+  const bufferIndex = viewsView.getInt32(viewStart + 8, true)
+  const offset = viewsView.getInt32(viewStart + 12, true)
+  return dataBuffers[bufferIndex].subarray(offset, offset + length)
+}
+
+/**
+ * Reads UTF-8 encoded string values from an Arrow Utf8View column's buffers.
+ *
+ * Utf8View stores each string as a 16-byte view instead of an offset:
+ * 1. **Validity buffer**: Bitmap indicating which values are non-null
+ * 2. **Views buffer**: One 16-byte view per value, holding strings of up to 12
+ *    bytes inline and pointing into a data buffer for longer ones
+ * 3. **Data buffers**: Zero or more buffers holding the strings that aren't inlined
+ *
+ * @param validityBuffer - The validity bitmap indicating which values are non-null.
+ *   An empty buffer indicates all values are valid.
+ * @param viewsBuffer - The views buffer. Should contain `length * 16` bytes.
+ * @param dataBuffers - The data buffers that views of longer strings point into.
+ * @param length - The number of string values to read.
+ *
+ * @returns An array of string values (or null for invalid entries).
+ *
+ * @see {@link https://arrow.apache.org/docs/format/Columnar.html#variable-size-binary-view-layout | Arrow Variable-Size Binary View Layout}
+ */
+export const readUtf8ViewValues = (
+  validityBuffer: Uint8Array,
+  viewsBuffer: Uint8Array,
+  dataBuffers: ReadonlyArray<Uint8Array>,
+  length: number
+): ReadonlyArray<string | null> => {
+  const validityChecker = createValidityChecker(validityBuffer)
+  const viewsView = new DataView(viewsBuffer.buffer, viewsBuffer.byteOffset, viewsBuffer.byteLength)
+  const values = new Array<string | null>(length)
+  for (let i = 0; i < length; i++) {
+    if (validityChecker(i)) {
+      values[i] = textDecoder.decode(getViewBytes(viewsBuffer, viewsView, dataBuffers, i))
+    } else {
+      values[i] = null
+    }
+  }
+  return values
+}
+
+/**
+ * Reads binary (byte array) values from an Arrow BinaryView column's buffers.
+ *
+ * BinaryView has the same layout as Utf8View, but the data is treated as raw
+ * bytes. The returned arrays are **copies** of the data (via `slice()`).
+ *
+ * @param validityBuffer - The validity bitmap indicating which values are non-null.
+ *   An empty buffer indicates all values are valid.
+ * @param viewsBuffer - The views buffer. Should contain `length * 16` bytes.
+ * @param dataBuffers - The data buffers that views of longer values point into.
+ * @param length - The number of binary values to read.
+ *
+ * @returns An array of `Uint8Array` values (or null for invalid entries). Each
+ *   `Uint8Array` is an independent copy of the binary data.
+ *
+ * @see {@link https://arrow.apache.org/docs/format/Columnar.html#variable-size-binary-view-layout | Arrow Variable-Size Binary View Layout}
+ */
+export const readBinaryViewValues = (
+  validityBuffer: Uint8Array,
+  viewsBuffer: Uint8Array,
+  dataBuffers: ReadonlyArray<Uint8Array>,
+  length: number
+): ReadonlyArray<Uint8Array | null> => {
+  const validityChecker = createValidityChecker(validityBuffer)
+  const viewsView = new DataView(viewsBuffer.buffer, viewsBuffer.byteOffset, viewsBuffer.byteLength)
+  const values = new Array<Uint8Array | null>(length)
+  for (let i = 0; i < length; i++) {
+    if (validityChecker(i)) {
+      values[i] = getViewBytes(viewsBuffer, viewsView, dataBuffers, i).slice()
+    } else {
+      values[i] = null
+    }
+  }
+  return values
+}
+
+// =============================================================================
 // Temporal
 // =============================================================================
 
@@ -1503,7 +1609,7 @@ const readDictionaryEncodedValues = (
  *
  * **Primitive types**: Null, Bool, Int8/16/32/64, UInt8/16/32/64, Float16/32/64, Decimal128/256
  *
- * **String/Binary types**: Utf8, LargeUtf8, Binary, LargeBinary, FixedSizeBinary
+ * **String/Binary types**: Utf8, LargeUtf8, Utf8View, Binary, LargeBinary, BinaryView, FixedSizeBinary
  *
  * **Temporal types**: Date (day/millisecond), Time (second/milli/micro/nano),
  *   Timestamp (second/milli/micro/nano), Duration, Interval (year-month/day-time/month-day-nano)
@@ -1612,11 +1718,17 @@ export const readColumnValues = (column: DecodedColumn, registry?: DictionaryReg
     case "large-utf8": {
       return readLargeUtf8Values(buffers[0], buffers[1], buffers[2], length)
     }
+    case "utf8-view": {
+      return readUtf8ViewValues(buffers[0], buffers[1], buffers.slice(2), length)
+    }
     case "binary": {
       return readBinaryValues(buffers[0], buffers[1], buffers[2], length)
     }
     case "large-binary": {
       return readLargeBinaryValues(buffers[0], buffers[1], buffers[2], length)
+    }
+    case "binary-view": {
+      return readBinaryViewValues(buffers[0], buffers[1], buffers.slice(2), length)
     }
     case "fixed-size-binary": {
       return readFixedSizeBinaryValues(buffers[0], buffers[1], length, type.byteWidth)

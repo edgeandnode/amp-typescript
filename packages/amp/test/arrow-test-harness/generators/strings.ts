@@ -79,6 +79,42 @@ export const largeUtf8Generator: Types.DataGenerator = {
 }
 
 // =============================================================================
+// UTF-8 View Generator
+// =============================================================================
+
+export const utf8ViewGenerator: Types.DataGenerator = {
+  generate: (field, numRows, config) =>
+    Effect.gen(function* () {
+      const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
+      const minLength = config.minLength ?? 0
+      const maxLength = config.maxLength ?? 50
+      const values: Array<string | null> = []
+
+      for (let i = 0; i < numRows; i++) {
+        const isNull = yield* Rand.nextBoolWithProbability(nullRate)
+        if (isNull) {
+          values.push(null)
+        } else {
+          values.push(yield* Rand.nextStringBetween(minLength, maxLength))
+        }
+      }
+
+      const { bitmap, nullCount } = BufferUtils.createValidityBitmap(values)
+      const { dataBuffers, views } = BufferUtils.createViewBuffers(values)
+
+      return {
+        validity: bitmap,
+        offsets: null,
+        data: views,
+        variadicBuffers: dataBuffers,
+        children: [],
+        fieldNode: { length: BigInt(numRows), nullCount: BigInt(nullCount) },
+        values
+      }
+    })
+}
+
+// =============================================================================
 // Binary Generator
 // =============================================================================
 
@@ -141,6 +177,42 @@ export const largeBinaryGenerator: Types.DataGenerator = {
         validity: bitmap,
         offsets,
         data,
+        children: [],
+        fieldNode: { length: BigInt(numRows), nullCount: BigInt(nullCount) },
+        values
+      }
+    })
+}
+
+// =============================================================================
+// Binary View Generator
+// =============================================================================
+
+export const binaryViewGenerator: Types.DataGenerator = {
+  generate: (field, numRows, config) =>
+    Effect.gen(function* () {
+      const nullRate = field.nullable ? (config.nullRate ?? 0.2) : 0
+      const minLength = config.minLength ?? 0
+      const maxLength = config.maxLength ?? 50
+      const values: Array<Uint8Array | null> = []
+
+      for (let i = 0; i < numRows; i++) {
+        const isNull = yield* Rand.nextBoolWithProbability(nullRate)
+        if (isNull) {
+          values.push(null)
+        } else {
+          values.push(yield* Rand.nextBytesBetween(minLength, maxLength))
+        }
+      }
+
+      const { bitmap, nullCount } = BufferUtils.createValidityBitmap(values)
+      const { dataBuffers, views } = BufferUtils.createViewBuffers(values)
+
+      return {
+        validity: bitmap,
+        offsets: null,
+        data: views,
+        variadicBuffers: dataBuffers,
         children: [],
         fieldNode: { length: BigInt(numRows), nullCount: BigInt(nullCount) },
         values

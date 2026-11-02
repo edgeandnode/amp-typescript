@@ -121,7 +121,7 @@ const make = Effect.gen(function* () {
 
       // Setup the query headers
       const headers = new Headers()
-      if (Predicate.isNotUndefined(options?.stream)) {
+      if (options?.stream === true) {
         headers.set("amp-stream", "true")
       }
       if (Predicate.isNotUndefined(options?.resumeWatermark)) {

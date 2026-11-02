@@ -219,6 +219,7 @@ export const decodeRecordBatch = (
 
   let nodeIndex = 0
   let bufferIndex = 0
+  let variadicBufferCountIndex = 0
 
   function decodeField(field: ArrowField): DecodedColumn {
     const node = recordBatch.nodes[nodeIndex++]
@@ -233,6 +234,15 @@ export const decodeRecordBatch = (
     const buffers: Array<Uint8Array> = []
     for (let i = 0; i < bufferTypes.length; i++) {
       buffers.push(extractedBuffers[bufferIndex++])
+    }
+    // View types are followed by a variable number of data buffers, whose
+    // count is given by the record batch's variadic buffer counts
+    const typeId = field.type.typeId
+    if (!field.dictionaryEncoding && (typeId === "utf8-view" || typeId === "binary-view")) {
+      const variadicBufferCount = Number(recordBatch.variadicBufferCounts[variadicBufferCountIndex++])
+      for (let i = 0; i < variadicBufferCount; i++) {
+        buffers.push(extractedBuffers[bufferIndex++])
+      }
     }
 
     // Decode children recursively
