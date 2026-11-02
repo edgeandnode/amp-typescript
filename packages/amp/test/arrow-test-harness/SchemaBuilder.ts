@@ -6,6 +6,7 @@ import {
   ArrowField,
   ArrowSchema,
   BinaryType,
+  BinaryViewType,
   BoolType,
   DateType,
   DateUnit,
@@ -31,7 +32,8 @@ import {
   TimeUnit,
   UnionMode,
   UnionType,
-  Utf8Type
+  Utf8Type,
+  Utf8ViewType
 } from "@edgeandnode/amp/internal/arrow-flight-ipc/Schema"
 
 export class SchemaBuilder {
@@ -102,12 +104,20 @@ export class SchemaBuilder {
     return this.addField(name, LargeUtf8Type, options)
   }
 
+  utf8View(name: string, options?: FieldOptions): this {
+    return this.addField(name, Utf8ViewType, options)
+  }
+
   binary(name: string, options?: FieldOptions): this {
     return this.addField(name, BinaryType, options)
   }
 
   largeBinary(name: string, options?: FieldOptions): this {
     return this.addField(name, LargeBinaryType, options)
+  }
+
+  binaryView(name: string, options?: FieldOptions): this {
+    return this.addField(name, BinaryViewType, options)
   }
 
   fixedSizeBinary(name: string, byteWidth: number, options?: FieldOptions): this {
@@ -339,6 +349,11 @@ export class FieldBuilder {
     return this
   }
 
+  utf8View(): this {
+    this.fieldType = Utf8ViewType
+    return this
+  }
+
   binary(): this {
     this.fieldType = BinaryType
     return this
@@ -346,6 +361,11 @@ export class FieldBuilder {
 
   largeBinary(): this {
     this.fieldType = LargeBinaryType
+    return this
+  }
+
+  binaryView(): this {
+    this.fieldType = BinaryViewType
     return this
   }
 

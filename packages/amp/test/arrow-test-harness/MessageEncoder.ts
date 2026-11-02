@@ -67,7 +67,8 @@ export const encodeRecordBatchMessage = (
   numRows: bigint,
   fieldNodes: ReadonlyArray<FieldNodeData>,
   buffers: ReadonlyArray<BufferData>,
-  bodyLength: bigint
+  bodyLength: bigint,
+  variadicBufferCounts: ReadonlyArray<bigint> = []
 ): Uint8Array => {
   const writer = new FlatBufferWriter()
 
@@ -95,10 +96,20 @@ export const encodeRecordBatchMessage = (
     buffersOffset = writer.writeStructVector(buffersData, 16)
   }
 
+  // Variadic buffer counts (i64 per view-type field)
+  let variadicBufferCountsOffset: number | null = null
+  if (variadicBufferCounts.length > 0) {
+    const countsData = new Uint8Array(variadicBufferCounts.length * 8)
+    const countsView = new DataView(countsData.buffer)
+    variadicBufferCounts.forEach((count, i) => countsView.setBigInt64(i * 8, count, true))
+    variadicBufferCountsOffset = writer.writeStructVector(countsData, 8)
+  }
+
   const rbBuilder = writer.startTable()
   rbBuilder.addInt64(0, numRows)
   if (nodesOffset !== null) rbBuilder.addOffset(1, nodesOffset)
   if (buffersOffset !== null) rbBuilder.addOffset(2, buffersOffset)
+  if (variadicBufferCountsOffset !== null) rbBuilder.addOffset(4, variadicBufferCountsOffset)
   const rbOffset = writer.finishTable(rbBuilder)
 
   const messageBuilder = writer.startTable()
@@ -173,10 +184,14 @@ const encodeType = (writer: FlatBufferWriter, type: ArrowDataType): [ArrowDataTy
       return [ArrowDataTypeEnum.BINARY, emptyTable()]
     case "large-binary":
       return [ArrowDataTypeEnum.LARGE_BINARY, emptyTable()]
+    case "binary-view":
+      return [ArrowDataTypeEnum.BINARY_VIEW, emptyTable()]
     case "utf8":
       return [ArrowDataTypeEnum.UTF8, emptyTable()]
     case "large-utf8":
       return [ArrowDataTypeEnum.LARGE_UTF8, emptyTable()]
+    case "utf8-view":
+      return [ArrowDataTypeEnum.UTF8_VIEW, emptyTable()]
     case "list":
       return [ArrowDataTypeEnum.LIST, emptyTable()]
     case "large-list":

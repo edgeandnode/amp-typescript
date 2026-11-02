@@ -38,7 +38,9 @@ export const BufferType = {
   /** Data buffer containing actual values */
   DATA: 3,
   /** Type IDs for union types */
-  TYPE_ID: 4
+  TYPE_ID: 4,
+  /** 16-byte views for view types (utf8-view, binary-view) */
+  VIEW: 5
 } as const
 export type BufferType = (typeof BufferType)[keyof typeof BufferType]
 
@@ -53,6 +55,7 @@ export type BufferType = (typeof BufferType)[keyof typeof BufferType]
  * - `nodes`: One `FieldNode` per field (including nested), describing validity/length
  * - `buffers`: Buffer locations within the body for all field data
  * - `compression`: Optional compression info
+ * - `variadicBufferCounts`: The number of data buffers of each view-type field
  */
 export class RecordBatch {
   /**
@@ -76,16 +79,24 @@ export class RecordBatch {
    */
   readonly compression: BodyCompression | undefined
 
+  /**
+   * The number of data buffers that follow the views buffer of each view-type
+   * field (utf8-view, binary-view), in the same depth-first order as `nodes`.
+   */
+  readonly variadicBufferCounts: ReadonlyArray<bigint>
+
   constructor(
     length: bigint,
     nodes: ReadonlyArray<FieldNode>,
     buffers: ReadonlyArray<BufferDescriptor>,
-    compression?: BodyCompression | undefined
+    compression?: BodyCompression | undefined,
+    variadicBufferCounts: ReadonlyArray<bigint> = []
   ) {
     this.length = length
     this.nodes = nodes
     this.buffers = buffers
     this.compression = compression
+    this.variadicBufferCounts = variadicBufferCounts
   }
 }
 
@@ -272,6 +283,13 @@ export const getBufferTypesForType = (type: ArrowDataType): ReadonlyArray<Buffer
       return [BufferType.VALIDITY, BufferType.LARGE_OFFSET, BufferType.DATA]
     }
 
+    // View types: validity + views (followed by a variable number of data
+    // buffers, given by the record batch's `variadicBufferCounts`)
+    case "binary-view":
+    case "utf8-view": {
+      return [BufferType.VALIDITY, BufferType.VIEW]
+    }
+
     // List: validity + offsets (children handled separately)
     case "list": {
       return [BufferType.VALIDITY, BufferType.OFFSET]
@@ -373,6 +391,7 @@ export class DecodedColumn {
    * The layout of the buffers depends on the type:
    *   - Primitive: [validity, data]
    *   - Variable-length (utf8, binary): [validity, offsets, data]
+   *   - View (utf8-view, binary-view): [validity, views, ...data]
    *   - List: [validity, offsets] + child buffers
    *   - Struct: [validity] + child buffers
    *   - etc.
@@ -471,6 +490,7 @@ export const parseRecordBatch = Effect.fn(function* (flightData: FlightData) {
  *   1: nodes ([FieldNode]) - one per field in DFS order
  *   2: buffers ([Buffer]) - buffer locations
  *   3: compression (BodyCompression) - optional
+ *   4: variadicBufferCounts ([Int64]) - optional, one per view-type field
  */
 export const parseRecordBatchTable = Effect.fn(function* (reader: FlatBufferReader, offset: number) {
   // Parse length
@@ -523,7 +543,18 @@ export const parseRecordBatchTable = Effect.fn(function* (reader: FlatBufferRead
     compression = parseBodyCompression(reader, compressionOffset)
   }
 
-  return new RecordBatch(length, nodes, buffers, compression)
+  // Parse optional variadic buffer counts
+  const variadicBufferCounts: Array<bigint> = []
+  const variadicBufferCountsPosition = reader.getFieldPosition(offset, 4)
+  if (Predicate.isNotNull(variadicBufferCountsPosition)) {
+    const variadicBufferCountsVectorOffset = reader.readOffset(variadicBufferCountsPosition)
+    const count = reader.readVectorLength(variadicBufferCountsVectorOffset)
+    for (let i = 0; i < count; i++) {
+      variadicBufferCounts.push(reader.readInt64(variadicBufferCountsVectorOffset + 4 + i * 8))
+    }
+  }
+
+  return new RecordBatch(length, nodes, buffers, compression, variadicBufferCounts)
 })
 
 /**

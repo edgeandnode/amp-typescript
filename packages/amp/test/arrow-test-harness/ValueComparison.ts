@@ -92,10 +92,12 @@ const valuesEqual = (type: ArrowDataType, expected: unknown, actual: unknown): b
 
     case "utf8":
     case "large-utf8":
+    case "utf8-view":
       return expected === actual
 
     case "binary":
     case "large-binary":
+    case "binary-view":
     case "fixed-size-binary":
       return uint8ArraysEqual(expected as Uint8Array, actual as Uint8Array)
 

@@ -977,4 +977,77 @@ describe("FlightData roundtrip", () => {
       expect(comparison.success, formatComparisonErrors(comparison.errors)).toBe(true)
     })
   )
+
+  it.effect("utf8-view type", ({ expect }) =>
+    Effect.gen(function* () {
+      const testSchema = SchemaBuilder.schema().utf8View("text").build()
+
+      const generated = yield* FlightDataGenerator.generateFlightData(testSchema, {
+        numRows: 30,
+        seed: 4010,
+        defaultNullRate: 0.2
+      })
+
+      const parsedSchema = yield* parseSchema(generated.schemaFlightData)
+      expect(parsedSchema.fields[0].type.typeId).toBe("utf8-view")
+
+      const recordBatch = yield* parseRecordBatch(generated.recordBatchFlightData)
+      const decoded = decodeRecordBatch(recordBatch, generated.recordBatchFlightData.dataBody, parsedSchema)
+
+      const comparison = verifyDecodedValues(testSchema, decoded, generated.expectedValues)
+      expect(comparison.success, formatComparisonErrors(comparison.errors)).toBe(true)
+    })
+  )
+
+  it.effect("binary-view type", ({ expect }) =>
+    Effect.gen(function* () {
+      const testSchema = SchemaBuilder.schema().binaryView("data").build()
+
+      const generated = yield* FlightDataGenerator.generateFlightData(testSchema, {
+        numRows: 30,
+        seed: 4011,
+        defaultNullRate: 0.2
+      })
+
+      const parsedSchema = yield* parseSchema(generated.schemaFlightData)
+      expect(parsedSchema.fields[0].type.typeId).toBe("binary-view")
+
+      const recordBatch = yield* parseRecordBatch(generated.recordBatchFlightData)
+      const decoded = decodeRecordBatch(recordBatch, generated.recordBatchFlightData.dataBody, parsedSchema)
+
+      const comparison = verifyDecodedValues(testSchema, decoded, generated.expectedValues)
+      expect(comparison.success, formatComparisonErrors(comparison.errors)).toBe(true)
+    })
+  )
+
+  it.effect("multiple and nested view columns", ({ expect }) =>
+    Effect.gen(function* () {
+      const testSchema = SchemaBuilder.schema()
+        .utf8View("text")
+        .list("names", (b) => b.utf8View())
+        .utf8("plain")
+        .binaryView("data")
+        .build()
+
+      const generated = yield* FlightDataGenerator.generateFlightData(testSchema, {
+        numRows: 20,
+        seed: 4012,
+        defaultNullRate: 0.1
+      })
+
+      const parsedSchema = yield* parseSchema(generated.schemaFlightData)
+      const recordBatch = yield* parseRecordBatch(generated.recordBatchFlightData)
+
+      // One count per view-type field, each spanning several data buffers
+      expect(recordBatch.variadicBufferCounts.length).toBe(3)
+      for (const count of recordBatch.variadicBufferCounts) {
+        expect(count).toBeGreaterThan(1n)
+      }
+
+      const decoded = decodeRecordBatch(recordBatch, generated.recordBatchFlightData.dataBody, parsedSchema)
+
+      const comparison = verifyDecodedValues(testSchema, decoded, generated.expectedValues)
+      expect(comparison.success, formatComparisonErrors(comparison.errors)).toBe(true)
+    })
+  )
 })
