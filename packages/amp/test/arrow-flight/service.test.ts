@@ -168,4 +168,33 @@ describe("ArrowFlight", () => {
       expect(results[0]?.data).toEqual([{ bin: toHex(firstExpected) }])
     })
   )
+
+  it.effect("skips keep-alive frames", ({ expect }) =>
+    Effect.gen(function* () {
+      const testSchema = SchemaBuilder.schema().int32("id", { nullable: false }).build()
+
+      const generated = yield* FlightDataGenerator.generateFlightData(testSchema, {
+        numRows: 3,
+        seed: 144
+      })
+
+      const keepAlive = create(FlightDataSchema, {})
+      const transport = makeTransport([
+        keepAlive,
+        toProtoFlightData(generated.schemaFlightData, new Uint8Array(0)),
+        keepAlive,
+        toProtoFlightData(generated.recordBatchFlightData, recordBatchMetadata),
+        keepAlive
+      ])
+      const layer = ArrowFlight.layer.pipe(Layer.provide(Layer.succeed(ArrowFlight.Transport, transport)))
+
+      const results = yield* Effect.gen(function* () {
+        const flight = yield* ArrowFlight.ArrowFlight
+        return yield* flight.query("SELECT id FROM test")
+      }).pipe(Effect.provide(layer))
+
+      expect(results).toHaveLength(1)
+      expect(results[0]?.data).toEqual(generated.expectedValues.id?.map((id) => ({ id })))
+    })
+  )
 })

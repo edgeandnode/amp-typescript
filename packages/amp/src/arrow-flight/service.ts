@@ -169,6 +169,11 @@ const make = Effect.gen(function* () {
       return flightDataStream.pipe(
         Stream.mapEffect(
           Effect.fnUntraced(function* (flightData): Effect.fn.Return<Option.Option<Result>, ArrowFlightError> {
+            // Amp sends keep-alive frames with no IPC message on long-lived streams
+            if (flightData.dataHeader.length === 0) {
+              return Option.none<Result>()
+            }
+
             const messageType = yield* Effect.orDie(getMessageType(flightData))
 
             switch (messageType) {
