@@ -14,11 +14,12 @@ import * as Effect from "effect/Effect"
 import { constUndefined } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 import * as HttpClient from "effect/http/HttpClient"
 import type * as HttpClientError from "effect/http/HttpClientError"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as HttpApiClient from "effect/http-api/HttpApiClient"
-import type * as HttpApiError from "effect/http-api/HttpApiError"
+import * as HttpApiError from "effect/http-api/HttpApiError"
 import type * as KeyValueStore from "effect/persistence/KeyValueStore"
 import * as Auth from "../auth/service.ts"
 import type * as Models from "../core/domain.ts"
@@ -216,6 +217,20 @@ export interface MakeOptions {
   readonly jwt?: string | null | undefined
 }
 
+/**
+ * Keeps HTTP client errors as typed failures, and turns 401 and 403 responses
+ * into `Unauthorized` and `Forbidden` whatever their body, since the Admin API's
+ * error bodies don't decode into them. Schema errors become defects.
+ */
+const handleHttpError = (
+  error: HttpClientError.HttpClientError | Schema.SchemaError
+): Effect.Effect<never, HttpError> => {
+  if (Schema.isSchemaError(error)) return Effect.die(error)
+  if (error.response?.status === 401) return Effect.fail(new HttpApiError.Unauthorized({}))
+  if (error.response?.status === 403) return Effect.fail(new HttpApiError.Forbidden({}))
+  return Effect.fail(error)
+}
+
 const make = Effect.fnUntraced(function* (options: MakeOptions) {
   type Service = typeof AdminApi.Service
 
@@ -255,7 +270,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ params })
       return yield* client.dataset.getDatasetManifest({ params })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   const getDatasetLineage: Service["getDatasetLineage"] = Effect.fn("AdminApi.getDatasetLineage")(
@@ -269,12 +284,12 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ params, query })
       return yield* client.dataset.getDatasetLineage({ params, query })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   const getDatasets: Service["getDatasets"] = client.dataset
     .getDatasets({})
-    .pipe(Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die), Effect.withSpan("AdminApi.getDatasets"))
+    .pipe(Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError), Effect.withSpan("AdminApi.getDatasets"))
 
   const getDatasetVersion: Service["getDatasetVersion"] = Effect.fn("AdminApi.getDatasetVersion")(
     function* (namespace, name, revision) {
@@ -282,7 +297,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ params })
       return yield* client.dataset.getDatasetVersion({ params })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   const getDatasetVersions: Service["getDatasetVersions"] = Effect.fn("AdminApi.getDatasetVersions")(
@@ -291,7 +306,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ params })
       return yield* client.dataset.getDatasetVersions({ params })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   const registerDataset: Service["registerDataset"] = Effect.fn("AdminApi.registerDataset")(
@@ -300,7 +315,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ payload })
       return yield* client.dataset.registerDataset({ payload })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   // Job Operations
@@ -315,7 +330,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ query })
       return yield* client.job.getJobs({ query })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   const getJobById: Service["getJobById"] = Effect.fn("AdminApi.getJobById")(
@@ -324,7 +339,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ params })
       return yield* client.job.getJobById({ params })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   const stopJob: Service["stopJob"] = Effect.fn("AdminApi.stopJob")(
@@ -333,7 +348,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ params })
       return yield* client.job.stopJob({ params })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   const deleteJob: Service["deleteJob"] = Effect.fn("AdminApi.deleteJob")(
@@ -342,20 +357,23 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
       yield* Effect.annotateCurrentSpan({ params })
       return yield* client.job.deleteJob({ params })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   // Worker Operations
 
   const getWorkers: Service["getWorkers"] = client.worker
     .getWorkers({})
-    .pipe(Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die), Effect.withSpan("AdminApi.getWorkers"))
+    .pipe(Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError), Effect.withSpan("AdminApi.getWorkers"))
 
   // Provider Operations
 
   const getProviders: Service["getProviders"] = client.provider
     .getProviders({})
-    .pipe(Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die), Effect.withSpan("AdminApi.getProviders"))
+    .pipe(
+      Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError),
+      Effect.withSpan("AdminApi.getProviders")
+    )
 
   // Manifest Operations
 
@@ -363,7 +381,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
     function* (manifest) {
       return yield* client.manifest.registerManifest({ payload: manifest })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   // Schema Operations
@@ -372,7 +390,7 @@ const make = Effect.fnUntraced(function* (options: MakeOptions) {
     function* (payload) {
       return yield* client.schema.getOutputSchema({ payload })
     },
-    Effect.catchTag(["HttpClientError", "SchemaError"], Effect.die)
+    Effect.catchTag(["HttpClientError", "SchemaError"], handleHttpError)
   )
 
   return AdminApi.of({
