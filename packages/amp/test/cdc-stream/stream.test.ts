@@ -5,9 +5,12 @@
  */
 import { BatchStore, CdcStream, InMemoryBatchStore, layer as cdcStreamLayer } from "@edgeandnode/amp/cdc-stream"
 import type { BlockRange } from "@edgeandnode/amp/core"
+import { makeInvalidationRange, ProtocolStream, type ProtocolMessage } from "@edgeandnode/amp/protocol-stream"
 import {
   type CommitHandle,
   dataEvent,
+  InMemoryStateStore,
+  layer as transactionalStreamLayer,
   rewindCause,
   TransactionalStream,
   type TransactionalStreamService,
@@ -18,6 +21,7 @@ import {
 } from "@edgeandnode/amp/transactional-stream"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
+import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
@@ -392,6 +396,129 @@ describe("CdcStream.forEach", () => {
       // Verify commit was called (forEach auto-commits)
       const committed = yield* Ref.get(commitRef)
       expect(committed).toEqual([1])
+    })
+  )
+})
+
+// =============================================================================
+// Partial Reorg Tests
+// =============================================================================
+
+describe("CdcStream - partial reorg", () => {
+  const batch = (start: number, end: number): Array<ProtocolMessage> => [
+    {
+      _tag: "Data",
+      data: Array.from({ length: end - start + 1 }, (_, i) => ({ block: start + i })),
+      ranges: [makeBlockRange("eth", start, end)]
+    },
+    { _tag: "Watermark", ranges: [makeBlockRange("eth", start, end)] }
+  ]
+
+  const reorg = (start: number, end: number): Array<ProtocolMessage> => [
+    {
+      _tag: "Reorg",
+      previous: [],
+      incoming: [makeBlockRange("eth", start, end)],
+      invalidation: [makeInvalidationRange("eth", start, end)]
+    }
+  ]
+
+  /**
+   * Streams the first connection's messages through the real transactional and CDC layers, then resumes with the
+   * state it committed, serving the remaining connections. Returns the blocks a consumer that applies each Insert
+   * and Delete ends up with, how the resumed session ended, and how many connections it opened.
+   */
+  const run = (retention: number, connections: ReadonlyArray<ReadonlyArray<ProtocolMessage>>) => {
+    let connection = 0
+    const layer = cdcStreamLayer.pipe(
+      Layer.provide(InMemoryBatchStore.layer),
+      Layer.provide(transactionalStreamLayer),
+      Layer.provide(InMemoryStateStore.layer),
+      Layer.provide(
+        Layer.succeed(ProtocolStream, {
+          stream: () => Stream.fromIterable(connections[connection++] ?? [])
+        } as ProtocolStream["Service"])
+      )
+    )
+
+    return Effect.gen(function* () {
+      const cdc = yield* CdcStream
+      const rows = new Map<TransactionId, ReadonlyArray<Record<string, unknown>>>()
+      const consume = cdc.forEach("SELECT * FROM eth.blocks", { retention }, (event) =>
+        Effect.gen(function* () {
+          if (event._tag === "Insert") {
+            rows.set(event.id, event.data)
+            return
+          }
+          let next = yield* event.batches.next
+          while (next !== undefined) {
+            rows.delete(next[0])
+            next = yield* event.batches.next
+          }
+        })
+      )
+
+      yield* consume
+      const error = yield* consume.pipe(Effect.match({ onFailure: identity, onSuccess: () => undefined }))
+
+      return {
+        blocks: [...rows.values()]
+          .flat()
+          .map((row) => row.block as number)
+          .sort((a, b) => a - b),
+        connections: connection,
+        error
+      }
+    }).pipe(Effect.provide(layer))
+  }
+
+  const blocks = (start: number, end: number) => Array.from({ length: end - start + 1 }, (_, i) => start + i)
+
+  it.effect("fails instead of replaying pruned batches when retention is zero", () =>
+    Effect.gen(function* () {
+      const result = yield* run(0, [[...batch(0, 34), ...batch(35, 37)], reorg(36, 38), batch(0, 38)])
+
+      expect(result.error?._tag).toBe("PartialReorgError")
+      expect(result.connections).toBe(2)
+      expect(result.blocks).toEqual(blocks(0, 37))
+    })
+  )
+
+  it.effect("fails instead of replaying pruned batches when the watermark before the reorg was pruned", () =>
+    Effect.gen(function* () {
+      const result = yield* run(128, [
+        [...batch(0, 99), ...batch(100, 199), ...batch(200, 299), ...batch(300, 399)],
+        reorg(150, 400),
+        batch(0, 400)
+      ])
+
+      expect(result.error?._tag).toBe("PartialReorgError")
+      expect(result.connections).toBe(2)
+      expect(result.blocks).toEqual(blocks(0, 399))
+    })
+  )
+
+  it.effect("recovers from a retained watermark", () =>
+    Effect.gen(function* () {
+      const result = yield* run(128, [[...batch(0, 34), ...batch(35, 37)], reorg(36, 38), batch(35, 38)])
+
+      expect(result.error).toBeUndefined()
+      expect(result.connections).toBe(3)
+      expect(result.blocks).toEqual(blocks(0, 38))
+    })
+  )
+
+  it.effect("recovers from a retained watermark after older ones were pruned", () =>
+    Effect.gen(function* () {
+      const result = yield* run(128, [
+        [...batch(0, 99), ...batch(100, 199), ...batch(200, 299), ...batch(300, 399)],
+        reorg(350, 400),
+        batch(300, 400)
+      ])
+
+      expect(result.error).toBeUndefined()
+      expect(result.connections).toBe(3)
+      expect(result.blocks).toEqual(blocks(0, 400))
     })
   )
 })

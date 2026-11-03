@@ -55,7 +55,7 @@ interface StateContainer {
 export type Action =
   | { readonly _tag: "Message"; readonly message: ProtocolMessage }
   | { readonly _tag: "Rewind" }
-  | { readonly _tag: "PartialReorg"; readonly invalidation: ReadonlyArray<InvalidationRange> }
+  | { readonly _tag: "PartialReorg"; readonly error: PartialReorgError }
 
 /**
  * StateActor interface - manages transactional stream state.
@@ -149,7 +149,7 @@ export const makeStateActor = Effect.fnUntraced(function* (
           return executeMessage(id, action.message, containerRef, store, retention)
 
         case "PartialReorg":
-          return executePartialReorg(id, action.invalidation, containerRef, store)
+          return executePartialReorg(id, action.error, containerRef, store)
       }
     })()
 
@@ -342,19 +342,30 @@ const executeReorg = Effect.fnUntraced(function* (
 })
 
 /**
- * Execute a PartialReorg action: undo back to the last watermark before the reorg,
- * or everything if there is none. The stream then reconnects from that watermark.
+ * Execute a PartialReorg action: undo back to the last watermark before the reorg.
+ * The stream then reconnects from that watermark.
+ *
+ * Without one, this fails rather than start over: older watermarks may have been pruned,
+ * and consumers can't undo the pruned data that a full replay would send again.
  */
 const executePartialReorg = Effect.fnUntraced(function* (
   id: TransactionId,
-  invalidation: ReadonlyArray<InvalidationRange>,
+  error: PartialReorgError,
   containerRef: Ref.Ref<StateContainer>,
   store: StateStoreService
-): Effect.fn.Return<TransactionEvent, StateStoreError> {
+): Effect.fn.Return<TransactionEvent, StateStoreError | PartialReorgError> {
   const state = yield* Ref.get(containerRef)
-  const anchor = findResumePoint(state.buffer, invalidation)?.[0]
+  const resumePoint = findResumePoint(state.buffer, error.invalidation)
 
-  return yield* undoReorg(id, anchor, invalidation, containerRef, store)
+  if (resumePoint === undefined) {
+    return yield* new PartialReorgError({
+      reason: "No buffered watermark ends before the reorg to reconnect from",
+      network: error.network,
+      invalidation: error.invalidation
+    })
+  }
+
+  return yield* undoReorg(id, resumePoint[0], error.invalidation, containerRef, store)
 })
 
 /**

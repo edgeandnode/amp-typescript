@@ -42,6 +42,8 @@ export class UnrecoverableReorgError extends Schema.TaggedError<UnrecoverableReo
  * Partial reorg - recovery point doesn't align with invalidation boundary.
  * This occurs when a reorg point falls in the middle of a watermark's block range.
  * TransactionalStream recovers from it by undoing back to an earlier watermark and reconnecting from there.
+ * It only reaches consumers when no buffered watermark ends before the reorg. The stream must then be restarted
+ * with fresh state.
  */
 export class PartialReorgError extends Schema.TaggedError<PartialReorgError>(
   "Amp/TransactionalStream/PartialReorgError"

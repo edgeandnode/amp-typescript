@@ -10,10 +10,12 @@ import {
   layer as transactionalStreamLayer,
   type StateSnapshot,
   TransactionalStream,
+  type TransactionEvent,
   type TransactionId
 } from "@edgeandnode/amp/transactional-stream"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
+import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
 
@@ -73,8 +75,12 @@ const run = (snapshot: StateSnapshot, connections: ReadonlyArray<ReadonlyArray<P
 
   return Effect.gen(function* () {
     const transactionalStream = yield* TransactionalStream
-    const events = yield* transactionalStream.streamTransactional("SELECT * FROM eth.logs").pipe(Stream.runCollect)
-    return { events: events.map(([event]) => event), log }
+    const events: Array<TransactionEvent> = []
+    const error = yield* transactionalStream.streamTransactional("SELECT * FROM eth.logs").pipe(
+      Stream.runForEach(([event]) => Effect.sync(() => events.push(event))),
+      Effect.match({ onFailure: identity, onSuccess: () => undefined })
+    )
+    return { error, events, log }
   }).pipe(Effect.provide(layer))
 }
 
@@ -109,9 +115,9 @@ describe("TransactionalStream.streamTransactional", () => {
     })
   )
 
-  it.effect("starts over when a reorg starts inside the only watermark", () =>
+  it.effect("fails without reconnecting when no watermark ends before the reorg", () =>
     Effect.gen(function* () {
-      const { events, log } = yield* run(
+      const { error, events, log } = yield* run(
         {
           buffer: [[1 as TransactionId, [makeBlockRange(0, 37)]]],
           next: 2 as TransactionId
@@ -119,10 +125,9 @@ describe("TransactionalStream.streamTransactional", () => {
         [[reorg(36, 38), data(36, 38)], [data(0, 38)]]
       )
 
-      expect(log).toEqual(["open 0 from 0-37", "close 0", "open 1 from start", "close 1"])
-      expect(events.map((event) => event._tag)).toEqual(["Undo", "Data"])
-      const undo = events[0]!
-      expect(undo._tag === "Undo" && undo.invalidate).toEqual({ start: 0, end: 2 })
+      expect(error?._tag).toBe("PartialReorgError")
+      expect(log).toEqual(["open 0 from 0-37", "close 0"])
+      expect(events).toEqual([])
     })
   )
 

@@ -5,7 +5,12 @@
  */
 import type { BlockNumber, BlockRange, Network } from "@edgeandnode/amp/core"
 import type { ProtocolMessage } from "@edgeandnode/amp/protocol-stream"
-import { InMemoryStateStore, StateStore, type TransactionId } from "@edgeandnode/amp/transactional-stream"
+import {
+  InMemoryStateStore,
+  PartialReorgError,
+  StateStore,
+  type TransactionId
+} from "@edgeandnode/amp/transactional-stream"
 import { makeStateActor } from "@edgeandnode/amp/transactional-stream/state-actor"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
@@ -469,12 +474,13 @@ describe("StateActor.execute - PartialReorg", () => {
     start: i.start as BlockNumber,
     end: i.end as BlockNumber
   }))
+  const error = new PartialReorgError({ reason: "partial", network: "eth", invalidation })
 
   it.effect("undoes back to the last watermark before the reorg", () =>
     Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
-      const [event] = yield* actor.execute({ _tag: "PartialReorg", invalidation })
+      const [event] = yield* actor.execute({ _tag: "PartialReorg", error })
 
       expect(event._tag).toBe("Undo")
       if (event._tag === "Undo") {
@@ -498,16 +504,17 @@ describe("StateActor.execute - PartialReorg", () => {
     )
   )
 
-  it.effect("undoes everything when no watermark ends before the reorg", () =>
+  it.effect("fails and keeps its watermarks when none ends before the reorg", () =>
     Effect.gen(function* () {
       const store = yield* StateStore
       const actor = yield* makeStateActor(store, 128)
-      const [event] = yield* actor.execute({ _tag: "PartialReorg", invalidation })
+      const failure = yield* Effect.flip(actor.execute({ _tag: "PartialReorg", error }))
 
-      expect(event._tag === "Undo" && event.invalidate).toEqual({ start: 0, end: 1 })
-      expect(yield* actor.watermark).toBeUndefined()
+      expect(failure._tag).toBe("PartialReorgError")
+      expect(failure._tag === "PartialReorgError" && failure.invalidation).toEqual(invalidation)
+      expect((yield* actor.watermark)?.[0]).toBe(1)
       const snapshot = yield* store.load
-      expect(snapshot.buffer).toEqual([])
+      expect(snapshot.buffer.map(([id]) => id)).toEqual([1])
     }).pipe(
       Effect.provide(
         InMemoryStateStore.layerWithState({

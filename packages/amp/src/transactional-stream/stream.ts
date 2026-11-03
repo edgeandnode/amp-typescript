@@ -216,8 +216,8 @@ const make = Effect.gen(function* () {
             Stream.mapEffect((message) => actor.execute({ _tag: "Message", message } as Action)),
             // Amp only re-sends from the reorg point here, not from the start of the watermark it falls in.
             // Undo back to an earlier watermark and reconnect from it, so everything undone gets re-sent.
-            Stream.catchTag("PartialReorgError", ({ invalidation }) =>
-              Stream.fromEffect(actor.execute({ _tag: "PartialReorg", invalidation })).pipe(
+            Stream.catchTag("PartialReorgError", (error) =>
+              Stream.fromEffect(actor.execute({ _tag: "PartialReorg", error })).pipe(
                 Stream.concat(Stream.unwrap(Effect.map(actor.watermark, (last) => connect(last?.[1]))))
               )
             )
