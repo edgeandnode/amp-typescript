@@ -10,12 +10,13 @@
 import * as Effect from "effect/Effect"
 import * as Ref from "effect/Ref"
 import type { BlockRange } from "../core/domain.ts"
-import type { ProtocolMessage } from "../protocol-stream/messages.ts"
+import type { InvalidationRange, ProtocolMessage } from "../protocol-stream/messages.ts"
 import {
   checkPartialReorg,
   compressCommits,
   findPruningPoint,
   findRecoveryPoint,
+  findResumePoint,
   type PendingCommit
 } from "./algorithms.ts"
 import { type CommitHandle, makeCommitHandle } from "./commit-handle.ts"
@@ -51,7 +52,10 @@ interface StateContainer {
 /**
  * Action union for execute().
  */
-export type Action = { readonly _tag: "Message"; readonly message: ProtocolMessage } | { readonly _tag: "Rewind" }
+export type Action =
+  | { readonly _tag: "Message"; readonly message: ProtocolMessage }
+  | { readonly _tag: "Rewind" }
+  | { readonly _tag: "PartialReorg"; readonly invalidation: ReadonlyArray<InvalidationRange> }
 
 /**
  * StateActor interface - manages transactional stream state.
@@ -143,6 +147,9 @@ export const makeStateActor = Effect.fnUntraced(function* (
 
         case "Message":
           return executeMessage(id, action.message, containerRef, store, retention)
+
+        case "PartialReorg":
+          return executePartialReorg(id, action.invalidation, containerRef, store)
       }
     })()
 
@@ -323,13 +330,43 @@ const executeReorg = Effect.fnUntraced(function* (
     if (partialNetwork !== undefined) {
       return yield* new PartialReorgError({
         reason: "Recovery point doesn't align with reorg boundary",
-        network: partialNetwork
+        network: partialNetwork,
+        invalidation
       })
     }
 
     anchor = recoveryId
   }
 
+  return yield* undoReorg(id, anchor, invalidation, containerRef, store)
+})
+
+/**
+ * Execute a PartialReorg action: undo back to the last watermark before the reorg,
+ * or everything if there is none. The stream then reconnects from that watermark.
+ */
+const executePartialReorg = Effect.fnUntraced(function* (
+  id: TransactionId,
+  invalidation: ReadonlyArray<InvalidationRange>,
+  containerRef: Ref.Ref<StateContainer>,
+  store: StateStoreService
+): Effect.fn.Return<TransactionEvent, StateStoreError> {
+  const state = yield* Ref.get(containerRef)
+  const anchor = findResumePoint(state.buffer, invalidation)?.[0]
+
+  return yield* undoReorg(id, anchor, invalidation, containerRef, store)
+})
+
+/**
+ * Undo everything after the anchor because of a reorg.
+ */
+const undoReorg = Effect.fnUntraced(function* (
+  id: TransactionId,
+  anchor: TransactionId | undefined,
+  invalidation: ReadonlyArray<InvalidationRange>,
+  containerRef: Ref.Ref<StateContainer>,
+  store: StateStoreService
+): Effect.fn.Return<TransactionEvent, StateStoreError> {
   // 4. Compute invalidation range and truncate both in-memory and store
   const range = computeInvalidationRange(anchor, id)
 

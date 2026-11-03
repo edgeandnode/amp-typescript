@@ -5,6 +5,7 @@
  */
 import * as Schema from "effect/Schema"
 import type { ProtocolStreamError } from "../protocol-stream/errors.ts"
+import { InvalidationRange } from "../protocol-stream/messages.ts"
 
 // =============================================================================
 // StateStore Errors
@@ -40,13 +41,14 @@ export class UnrecoverableReorgError extends Schema.TaggedError<UnrecoverableReo
 /**
  * Partial reorg - recovery point doesn't align with invalidation boundary.
  * This occurs when a reorg point falls in the middle of a watermark's block range.
- * The stream must be restarted with fresh state.
+ * TransactionalStream recovers from it by undoing back to an earlier watermark and reconnecting from there.
  */
 export class PartialReorgError extends Schema.TaggedError<PartialReorgError>(
   "Amp/TransactionalStream/PartialReorgError"
 )("PartialReorgError", {
   reason: Schema.String,
-  network: Schema.String
+  network: Schema.String,
+  invalidation: Schema.Array(InvalidationRange)
 }) {}
 
 // =============================================================================

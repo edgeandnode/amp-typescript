@@ -463,6 +463,62 @@ describe("StateActor.execute - Reorg", () => {
   )
 })
 
+describe("StateActor.execute - PartialReorg", () => {
+  const invalidation = [{ network: "eth", start: 36, end: 38 }].map((i) => ({
+    network: i.network as Network,
+    start: i.start as BlockNumber,
+    end: i.end as BlockNumber
+  }))
+
+  it.effect("undoes back to the last watermark before the reorg", () =>
+    Effect.gen(function* () {
+      const store = yield* StateStore
+      const actor = yield* makeStateActor(store, 128)
+      const [event] = yield* actor.execute({ _tag: "PartialReorg", invalidation })
+
+      expect(event._tag).toBe("Undo")
+      if (event._tag === "Undo") {
+        expect(event.cause._tag).toBe("Reorg")
+        expect(event.invalidate).toEqual({ start: 2, end: 3 })
+      }
+      const watermark = yield* actor.watermark
+      expect(watermark?.[0]).toBe(1)
+      const snapshot = yield* store.load
+      expect(snapshot.buffer.map(([id]) => id)).toEqual([1])
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [
+            [1 as TransactionId, [makeBlockRange("eth", 0, 34)]],
+            [3 as TransactionId, [makeBlockRange("eth", 35, 37)]]
+          ],
+          next: 4 as TransactionId
+        })
+      )
+    )
+  )
+
+  it.effect("undoes everything when no watermark ends before the reorg", () =>
+    Effect.gen(function* () {
+      const store = yield* StateStore
+      const actor = yield* makeStateActor(store, 128)
+      const [event] = yield* actor.execute({ _tag: "PartialReorg", invalidation })
+
+      expect(event._tag === "Undo" && event.invalidate).toEqual({ start: 0, end: 1 })
+      expect(yield* actor.watermark).toBeUndefined()
+      const snapshot = yield* store.load
+      expect(snapshot.buffer).toEqual([])
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 37)]]],
+          next: 2 as TransactionId
+        })
+      )
+    )
+  )
+})
+
 // =============================================================================
 // Commit Tests
 // =============================================================================

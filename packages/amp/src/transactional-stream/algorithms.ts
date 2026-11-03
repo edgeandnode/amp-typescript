@@ -103,6 +103,36 @@ export const findRecoveryPoint = (
   return undefined
 }
 
+/**
+ * Find the watermark to reconnect from after a partial reorg.
+ *
+ * Amp re-sends everything after the watermark it's resumed from, so this has to be
+ * a watermark whose ranges all end before the reorg point on their network.
+ *
+ * @param buffer - Watermark buffer (oldest to newest)
+ * @param invalidation - Invalidation ranges from the reorg
+ * @returns Last watermark entirely before the reorg [id, ranges], or undefined if there is none
+ */
+export const findResumePoint = (
+  buffer: ReadonlyArray<readonly [TransactionId, ReadonlyArray<BlockRange>]>,
+  invalidation: ReadonlyArray<InvalidationRange>
+): readonly [TransactionId, ReadonlyArray<BlockRange>] | undefined => {
+  for (let i = buffer.length - 1; i >= 0; i--) {
+    const entry = buffer[i]!
+
+    const beforeReorg = entry[1].every((range) => {
+      const inv = invalidation.find(({ network }) => network === range.network)
+      return inv === undefined || range.numbers.end < inv.start
+    })
+
+    if (beforeReorg) {
+      return entry
+    }
+  }
+
+  return undefined
+}
+
 // =============================================================================
 // Pruning Point Algorithm
 // =============================================================================
@@ -197,14 +227,15 @@ export const findPruningPoint = (
 // =============================================================================
 
 /**
- * Check if a reorg is partial (unrecoverable).
+ * Check if a reorg is partial.
  *
  * A partial reorg occurs when the recovery point watermark has a range
  * that partially overlaps with the invalidation - meaning the reorg point
  * falls within a watermark's range, not at its boundary.
  *
  * If we were to ignore this, we would end up with a data gap because we're
- * telling the consumer to invalidate data that won't be replayed.
+ * telling the consumer to invalidate data that won't be replayed. Recovering
+ * takes a reconnect from an earlier watermark (see {@link findResumePoint}).
  *
  * @param recoveryRanges - Block ranges from the recovery point watermark
  * @param invalidation - Invalidation ranges from the reorg
