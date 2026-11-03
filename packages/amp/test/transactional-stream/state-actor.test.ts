@@ -5,7 +5,12 @@
  */
 import type { BlockNumber, BlockRange, Network } from "@edgeandnode/amp/core"
 import type { ProtocolMessage } from "@edgeandnode/amp/protocol-stream"
-import { InMemoryStateStore, StateStore, type TransactionId } from "@edgeandnode/amp/transactional-stream"
+import {
+  InMemoryStateStore,
+  PartialReorgError,
+  StateStore,
+  type TransactionId
+} from "@edgeandnode/amp/transactional-stream"
 import { makeStateActor } from "@edgeandnode/amp/transactional-stream/state-actor"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
@@ -456,6 +461,64 @@ describe("StateActor.execute - Reorg", () => {
       Effect.provide(
         InMemoryStateStore.layerWithState({
           buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 20)]]],
+          next: 2 as TransactionId
+        })
+      )
+    )
+  )
+})
+
+describe("StateActor.execute - PartialReorg", () => {
+  const invalidation = [{ network: "eth", start: 36, end: 38 }].map((i) => ({
+    network: i.network as Network,
+    start: i.start as BlockNumber,
+    end: i.end as BlockNumber
+  }))
+  const error = new PartialReorgError({ reason: "partial", network: "eth", invalidation })
+
+  it.effect("undoes back to the last watermark before the reorg", () =>
+    Effect.gen(function* () {
+      const store = yield* StateStore
+      const actor = yield* makeStateActor(store, 128)
+      const [event] = yield* actor.execute({ _tag: "PartialReorg", error })
+
+      expect(event._tag).toBe("Undo")
+      if (event._tag === "Undo") {
+        expect(event.cause._tag).toBe("Reorg")
+        expect(event.invalidate).toEqual({ start: 2, end: 3 })
+      }
+      const watermark = yield* actor.watermark
+      expect(watermark?.[0]).toBe(1)
+      const snapshot = yield* store.load
+      expect(snapshot.buffer.map(([id]) => id)).toEqual([1])
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [
+            [1 as TransactionId, [makeBlockRange("eth", 0, 34)]],
+            [3 as TransactionId, [makeBlockRange("eth", 35, 37)]]
+          ],
+          next: 4 as TransactionId
+        })
+      )
+    )
+  )
+
+  it.effect("fails and keeps its watermarks when none ends before the reorg", () =>
+    Effect.gen(function* () {
+      const store = yield* StateStore
+      const actor = yield* makeStateActor(store, 128)
+      const failure = yield* Effect.flip(actor.execute({ _tag: "PartialReorg", error }))
+
+      expect(failure._tag).toBe("PartialReorgError")
+      expect(failure._tag === "PartialReorgError" && failure.invalidation).toEqual(invalidation)
+      expect((yield* actor.watermark)?.[0]).toBe(1)
+      const snapshot = yield* store.load
+      expect(snapshot.buffer.map(([id]) => id)).toEqual([1])
+    }).pipe(
+      Effect.provide(
+        InMemoryStateStore.layerWithState({
+          buffer: [[1 as TransactionId, [makeBlockRange("eth", 0, 37)]]],
           next: 2 as TransactionId
         })
       )

@@ -135,5 +135,6 @@ export {
   checkPartialReorg,
   compressCommits,
   findPruningPoint,
-  findRecoveryPoint
+  findRecoveryPoint,
+  findResumePoint
 } from "./transactional-stream/algorithms.ts"

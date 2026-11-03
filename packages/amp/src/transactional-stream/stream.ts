@@ -203,9 +203,26 @@ const make = Effect.gen(function* () {
         const shouldRewind = needsRewind(nextId, lastWatermarkId)
 
         // 5. Get protocol stream with resume cursor
-        const protocolOptions: ProtocolStreamOptions =
-          resumeWatermark !== undefined ? { schema: options?.schema, resumeWatermark } : { schema: options?.schema }
-        const protocolStream = protocolStreamService.stream(sql, protocolOptions)
+        const connect = (
+          from: ReadonlyArray<BlockRange> | undefined
+        ): Stream.Stream<
+          readonly [TransactionEvent, CommitHandle],
+          ProtocolStreamError | StateStoreError | UnrecoverableReorgError | PartialReorgError
+        > => {
+          const protocolOptions: ProtocolStreamOptions =
+            from !== undefined ? { schema: options?.schema, resumeWatermark: from } : { schema: options?.schema }
+
+          return protocolStreamService.stream(sql, protocolOptions).pipe(
+            Stream.mapEffect((message) => actor.execute({ _tag: "Message", message } as Action)),
+            // Amp only re-sends from the reorg point here, not from the start of the watermark it falls in.
+            // Undo back to an earlier watermark and reconnect from it, so everything undone gets re-sent.
+            Stream.catchTag("PartialReorgError", (error) =>
+              Stream.fromEffect(actor.execute({ _tag: "PartialReorg", error })).pipe(
+                Stream.concat(Stream.unwrap(Effect.map(actor.watermark, (last) => connect(last?.[1]))))
+              )
+            )
+          )
+        }
 
         // 6. Build transactional stream
         // First emit Rewind if needed, then map protocol messages through actor
@@ -217,7 +234,7 @@ const make = Effect.gen(function* () {
         const messageStream: Stream.Stream<
           readonly [TransactionEvent, CommitHandle],
           ProtocolStreamError | StateStoreError | UnrecoverableReorgError | PartialReorgError
-        > = protocolStream.pipe(Stream.mapEffect((message) => actor.execute({ _tag: "Message", message } as Action)))
+        > = connect(resumeWatermark)
 
         return Stream.concat(rewindStream, messageStream)
       })

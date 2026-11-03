@@ -10,6 +10,7 @@ import {
   compressCommits,
   findPruningPoint,
   findRecoveryPoint,
+  findResumePoint,
   type TransactionId
 } from "@edgeandnode/amp/transactional-stream"
 import { describe, expect, it } from "vitest"
@@ -115,6 +116,43 @@ describe("findRecoveryPoint", () => {
     // Since no watermarks start at >= 100, all are safe
     const result = findRecoveryPoint(buffer, [makeInvalidation("eth", 100, 110)])
     expect(result?.[0]).toBe(2) // Last watermark is safe
+  })
+})
+
+// =============================================================================
+// findResumePoint Tests
+// =============================================================================
+
+describe("findResumePoint", () => {
+  it("returns the last watermark that ends before the reorg", () => {
+    const buffer = [makeWatermark(1, [makeBlockRange("eth", 0, 34)]), makeWatermark(3, [makeBlockRange("eth", 35, 37)])]
+    const result = findResumePoint(buffer, [makeInvalidation("eth", 36, 38)])
+    expect(result?.[0]).toBe(1)
+  })
+
+  it("returns undefined when no watermark ends before the reorg", () => {
+    const buffer = [makeWatermark(1, [makeBlockRange("eth", 0, 37)])]
+    const result = findResumePoint(buffer, [makeInvalidation("eth", 36, 38)])
+    expect(result).toBeUndefined()
+  })
+
+  it("walks back until every invalidated network ends before the reorg", () => {
+    const buffer = [
+      makeWatermark(1, [makeBlockRange("eth", 0, 29), makeBlockRange("polygon", 0, 94)]),
+      makeWatermark(3, [makeBlockRange("eth", 30, 34), makeBlockRange("polygon", 95, 99)]),
+      makeWatermark(5, [makeBlockRange("eth", 35, 37), makeBlockRange("polygon", 100, 102)])
+    ]
+    const result = findResumePoint(buffer, [makeInvalidation("eth", 36, 38), makeInvalidation("polygon", 97, 103)])
+    expect(result?.[0]).toBe(1)
+  })
+
+  it("ignores networks that aren't invalidated", () => {
+    const buffer = [
+      makeWatermark(1, [makeBlockRange("eth", 0, 34), makeBlockRange("polygon", 0, 99)]),
+      makeWatermark(3, [makeBlockRange("eth", 35, 37), makeBlockRange("polygon", 100, 102)])
+    ]
+    const result = findResumePoint(buffer, [makeInvalidation("eth", 36, 38)])
+    expect(result?.[0]).toBe(1)
   })
 })
 
