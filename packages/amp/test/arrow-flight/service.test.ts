@@ -102,7 +102,92 @@ const makeCapturingTransport = (capturedSql: { value: string }) =>
     })
   })
 
+/**
+ * A transport that records the `amp-stream` header of each `getFlightInfo`
+ * call, and returns no data.
+ */
+const makeHeaderCapturingTransport = (capturedStreamHeaders: Array<string | null>) =>
+  createRouterTransport((router) => {
+    const ticket = create(TicketSchema, { ticket: encoder.encode("ticket") })
+    const endpoint = create(FlightEndpointSchema, {
+      appMetadata: new Uint8Array(0),
+      location: [],
+      ticket
+    })
+    const flightInfo = create(FlightInfoSchema, {
+      appMetadata: new Uint8Array(0),
+      endpoint: [endpoint],
+      ordered: true,
+      schema: new Uint8Array(0),
+      totalBytes: 0n,
+      totalRecords: 0n
+    })
+
+    router.service(FlightService, {
+      doGet() {
+        async function* messages(): AsyncGenerator<FlightData> {}
+        return messages()
+      },
+      getFlightInfo(_req, context) {
+        capturedStreamHeaders.push(context.requestHeader.get("amp-stream"))
+        return flightInfo
+      }
+    })
+  })
+
+/**
+ * The empty message Amp sends every `keep_alive_interval` seconds while a
+ * streaming query waits for new blocks: no data header, body, or app metadata.
+ */
+const keepAlive = (): FlightData => create(FlightDataSchema, {})
+
 describe("ArrowFlight", () => {
+  it.effect("skips keep-alive messages in a stream", ({ expect }) =>
+    Effect.gen(function* () {
+      const testSchema = SchemaBuilder.schema().binary("bin").build()
+
+      const generated = yield* FlightDataGenerator.generateFlightData(testSchema, {
+        defaultNullRate: 0,
+        fields: { bin: { minLength: 3, maxLength: 3 } },
+        numRows: 1,
+        seed: 444
+      })
+
+      const transport = makeTransport([
+        toProtoFlightData(generated.schemaFlightData, new Uint8Array(0)),
+        keepAlive(),
+        toProtoFlightData(generated.recordBatchFlightData, recordBatchMetadata),
+        keepAlive()
+      ])
+      const layer = ArrowFlight.layer.pipe(Layer.provide(Layer.succeed(ArrowFlight.Transport, transport)))
+
+      const results = yield* Effect.gen(function* () {
+        const flight = yield* ArrowFlight.ArrowFlight
+        return yield* flight.query("SELECT bin FROM test", { binaryHandling: "hex" })
+      }).pipe(Effect.provide(layer))
+
+      expect(results).toHaveLength(1)
+      expect(results[0]?.data).toHaveLength(1)
+    })
+  )
+
+  it.effect("sends the amp-stream header as the stream option says", ({ expect }) =>
+    Effect.gen(function* () {
+      const captured: Array<string | null> = []
+      const transport = makeHeaderCapturingTransport(captured)
+      const layer = ArrowFlight.layer.pipe(Layer.provide(Layer.succeed(ArrowFlight.Transport, transport)))
+
+      yield* Effect.gen(function* () {
+        const flight = yield* ArrowFlight.ArrowFlight
+        yield* flight.query("SELECT 1", { stream: true })
+        yield* flight.query("SELECT 1", { stream: false })
+        yield* flight.query("SELECT 1")
+      }).pipe(Effect.provide(layer))
+
+      expect(captured).toEqual(["true", "false", null])
+    })
+  )
+
   it.effect("explain prepends EXPLAIN to the SQL by default", ({ expect }) =>
     Effect.gen(function* () {
       const captured = { value: "" }

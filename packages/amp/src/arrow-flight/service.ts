@@ -121,8 +121,10 @@ const make = Effect.gen(function* () {
 
       // Setup the query headers
       const headers = new Headers()
+      // `amp-stream` overrides the query's `SETTINGS stream`, so send the value
+      // the caller asked for: `stream: false` must run a batch query.
       if (Predicate.isNotUndefined(options?.stream)) {
-        headers.set("amp-stream", "true")
+        headers.set("amp-stream", options.stream ? "true" : "false")
       }
       if (Predicate.isNotUndefined(options?.resumeWatermark)) {
         headers.set("amp-resume", blockRangesToResumeWatermark(options.resumeWatermark))
@@ -169,6 +171,14 @@ const make = Effect.gen(function* () {
       return flightDataStream.pipe(
         Stream.mapEffect(
           Effect.fnUntraced(function* (flightData): Effect.fn.Return<Option.Option<Result>, ArrowFlightError> {
+            // While a streaming query waits for new blocks, Amp sends an empty
+            // keep-alive message (no data header, body, or app metadata) every
+            // `keep_alive_interval` seconds. It isn't part of the result: skip it
+            // instead of parsing an empty flatbuffer, which throws a RangeError.
+            if (flightData.dataHeader.length === 0) {
+              return Option.none<Result>()
+            }
+
             const messageType = yield* Effect.orDie(getMessageType(flightData))
 
             switch (messageType) {
