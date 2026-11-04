@@ -181,10 +181,17 @@ const make = Effect.gen(function* () {
       resumeWatermark: options?.resumeWatermark
     })
 
-    const initialState: ProtocolStreamState = {
-      previous: [],
-      initialized: false
-    }
+    // When resuming, seed the state with the resume watermark. The server checks
+    // the cursor's hash and, if the chain reorganized while the client was away,
+    // re-sends the replaced blocks with a range that jumps back before the
+    // cursor. Comparing the first batch against the cursor is the only way to
+    // detect that reorg: without it, the re-sent rows arrive as plain `Data` and
+    // the client keeps both the orphaned and the replacement rows.
+    const resumeWatermark = options?.resumeWatermark
+    const initialState: ProtocolStreamState =
+      resumeWatermark !== undefined && resumeWatermark.length > 0
+        ? { previous: resumeWatermark, initialized: true }
+        : { previous: [], initialized: false }
 
     return rawStream.pipe(
       // Map Arrow Flight errors to protocol errors
@@ -208,15 +215,22 @@ const make = Effect.gen(function* () {
           // Detect reorgs
           const invalidations = state.initialized ? detectReorgs(state.previous, incoming) : []
 
-          // Determine message type
-          let message: ProtocolMessage
+          // Determine the messages for this batch
+          const messages: Array<ProtocolMessage> = []
 
           if (invalidations.length > 0) {
-            message = protocolReorg(state.previous, incoming, invalidations)
-          } else if (metadata.rangesComplete && batchData.length === 0) {
-            message = protocolWatermark(incoming)
-          } else {
-            message = protocolData(batchData, incoming)
+            messages.push(protocolReorg(state.previous, incoming, invalidations))
+          }
+
+          // The batch that reveals a reorg carries the replacement blocks' rows
+          // (or, for a range without rows, its completion marker). Emit them after
+          // the `Reorg` instead of dropping them.
+          if (batchData.length > 0) {
+            messages.push(protocolData(batchData, incoming))
+          } else if (metadata.rangesComplete) {
+            messages.push(protocolWatermark(incoming))
+          } else if (invalidations.length === 0) {
+            messages.push(protocolData(batchData, incoming))
           }
 
           const newState: ProtocolStreamState = {
@@ -224,7 +238,7 @@ const make = Effect.gen(function* () {
             initialized: true
           }
 
-          return [newState, [message]] as const
+          return [newState, messages] as const
         })
       ),
       Stream.withSpan("ProtocolStream.stream")
